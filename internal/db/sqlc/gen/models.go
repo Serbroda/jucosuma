@@ -9,11 +9,16 @@ import (
 )
 
 type Contract struct {
-	ID        int64      `db:"id" json:"id"`
-	Name      string     `db:"name" json:"name"`
-	CreatedAt *time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt *time.Time `db:"updated_at" json:"updated_at"`
-	DeletedAt *time.Time `db:"deleted_at" json:"deleted_at"`
+	ID         int64      `db:"id" json:"id"`
+	Name       string     `db:"name" json:"name"`
+	Company    *string    `db:"company" json:"company"`
+	Category   string     `db:"category" json:"category"`
+	Costs      *float64   `db:"costs" json:"costs"`
+	IconUrl    *string    `db:"icon_url" json:"icon_url"`
+	IconSource *string    `db:"icon_source" json:"icon_source"`
+	CreatedAt  *time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt  *time.Time `db:"updated_at" json:"updated_at"`
+	DeletedAt  *time.Time `db:"deleted_at" json:"deleted_at"`
 }
 
 type Document struct {

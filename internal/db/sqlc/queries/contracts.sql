@@ -1,0 +1,35 @@
+-- name: InsertContract :one
+INSERT INTO contracts (created_at,
+                       updated_at,
+                       name,
+                       company,
+                       category,
+                       costs,
+                       icon_source)
+VALUES (CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP,
+        LOWER(sqlc.arg('name')),
+        LOWER(sqlc.arg('company')),
+        LOWER(sqlc.arg('category')),
+        LOWER(sqlc.arg('costs')),
+        LOWER(sqlc.arg('icon_source'))) RETURNING *
+;
+
+-- name: FindContractById :one
+SELECT *
+FROM contracts
+WHERE id = ?
+  AND deleted_at IS NULL LIMIT 1
+;
+
+-- name: FindAllContracts :many
+SELECT *
+FROM contracts
+WHERE deleted_at IS NULL
+;
+
+-- name: DeleteContractSoft :exec
+UPDATE contracts
+SET deleted_at = CURRENT_TIMESTAMP
+WHERE id = ?
+;
