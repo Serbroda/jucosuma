@@ -1,0 +1,16 @@
+version: 2
+sql:
+  - schema: "../migrations/sqlite"
+    queries: "./queries"
+    engine: "sqlite"
+    gen:
+      go:
+        package: "sqlc"
+        out: "./gen"
+        emit_db_tags: true
+        emit_json_tags: true
+        emit_pointers_for_null_types: true
+        emit_all_enum_values: true
+        overrides:
+          - go_struct_tag: 'json:"-"'
+            column: '*.password'

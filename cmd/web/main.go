@@ -3,14 +3,15 @@ package main
 import (
 	"flag"
 	"github.com/Serbroda/contracts/internal/db"
-	"github.com/Serbroda/contracts/internal/models"
+	"github.com/Serbroda/contracts/internal/db/migrations"
+	sqlc "github.com/Serbroda/contracts/internal/db/sqlc/gen"
 	_ "github.com/glebarez/sqlite"
 	"log"
 	"net/http"
 )
 
 type application struct {
-	contracts *models.ContractModel
+	queries *sqlc.Queries
 }
 
 func main() {
@@ -24,10 +25,10 @@ func main() {
 	}
 	defer dbConn.Close()
 
-	db.Migrate(dbConn, "sqlite", db.MigrationsCommon, db.MigrationsCommonDir)
+	db.Migrate(dbConn, "sqlite", migrations.MigrationsCommon, migrations.MigrationsCommonDir)
 
 	app := application{
-		contracts: &models.ContractModel{DB: dbConn},
+		queries: sqlc.New(dbConn),
 	}
 
 	log.Printf("Starting server on %s", *addr)
