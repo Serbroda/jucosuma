@@ -149,4 +149,6 @@ fabric.properties
 # End of https://www.toptal.com/developers/gitignore/api/git,visualstudiocode,go,goland+all
 
 tmp/
+bin/
 .air.toml
+*.db
