@@ -1,40 +1,58 @@
 {{define "title"}}Home{{end}}
 
 {{define "main"}}
-<div class="overflow-x-auto rounded-box border border-base-content/5 bg-base-100">
-    <table class="table">
-        <!-- head -->
-        <thead>
-        <tr>
-            <th></th>
-            <th>Name</th>
-            <th>Job</th>
-            <th>Favorite Color</th>
-        </tr>
-        </thead>
-        <tbody>
-        <!-- row 1 -->
-        <tr>
-            <th>1</th>
-            <td>Cy Ganderton</td>
-            <td>Quality Control Specialist</td>
-            <td>Blue</td>
-        </tr>
-        <!-- row 2 -->
-        <tr>
-            <th>2</th>
-            <td>Hart Hagerty</td>
-            <td>Desktop Support Technician</td>
-            <td>Purple</td>
-        </tr>
-        <!-- row 3 -->
-        <tr>
-            <th>3</th>
-            <td>Brice Swyre</td>
-            <td>Tax Accountant</td>
-            <td>Red</td>
-        </tr>
-        </tbody>
-    </table>
-</div>
+
+<h1 class="text-lg pb-10">Contracts</h1>
+
+<ul class="list bg-base-100 rounded-box shadow-md">
+
+    <li>
+        <a href="/" class="list-row hover:bg-base-300">
+            <div><img class="w-14 rounded-box" src="https://img.daisyui.com/images/profile/demo/1@94.webp"/></div>
+            <div>
+                <div>Dio Lupa</div>
+                <div class="text-xs uppercase font-semibold opacity-60">Remaining Reason</div>
+            </div>
+            <button class="btn btn-square btn-ghost">
+                <svg class="w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/>
+                </svg>
+            </button>
+        </a>
+    </li>
+
+    <li>
+        <a href="/" class="list-row hover:bg-base-300">
+            <div><img class="w-14 rounded-box" src="https://img.daisyui.com/images/profile/demo/4@94.webp"/></div>
+            <div>
+                <div>Ellie Beilish</div>
+                <div class="text-xs uppercase font-semibold opacity-60">Bears of a fever</div>
+            </div>
+            <button class="btn btn-square btn-ghost">
+                <svg class="w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/>
+                </svg>
+            </button>
+        </a>
+    </li>
+
+    <li>
+        <a href="/" class="list-row hover:bg-base-300">
+            <div><img class="w-14 rounded-box" src="https://img.daisyui.com/images/profile/demo/3@94.webp"/></div>
+            <div>
+                <div>Sabrino Gardener</div>
+                <div class="text-xs uppercase font-semibold opacity-60">Cappuccino</div>
+            </div>
+            <button class="btn btn-square btn-ghost">
+                <svg class="w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/>
+                </svg>
+            </button>
+        </a>
+    </li>
+
+</ul>
 {{end}}
