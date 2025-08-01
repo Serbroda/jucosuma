@@ -6,30 +6,52 @@ import (
 	"github.com/Serbroda/contracts/internal/utils"
 	"html/template"
 	"net/http"
+	"strconv"
 )
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
-	files := []string{
-		"./ui/html/base.tmpl.html",
-		"./ui/html/pages/home.tmpl.html",
-	}
-
-	ts, err := template.ParseFiles(files...)
+	contracts, err := app.queries.FindAllContracts(r.Context())
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
 
-	contracts, err := app.queries.FindAllContracts(r.Context())
-	if err != nil {
-		app.serverError(w, r, err)
-	}
-
-	err = ts.ExecuteTemplate(w, "base", struct {
+	err = render(w, []string{
+		"./ui/html/base.tmpl.html",
+		"./ui/html/pages/home.tmpl.html",
+	}, struct {
 		Contracts []sqlc.Contract
 	}{
 		Contracts: contracts,
 	})
+
+	if err != nil {
+		app.serverError(w, r, err)
+	}
+}
+
+func (app *application) contract(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || id < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	contract, err := app.queries.FindContractById(r.Context(), int64(id))
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	err = render(w, []string{
+		"./ui/html/base.tmpl.html",
+		"./ui/html/pages/contract.tmpl.html",
+	}, struct {
+		Contract sqlc.Contract
+	}{
+		Contract: contract,
+	})
+
 	if err != nil {
 		app.serverError(w, r, err)
 	}
@@ -67,4 +89,17 @@ func (app *application) apiLogos(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(logos); err != nil {
 		app.serverError(w, r, err)
 	}
+}
+
+func render(w http.ResponseWriter, files []string, data any) error {
+	ts, err := template.ParseFiles(files...)
+	if err != nil {
+		return err
+	}
+
+	err = ts.ExecuteTemplate(w, "base", data)
+	if err != nil {
+		return err
+	}
+	return nil
 }

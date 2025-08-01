@@ -2,19 +2,19 @@
 
 {{define "main"}}
 
-<h1 class="text-lg pb-10">Contracts</h1>
+<h1 class="text-3xl pb-4">Contracts</h1>
 
 <ul class="list bg-base-100 rounded-box shadow-md">
 
     {{range .Contracts}}
     <li>
-        <a href="/" class="list-row hover:bg-base-300">
+        <a href="/contracts/{{ .ID }}" class="list-row hover:bg-base-300">
             <div><img class="w-10 rounded-box" src="{{ .IconSource }}"/></div>
             <div>
                 <div>{{ .Name }}</div>
                 <div class="text-xs uppercase font-semibold opacity-60">{{ .Company }} - {{ .Category }}</div>
             </div>
-            <div class="badge badge-neutral h-full">{{ .Costs }} €</div>
+            <div class="badge badge-neutral !text-white h-full">{{ .Costs }} €</div>
             <button class="btn btn-square btn-ghost">
                 <svg class="w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                      stroke="currentColor">
