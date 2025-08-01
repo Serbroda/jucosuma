@@ -5,28 +5,54 @@
 <dialog id="my_modal_1" class="modal">
     <div class="modal-box">
         <h3 class="text-lg font-bold pb-2">Icon Search</h3>
-        <input
-                type="text"
-                name="term"
-                placeholder="Type here"
-                class="input w-full"
-                hx-get="/api/icons"
-                hx-trigger="keyup changed delay:300ms"
-                hx-target="#icon-results"
-                hx-swap="innerHTML"
-        />
+
+        <div class="flex gap-2">
+            <!-- Input triggert die Suche nach 750ms Stille und auch beim Leeren -->
+            <input
+                    type="search"
+                    name="term"
+                    class="input flex-1 w-full"
+                    placeholder="Type here"
+            />
+
+            <!-- Such-Button mit Lupe -->
+            <button
+                    type="button"
+                    class="btn btn-square"
+                    hx-get="/api/icons"
+                    hx-include="[name=term]"
+                    hx-target="#icon-results"
+                    hx-swap="innerHTML"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke-width="1.5"
+                     stroke="currentColor"
+                     class="size-6">
+                    <path stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
+                </svg>
+            </button>
+        </div>
+
         <!-- icon-results-Container -->
         <div
                 id="icon-results"
                 class="flex flex-wrap gap-2 pt-4"
-                hx-swap-oob="true"
         >
             {{ template "icon-results" . }}
         </div>
 
+        <!-- Hidden field to store the selected URL -->
+        <input type="hidden" id="selected-icon-url"/>
+
         <div class="modal-action">
             <form method="dialog">
-                <!-- if there is a button in form, it will close the modal -->
+                <!-- Apply setzt das Haupt-Icon und schließt -->
+                <button id="apply-icon" class="btn btn-primary">Apply</button>
+                <!-- Close schließt den Dialog -->
                 <button class="btn">Close</button>
             </form>
         </div>
@@ -44,7 +70,10 @@
 
             <div class="lg:col-span-2">
                 <button class="hover:cursor-pointer" type="button" onclick="my_modal_1.showModal()">
-                    <img class="w-12 h-12 rounded-box border border-gray-300 border-gray-500 b-2 dark:border-red-500" alt="Logo" src=""/>
+                    <img id="main-icon"
+                         class="w-12 h-12 rounded-box border border-gray-400 dark:border-gray-600"
+                         alt="Logo"
+                         src="https://dummyimage.com/400x400/c4c4c4/ffffff.png&text=Logo"/>
                 </button>
             </div>
 
@@ -78,5 +107,34 @@
 
 </div>
 
+<script>
+    // Klick auf Such-Resultat
+    document.body.addEventListener('click', function (e) {
+        // Nur Bilder in #icon-results
+        if (!e.target.matches('#icon-results img')) return;
+
+        // Alte Auswahl zurücksetzen
+        document
+            .querySelectorAll('#icon-results img.icon-selected')
+            .forEach(img => img.classList.remove('icon-selected'));
+
+        // Neue Auswahl markieren
+        e.target.classList.add('icon-selected');
+
+        // URL im Hidden-Feld speichern
+        document.getElementById('selected-icon-url').value = e.target.src;
+    });
+
+    // Apply-Button
+    document.getElementById('apply-icon').addEventListener('click', function () {
+        const url = document.getElementById('selected-icon-url').value;
+        if (url) {
+            // Haupt-Icon setzen
+            document.getElementById('main-icon').src = url;
+        }
+        // Dialog schließen
+        document.getElementById('my_modal_1').close();
+    });
+</script>
 
 {{end}}

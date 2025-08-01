@@ -7,7 +7,6 @@ CREATE TABLE contracts
     company     TEXT,
     category    TEXT NOT NULL DEFAULT 'OTHER',
     costs       NUMERIC       DEFAULT 0.0,
-    icon_url    TEXT,
     icon_source TEXT,
     created_at  DATETIME      DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME      DEFAULT CURRENT_TIMESTAMP,

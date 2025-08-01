@@ -14,7 +14,6 @@ type Contract struct {
 	Company    *string    `db:"company" json:"company"`
 	Category   string     `db:"category" json:"category"`
 	Costs      *float64   `db:"costs" json:"costs"`
-	IconUrl    *string    `db:"icon_url" json:"icon_url"`
 	IconSource *string    `db:"icon_source" json:"icon_source"`
 	CreatedAt  *time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt  *time.Time `db:"updated_at" json:"updated_at"`

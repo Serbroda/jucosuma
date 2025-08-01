@@ -1,7 +1,7 @@
 {{ define "icon-results" }}
 {{ if .IconResults }}
 {{ range .IconResults }}
-<div>
+<div class="hover:cursor-pointer tooltip" data-tip="{{ .Name }}">
     <img
             class="w-10 rounded-box"
             src="{{ .Logo }}"

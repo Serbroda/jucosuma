@@ -69,11 +69,6 @@ func (app *application) contract(w http.ResponseWriter, r *http.Request) {
 // Der neue Handler
 func (app *application) htmxIcons(w http.ResponseWriter, r *http.Request) {
 	term := r.URL.Query().Get("term")
-	if term == "" {
-		// Leeres Fragment zurückgeben, wenn nichts eingegeben ist
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
 
 	results, err := searchLogos(term) // liefert []LogoResult
 	if err != nil {
@@ -136,6 +131,10 @@ func render(w http.ResponseWriter, files []string, data any) error {
 }
 
 func searchLogos(term string) ([]LogoResult, error) {
+	if term == "" {
+		return make([]LogoResult, 0), nil
+	}
+
 	results, err := utils.SearchAppLogos(term)
 	if err != nil {
 		return nil, err

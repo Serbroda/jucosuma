@@ -25,7 +25,7 @@ func (q *Queries) DeleteContractSoft(ctx context.Context, id int64) error {
 const findAllContracts = `-- name: FindAllContracts :many
 ;
 
-SELECT id, name, company, category, costs, icon_url, icon_source, created_at, updated_at, deleted_at
+SELECT id, name, company, category, costs, icon_source, created_at, updated_at, deleted_at
 FROM contracts
 WHERE deleted_at IS NULL
 `
@@ -45,7 +45,6 @@ func (q *Queries) FindAllContracts(ctx context.Context) ([]Contract, error) {
 			&i.Company,
 			&i.Category,
 			&i.Costs,
-			&i.IconUrl,
 			&i.IconSource,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -67,7 +66,7 @@ func (q *Queries) FindAllContracts(ctx context.Context) ([]Contract, error) {
 const findContractById = `-- name: FindContractById :one
 ;
 
-SELECT id, name, company, category, costs, icon_url, icon_source, created_at, updated_at, deleted_at
+SELECT id, name, company, category, costs, icon_source, created_at, updated_at, deleted_at
 FROM contracts
 WHERE id = ?
   AND deleted_at IS NULL LIMIT 1
@@ -82,7 +81,6 @@ func (q *Queries) FindContractById(ctx context.Context, id int64) (Contract, err
 		&i.Company,
 		&i.Category,
 		&i.Costs,
-		&i.IconUrl,
 		&i.IconSource,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -105,7 +103,7 @@ VALUES (CURRENT_TIMESTAMP,
         LOWER(?2),
         LOWER(?3),
         LOWER(?4),
-        LOWER(?5)) RETURNING id, name, company, category, costs, icon_url, icon_source, created_at, updated_at, deleted_at
+        LOWER(?5)) RETURNING id, name, company, category, costs, icon_source, created_at, updated_at, deleted_at
 `
 
 type InsertContractParams struct {
@@ -131,7 +129,6 @@ func (q *Queries) InsertContract(ctx context.Context, arg InsertContractParams) 
 		&i.Company,
 		&i.Category,
 		&i.Costs,
-		&i.IconUrl,
 		&i.IconSource,
 		&i.CreatedAt,
 		&i.UpdatedAt,

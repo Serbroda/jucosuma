@@ -44,7 +44,7 @@ build-css-watch:
 	cd ui && \
 		npm ini -y && \
 		npm i tailwindcss@latest @tailwindcss/cli@latest daisyui@latest && \
-		npx @tailwindcss/cli -i ./input.css -o ./static/css/output.css --watch
+		npx @tailwindcss/cli -i ./input.css -o ./static/css/output.css --minify --watch
 
 generate-go:
 	@echo "==> Generating Go code..."

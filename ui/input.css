@@ -6,3 +6,7 @@
 @plugin "daisyui" {
     themes: light --default, dark;
 }
+
+.icon-selected {
+    outline: 2px solid #3b82f6; /* blau */
+}
