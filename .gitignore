@@ -292,3 +292,5 @@ tmp/
 bin/
 .air.toml
 *.db
+ui/package.json
+ui/package-lock.json

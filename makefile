@@ -32,7 +32,19 @@ define build_bin
 endef
 
 build-css:
+	cd ui && \
+		npm ini -y && \
+		npm i tailwindcss @tailwindcss/cli && \
+		npx @tailwindcss/cli -i ./input.css -o ./static/css/output.css --minify
+	rm -rf ui/node_modules
+	rm -f ui/package.json
+	rm -f ui/package-lock.json
 
+build-css-watch:
+	cd ui && \
+		npm ini -y && \
+		npm i tailwindcss @tailwindcss/cli && \
+		npx @tailwindcss/cli -i ./input.css -o ./static/css/output.css --watch
 
 generate-go:
 	@echo "==> Generating Go code..."
