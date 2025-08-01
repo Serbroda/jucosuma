@@ -31,6 +31,9 @@ define build_bin
 		go build -ldflags "-X main.Version=$(VERSION)" -o ${OUT_DIR}/$(2)-v${VERSION}-$(5) $(1)
 endef
 
+build-css:
+
+
 generate-go:
 	@echo "==> Generating Go code..."
 	go generate ./...
