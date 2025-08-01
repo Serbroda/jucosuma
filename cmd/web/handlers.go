@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +93,12 @@ func (app *application) apiLogos(w http.ResponseWriter, r *http.Request) {
 }
 
 func render(w http.ResponseWriter, files []string, data any) error {
-	ts, err := template.ParseFiles(files...)
+	funcMap := template.FuncMap{
+		"now": func() int64 {
+			return time.Now().Unix()
+		},
+	}
+	ts, err := template.New("default").Funcs(funcMap).ParseFiles(files...)
 	if err != nil {
 		return err
 	}
