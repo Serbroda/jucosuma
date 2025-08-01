@@ -34,7 +34,7 @@ endef
 build-css:
 	cd ui && \
 		npm ini -y && \
-		npm i tailwindcss @tailwindcss/cli && \
+		npm i tailwindcss@latest @tailwindcss/cli@latest daisyui@latest && \
 		npx @tailwindcss/cli -i ./input.css -o ./static/css/output.css --minify
 	rm -rf ui/node_modules
 	rm -f ui/package.json
@@ -43,7 +43,7 @@ build-css:
 build-css-watch:
 	cd ui && \
 		npm ini -y && \
-		npm i tailwindcss @tailwindcss/cli && \
+		npm i tailwindcss@latest @tailwindcss/cli@latest daisyui@latest && \
 		npx @tailwindcss/cli -i ./input.css -o ./static/css/output.css --watch
 
 generate-go:

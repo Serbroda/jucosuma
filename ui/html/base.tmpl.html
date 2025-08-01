@@ -3,20 +3,16 @@
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
-    <title>{{template "title" .}} - Contracts</title>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css"/>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css"/>
     <link href="/static/css/output.css?v={{ now }}" rel="stylesheet"/>
 
-    <!-- svg loader for icons -->
-    <script
-            src="https://cdn.jsdelivr.net/npm/external-svg-loader@1.6.10/svg-loader.min.js"
-            async></script>
+    <script src="https://cdn.jsdelivr.net/npm/external-svg-loader@1.6.10/svg-loader.min.js" async></script>
     <script src="https://cdn.jsdelivr.net/npm/theme-change@2.0.2/index.js"></script>
 
     <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+
+    <title>{{template "title" .}} - Contracts</title>
 </head>
 <!-- drawer -->
 <body class="drawer bg-base-200 lg:drawer-open min-h-screen">
