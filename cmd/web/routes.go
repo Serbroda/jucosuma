@@ -11,6 +11,7 @@ func (app *application) routes() *http.ServeMux {
 	mux.HandleFunc("GET /{$}", app.home)
 	mux.HandleFunc("GET /contracts/{id}", app.contract)
 	mux.HandleFunc("GET /api/logos", app.apiLogos)
+	mux.HandleFunc("GET /api/icons", app.htmxIcons)
 
 	return mux
 }

@@ -1,0 +1,13 @@
+{{ define "icon-results" }}
+{{ if .IconResults }}
+{{ range .IconResults }}
+<div>
+    <img
+            class="w-10 rounded-box"
+            src="{{ .Logo }}"
+            alt="{{ .Name }}"
+    />
+</div>
+{{ end }}
+{{ end }}
+{{ end }}

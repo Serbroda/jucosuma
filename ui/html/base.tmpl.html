@@ -6,16 +6,17 @@
     <title>{{template "title" .}} - Contracts</title>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css"/>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css"/>
-    <link href="/static/css/output.css" rel="stylesheet"/>
+    <link href="/static/css/output.css?v={{ now }}" rel="stylesheet"/>
 
     <!-- svg loader for icons -->
     <script
             src="https://cdn.jsdelivr.net/npm/external-svg-loader@1.6.10/svg-loader.min.js"
             async></script>
     <script src="https://cdn.jsdelivr.net/npm/theme-change@2.0.2/index.js"></script>
+
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
 </head>
 <!-- drawer -->
 <body class="drawer bg-base-200 lg:drawer-open min-h-screen">
