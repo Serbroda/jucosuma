@@ -2,8 +2,47 @@
 
 {{define "main"}}
 
-<h1 class="text-3xl pb-4">Contract - {{ .Contract.Name }}</h1>
+<h1 class="text-3xl">Add Contract</h1>
 
-<p>Id: {{ .Contract.ID }}</p>
+<h2 class="text-lg py-4">Common</h2>
+
+<div class="list bg-base-100 rounded-box shadow-md p-4">
+
+    <form class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div class="col-span-2">
+            <div class="hover:cursor-pointer">
+                <img class="w-10 rounded-box"
+                     src="https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/1f/7d/b6/1f7db669-c7d6-3c43-0d14-391486b7e68c/AppIconEnvivas-1x_U007emarketing-0-8-0-85-220-0.png/100x100bb.jpg"/>
+            </div>
+        </div>
+
+        <fieldset class="fieldset">
+            <legend class="fieldset-legend">Name</legend>
+            <input type="text" class="input w-full" placeholder="Type here"/>
+        </fieldset>
+
+        <fieldset class="fieldset">
+            <legend class="fieldset-legend">Company</legend>
+            <input type="text" class="input w-full" placeholder="Type here"/>
+        </fieldset>
+
+        <fieldset class="fieldset">
+            <legend class="fieldset-legend">Category</legend>
+            <select class="select w-full">
+                <option disabled selected>Pick a browser</option>
+                <option>Chrome</option>
+                <option>FireFox</option>
+                <option>Safari</option>
+            </select>
+        </fieldset>
+
+        <fieldset class="fieldset">
+            <legend class="fieldset-legend">Costs</legend>
+            <input type="number" class="input w-full" placeholder="Type here"/>
+        </fieldset>
+    </form>
+
+</div>
+
 
 {{end}}

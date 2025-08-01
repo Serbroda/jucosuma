@@ -9,7 +9,9 @@
     {{range .Contracts}}
     <li>
         <a href="/contracts/{{ .ID }}" class="list-row hover:bg-base-300">
-            <div><img class="w-10 rounded-box" src="{{ .IconSource }}"/></div>
+            <div>
+                <img class="w-10 rounded-box" src="{{ .IconSource }}"/>
+            </div>
             <div>
                 <div>{{ .Name }}</div>
                 <div class="text-xs uppercase font-semibold opacity-60">{{ .Company }} - {{ .Category }}</div>
