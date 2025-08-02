@@ -28,6 +28,18 @@ FROM contracts
 WHERE deleted_at IS NULL
 ;
 
+-- name: UpdateContractById :exec
+UPDATE contracts
+SET name = sqlc.arg('name'),
+    company = sqlc.arg('company'),
+    category = sqlc.arg('category'),
+    costs = sqlc.arg('costs'),
+    icon_source = sqlc.arg('icon_source'),
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = sqlc.arg('id')
+  AND deleted_at IS NULL
+;
+
 -- name: DeleteContractSoft :exec
 UPDATE contracts
 SET deleted_at = CURRENT_TIMESTAMP

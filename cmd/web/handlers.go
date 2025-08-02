@@ -20,6 +20,7 @@ type ContractPageData struct {
 	Contract    sqlc.Contract
 	IconResults []LogoResult
 	FormAction  string // URL, auf die das Formular posted
+	FormMethod  string
 	SubmitLabel string // Beschriftung des Submit-Buttons
 }
 
@@ -48,7 +49,8 @@ func (app *application) newContract(w http.ResponseWriter, r *http.Request) {
 	data := ContractPageData{
 		Contract:    sqlc.Contract{}, // leeres Objekt → ID == 0
 		IconResults: []LogoResult{},
-		FormAction:  "/contracts",
+		FormAction:  "/api/contracts",
+		FormMethod:  "post",
 		SubmitLabel: "Create",
 	}
 	err := render(w, []string{
@@ -72,7 +74,8 @@ func (app *application) editContract(w http.ResponseWriter, r *http.Request) {
 	data := ContractPageData{
 		Contract:    c,
 		IconResults: []LogoResult{},
-		FormAction:  fmt.Sprintf("/contracts/%d", c.ID),
+		FormAction:  fmt.Sprintf("/api/contracts/%d", c.ID),
+		FormMethod:  "put",
 		SubmitLabel: "Save",
 	}
 	err = render(w, []string{
@@ -120,6 +123,50 @@ func (app *application) createContractPost(w http.ResponseWriter, r *http.Reques
 
 	// 5. Redirect zu Detailseite
 	http.Redirect(w, r, fmt.Sprintf("/contracts/%d", newID.ID), http.StatusSeeOther)
+}
+
+func (app *application) updateContractPost(w http.ResponseWriter, r *http.Request) {
+	// 1. ID aus Pfad
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || id < 1 {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+	// 2. Formular parsen
+	if err := r.ParseForm(); err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+	// 3. Werte auslesen
+	name := r.FormValue("name")
+	company := r.FormValue("company")
+	category := r.FormValue("category")
+	logo := r.FormValue("icon_source")
+	costsStr := r.FormValue("costs")
+
+	// 4. Costs konvertieren
+	costs, err := strconv.ParseFloat(costsStr, 64)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	// 5. Update via sqlc
+	params := sqlc.UpdateContractByIdParams{
+		ID:         int64(id),
+		Name:       name,
+		Company:    &company,
+		Category:   category,
+		IconSource: &logo,
+		Costs:      &costs,
+	}
+	if err := app.queries.UpdateContractById(r.Context(), params); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	// 6. Redirect zurück zur Bearbeitung/Detail
+	http.Redirect(w, r, fmt.Sprintf("/contracts/%d", id), http.StatusSeeOther)
 }
 
 func (app *application) contract(w http.ResponseWriter, r *http.Request) {

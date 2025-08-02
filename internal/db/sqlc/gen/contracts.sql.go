@@ -136,3 +136,38 @@ func (q *Queries) InsertContract(ctx context.Context, arg InsertContractParams) 
 	)
 	return i, err
 }
+
+const updateContractById = `-- name: UpdateContractById :exec
+;
+
+UPDATE contracts
+SET name = ?1,
+    company = ?2,
+    category = ?3,
+    costs = ?4,
+    icon_source = ?5,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = ?6
+  AND deleted_at IS NULL
+`
+
+type UpdateContractByIdParams struct {
+	Name       string   `db:"name" json:"name"`
+	Company    *string  `db:"company" json:"company"`
+	Category   string   `db:"category" json:"category"`
+	Costs      *float64 `db:"costs" json:"costs"`
+	IconSource *string  `db:"icon_source" json:"icon_source"`
+	ID         int64    `db:"id" json:"id"`
+}
+
+func (q *Queries) UpdateContractById(ctx context.Context, arg UpdateContractByIdParams) error {
+	_, err := q.db.ExecContext(ctx, updateContractById,
+		arg.Name,
+		arg.Company,
+		arg.Category,
+		arg.Costs,
+		arg.IconSource,
+		arg.ID,
+	)
+	return err
+}

@@ -1,21 +1,22 @@
-{{define "title"}}Home{{end}}
+{{ define "title" }}{{ if .Contract.ID }}Edit Contract{{ else }}Add Contract{{ end }}{{ end }}
 
-{{define "main"}}
+{{ define "main" }}
 
 <dialog id="my_modal_1" class="modal">
     <div class="modal-box">
         <h3 class="text-lg font-bold pb-2">Icon Search</h3>
-
         <div class="flex gap-2">
-            <!-- Input triggert die Suche nach 750ms Stille und auch beim Leeren -->
             <input
                     type="search"
                     name="term"
                     class="input flex-1 w-full"
                     placeholder="Type here"
+                    hx-get="/api/icons"
+                    hx-include="[name=term]"
+                    hx-trigger="input debounce:750ms"
+                    hx-target="#icon-results"
+                    hx-swap="innerHTML"
             />
-
-            <!-- Such-Button mit Lupe -->
             <button
                     type="button"
                     class="btn btn-square"
@@ -24,37 +25,18 @@
                     hx-target="#icon-results"
                     hx-swap="innerHTML"
             >
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     fill="none"
-                     viewBox="0 0 24 24"
-                     stroke-width="1.5"
-                     stroke="currentColor"
-                     class="size-6">
-                    <path stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
                 </svg>
             </button>
         </div>
-
-        <!-- icon-results-Container -->
-        <div
-                id="icon-results"
-                class="flex flex-wrap gap-2 pt-4"
-        >
+        <div id="icon-results" class="flex flex-wrap gap-2 pt-4">
             {{ template "icon-results" . }}
         </div>
-
-        <!-- Hidden field to store the selected URL -->
-        <input type="hidden" id="selected-icon-url"/>
-
+        <input type="hidden" id="selected-icon-url" name="icon_source" />
         <div class="modal-action">
-            <form method="dialog">
-                <!-- Apply setzt das Haupt-Icon und schließt -->
-                <button id="apply-icon" class="btn btn-primary">Apply</button>
-                <!-- Close schließt den Dialog -->
-                <button class="btn">Close</button>
-            </form>
+            <button id="apply-icon" class="btn btn-primary">Apply</button>
+            <button class="btn" type="button" onclick="my_modal_1.close()">Close</button>
         </div>
     </div>
 </dialog>
@@ -62,128 +44,66 @@
 <h1 class="text-3xl">
     {{ if .Contract.ID }}Edit Contract{{ else }}Add Contract{{ end }}
 </h1>
+<h2 class="text-lg py-4">Contract Details</h2>
 
-<h2 class="text-lg py-4">Common</h2>
-
-<div class="list bg-base-100 rounded-box shadow-md p-4">
-
-    <form
-            action="{{ .FormAction }}"
-            method="POST"
-    >
-        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-
-            <!-- Icon-Button -->
-            <div class="lg:col-span-2">
-                <button type="button" onclick="my_modal_1.showModal()">
-                    <img
-                            id="main-icon"
-                            class="w-12 h-12 rounded-box border border-gray-400 dark:border-gray-600 hover:cursor-pointer tooltip"
-                            data-tip="Choose Image"
-                            src="{{ if .Contract.IconSource }}{{ .Contract.IconSource }}{{ else }}https://dummyimage.com/400x400/c4c4c4/ffffff.png&text=Logo{{ end }}"
-                            alt="Logo"
-                    />
-                </button>
-                <input
-                        id="icon_source"
-                        name="icon_source"
-                        type="hidden"
-                        value="{{ if .Contract.IconSource }}{{ .Contract.IconSource }}{{ else }}{{ end }}"
-                />
-            </div>
-
-            <!-- Name field -->
-            <fieldset class="fieldset">
-                <legend class="fieldset-legend">Name</legend>
-                <input
-                        type="text"
-                        name="name"
-                        class="input w-full"
-                        value="{{ .Contract.Name }}"
-                        placeholder="Type here"
-                />
-            </fieldset>
-
-            <!-- Company field -->
-            <fieldset class="fieldset">
-                <legend class="fieldset-legend">Company</legend>
-                <input
-                        type="text"
-                        name="company"
-                        class="input w-full"
-                        value="{{ .Contract.Company }}"
-                        placeholder="Type here"
-                />
-            </fieldset>
-
-            <!-- Category field -->
-            <fieldset class="fieldset">
-                <legend class="fieldset-legend">Category</legend>
-                <select name="category" class="select w-full">
-                    <option disabled {{ if not .Contract.Category }}selected{{ end }}>Select…
-                    </option>
-                    <option {{ if eq .Contract.Category
-                    "Chrome" }}selected{{ end }}>Chrome</option>
-                    <option {{ if eq .Contract.Category
-                    "FireFox" }}selected{{ end }}>FireFox</option>
-                    <option {{ if eq .Contract.Category
-                    "Safari" }}selected{{ end }}>Safari</option>
-                </select>
-            </fieldset>
-
-            <!-- Costs field -->
-            <fieldset class="fieldset">
-                <legend class="fieldset-legend">Costs</legend>
-                <input
-                        type="number"
-                        name="costs"
-                        class="input w-full"
-                        value="{{ .Contract.Costs }}"
-                        placeholder="Type here"
-                />
-            </fieldset>
-
-        </div>
-
-        <!-- Submit-Button -->
-        <div class="py-4 text-right">
-            <button type="submit" class="btn btn-primary">
-                {{ .SubmitLabel }}
-            </button>
-        </div>
-    </form>
-
+<form id="contract-form" class="list bg-base-100 rounded-box shadow-md p-4"
+    hx-{{ .FormMethod }}="{{ .FormAction }}"
+    hx-include="#contract-form"
+    hx-swap="none"
+>
+<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <div class="lg:col-span-2">
+        <button type="button" onclick="my_modal_1.showModal()">
+            <img id="main-icon" class="w-12 h-12 rounded-box border border-gray-400 dark:border-gray-600 hover:cursor-pointer" alt="Logo"
+                 src="{{ if .Contract.IconSource }}{{ .Contract.IconSource }}{{ else }}https://dummyimage.com/400x400/c4c4c4/ffffff.png&text=Logo{{ end }}" />
+        </button>
+        <input type="hidden" name="icon_source" id="icon_source" value="{{ .Contract.IconSource }}" />
+    </div>
+    <fieldset class="fieldset">
+        <legend class="fieldset-legend">Name</legend>
+        <input type="text" name="name" class="input w-full" value="{{ .Contract.Name }}" placeholder="Type here" />
+    </fieldset>
+    <fieldset class="fieldset">
+        <legend class="fieldset-legend">Company</legend>
+        <input type="text" name="company" class="input w-full" value="{{ .Contract.Company }}" placeholder="Type here" />
+    </fieldset>
+    <fieldset class="fieldset">
+        <legend class="fieldset-legend">Category</legend>
+        <select name="category" class="select w-full">
+            <option disabled {{ if not .Contract.Category }}selected{{ end }}>Select…</option>
+            <option {{ if eq .Contract.Category "Chrome" }}selected{{ end }}>Chrome</option>
+            <option {{ if eq .Contract.Category "FireFox" }}selected{{ end }}>FireFox</option>
+            <option {{ if eq .Contract.Category "Safari" }}selected{{ end }}>Safari</option>
+        </select>
+    </fieldset>
+    <fieldset class="fieldset">
+        <legend class="fieldset-legend">Costs</legend>
+        <input type="number" name="costs" class="input w-full" value="{{ .Contract.Costs }}" placeholder="Type here" />
+    </fieldset>
 </div>
+<div class="py-4 text-right">
+    <button type="submit" class="btn btn-primary">{{ .SubmitLabel }}</button>
+</div>
+</form>
 
 <script>
     // Klick auf Such-Resultat
-    document.body.addEventListener('click', function (e) {
-        // Nur Bilder in #icon-results
+    document.body.addEventListener('click', function(e) {
         if (!e.target.matches('#icon-results img')) return;
-
-        // Alte Auswahl zurücksetzen
-        document
-            .querySelectorAll('#icon-results img.icon-selected')
+        document.querySelectorAll('#icon-results img.icon-selected')
             .forEach(img => img.classList.remove('icon-selected'));
-
-        // Neue Auswahl markieren
         e.target.classList.add('icon-selected');
-
-        // URL im Hidden-Feld speichern
         document.getElementById('selected-icon-url').value = e.target.src;
     });
-
     // Apply-Button
-    document.getElementById('apply-icon').addEventListener('click', function () {
+    document.getElementById('apply-icon').addEventListener('click', function() {
         const url = document.getElementById('selected-icon-url').value;
         if (url) {
-            // Haupt-Icon setzen
             document.getElementById('main-icon').src = url;
             document.getElementById('icon_source').value = url;
         }
-        // Dialog schließen
         document.getElementById('my_modal_1').close();
     });
 </script>
 
-{{end}}
+{{ end }}
