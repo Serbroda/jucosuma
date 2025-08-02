@@ -3,7 +3,7 @@ SHELL := /bin/bash
 # ------------------------------------------------------------
 # Project informations
 # ------------------------------------------------------------
-BINARY_NAME := contracts
+BINARY_NAME := jucoma
 VERSION := $(shell cat VERSION)
 
 # Paths
@@ -13,11 +13,11 @@ WEB_MAIN_DIR := ./cmd/web
 # ------------------------------------------------------------
 # Default targets
 # ------------------------------------------------------------
-.PHONY: all build generate-go clean test
+.PHONY: all build generate-go build-ui build-server clean test
 
-all: clean generate-go build-web
+all: clean generate-go build-ui build-server
 
-build-web:
+build-server:
 	@echo "==> Building web Go binaries for platforms..."
 	$(call build_bin,${WEB_MAIN_DIR},${BINARY_NAME},darwin,amd64,macos-amd64)
 	$(call build_bin,${WEB_MAIN_DIR},${BINARY_NAME},darwin,arm64,macos-arm64)
@@ -31,20 +31,10 @@ define build_bin
 		go build -ldflags "-X main.Version=$(VERSION)" -o ${OUT_DIR}/$(2)-v${VERSION}-$(5) $(1)
 endef
 
-build-css:
-	cd ui && \
-		npm ini -y && \
-		npm i tailwindcss@latest @tailwindcss/cli@latest daisyui@latest && \
-		npx @tailwindcss/cli -i ./input.css -o ./static/css/output.css --minify
-	rm -rf ui/node_modules
-	rm -f ui/package.json
-	rm -f ui/package-lock.json
-
-build-css-watch:
-	cd ui && \
-		npm ini -y && \
-		npm i tailwindcss@latest @tailwindcss/cli@latest daisyui@latest && \
-		npx @tailwindcss/cli -i ./input.css -o ./static/css/output.css --minify --watch
+build-ui:
+	cd ui/v1 && \
+		npm i && \
+		npm run build
 
 generate-go:
 	@echo "==> Generating Go code..."
@@ -54,6 +44,8 @@ generate-go:
 clean:
 	@echo "==> Cleaning up..."
 	rm -rf bin/
+	rm -rf ui/v1/node_modules
+	rm -rf ui/v1/dist
 
 test:
 	@echo "==> Running tests..."
