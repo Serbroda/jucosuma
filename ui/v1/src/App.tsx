@@ -1,7 +1,7 @@
 import { Routes, Route, Link } from 'react-router-dom';
 
 function Home() {
-    return <h2>Home Page</h2>;
+    return <h1 className="text-3xl font-bold underline text-blue-500"> Hello world! </h1>;
 }
 
 function About() {
