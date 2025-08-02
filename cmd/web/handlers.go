@@ -115,13 +115,13 @@ func (app *application) createContractPost(w http.ResponseWriter, r *http.Reques
 		IconSource: &logo,
 		Costs:      &costs,
 	}
-	newID, err := app.queries.InsertContract(r.Context(), params)
+	_, err = app.queries.InsertContract(r.Context(), params)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
 
-	redirectURL := fmt.Sprintf("/contracts/%d", newID.ID)
+	redirectURL := "/"
 	if r.Header.Get("HX-Request") == "true" {
 		w.Header().Set("HX-Redirect", redirectURL)
 		w.WriteHeader(http.StatusOK)
@@ -170,7 +170,7 @@ func (app *application) updateContractPost(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	redirectURL := fmt.Sprintf("/contracts/%d", id)
+	redirectURL := "/"
 	if r.Header.Get("HX-Request") == "true" {
 		w.Header().Set("HX-Redirect", redirectURL)
 		w.WriteHeader(http.StatusOK)
