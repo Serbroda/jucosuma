@@ -11,11 +11,6 @@
                     name="term"
                     class="input flex-1 w-full"
                     placeholder="Type here"
-                    hx-get="/api/icons"
-                    hx-include="[name=term]"
-                    hx-trigger="input debounce:750ms"
-                    hx-target="#icon-results"
-                    hx-swap="innerHTML"
             />
             <button
                     type="button"
@@ -70,10 +65,17 @@
     <fieldset class="fieldset">
         <legend class="fieldset-legend">Category</legend>
         <select name="category" class="select w-full">
-            <option disabled {{ if not .Contract.Category }}selected{{ end }}>Select…</option>
-            <option {{ if eq .Contract.Category "Chrome" }}selected{{ end }}>Chrome</option>
-            <option {{ if eq .Contract.Category "FireFox" }}selected{{ end }}>FireFox</option>
-            <option {{ if eq .Contract.Category "Safari" }}selected{{ end }}>Safari</option>
+            <option {{ if or (not .Contract.Category) (eq .Contract.Category "") (eq .Contract.Category "Other") }}selected{{ end }}>Other</option>
+            <option {{ if eq .Contract.Category "Education" }}selected{{ end }}>Education</option>
+            <option {{ if eq .Contract.Category "Entertainment" }}selected{{ end }}>Entertainment</option>
+            <option {{ if eq .Contract.Category "Finance" }}selected{{ end }}>Finance</option>
+            <option {{ if eq .Contract.Category "Health & Fitness" }}selected{{ end }}>Health &amp; Fitness</option>
+            <option {{ if eq .Contract.Category "Housing & Rent " }}selected{{ end }}>Housing &amp; Rent </option>
+            <option {{ if eq .Contract.Category "Insurance" }}selected{{ end }}>Insurance</option>
+            <option {{ if eq .Contract.Category "Software & Services" }}selected{{ end }}>Software &amp; Services</option>
+            <option {{ if eq .Contract.Category "Telecommunications & Internet " }}selected{{ end }}>Telecommunications &amp; Internet </option>
+            <option {{ if eq .Contract.Category "Transportation" }}selected{{ end }}>Transportation</option>
+            <option {{ if eq .Contract.Category "Utilities" }}selected{{ end }}>Utilities</option>
         </select>
     </fieldset>
     <fieldset class="fieldset">

@@ -121,8 +121,13 @@ func (app *application) createContractPost(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// 5. Redirect zu Detailseite
-	http.Redirect(w, r, fmt.Sprintf("/contracts/%d", newID.ID), http.StatusSeeOther)
+	redirectURL := fmt.Sprintf("/contracts/%d", newID.ID)
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Redirect", redirectURL)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func (app *application) updateContractPost(w http.ResponseWriter, r *http.Request) {
@@ -165,8 +170,13 @@ func (app *application) updateContractPost(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// 6. Redirect zurück zur Bearbeitung/Detail
-	http.Redirect(w, r, fmt.Sprintf("/contracts/%d", id), http.StatusSeeOther)
+	redirectURL := fmt.Sprintf("/contracts/%d", id)
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Redirect", redirectURL)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func (app *application) contract(w http.ResponseWriter, r *http.Request) {
