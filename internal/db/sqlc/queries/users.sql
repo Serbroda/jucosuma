@@ -4,7 +4,7 @@ INSERT INTO users (created_at,
                    name)
 VALUES (CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP,
-        LOWER(sqlc.arg('name'))) RETURNING *
+        sqlc.arg('name')) RETURNING *
 ;
 
 -- name: FindUserById :one

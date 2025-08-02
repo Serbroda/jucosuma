@@ -8,11 +8,11 @@ INSERT INTO contracts (created_at,
                        icon_source)
 VALUES (CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP,
-        LOWER(sqlc.arg('name')),
-        LOWER(sqlc.arg('company')),
-        LOWER(sqlc.arg('category')),
-        LOWER(sqlc.arg('costs')),
-        LOWER(sqlc.arg('icon_source'))) RETURNING *
+        sqlc.arg('name'),
+        sqlc.arg('company'),
+        sqlc.arg('category'),
+        sqlc.arg('costs'),
+        sqlc.arg('icon_source')) RETURNING *
 ;
 
 -- name: FindContractById :one

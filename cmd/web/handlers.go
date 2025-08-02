@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	sqlc "github.com/Serbroda/contracts/internal/db/sqlc/gen"
 	"github.com/Serbroda/contracts/internal/utils"
 	"html/template"
@@ -13,6 +14,13 @@ import (
 type LogoResult struct {
 	Name string `json:"name"`
 	Logo string `json:"logo"`
+}
+
+type ContractPageData struct {
+	Contract    sqlc.Contract
+	IconResults []LogoResult
+	FormAction  string // URL, auf die das Formular posted
+	SubmitLabel string // Beschriftung des Submit-Buttons
 }
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
@@ -34,6 +42,84 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		app.serverError(w, r, err)
 	}
+}
+
+func (app *application) newContract(w http.ResponseWriter, r *http.Request) {
+	data := ContractPageData{
+		Contract:    sqlc.Contract{}, // leeres Objekt → ID == 0
+		IconResults: []LogoResult{},
+		FormAction:  "/contracts",
+		SubmitLabel: "Create",
+	}
+	err := render(w, []string{
+		"./ui/html/base.tmpl.html",
+		"./ui/html/partials/icon-results.tmpl.html",
+		"./ui/html/pages/contract.tmpl.html",
+	}, data)
+	if err != nil {
+		app.serverError(w, r, err)
+	}
+}
+
+func (app *application) editContract(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(r.PathValue("id"))
+	c, err := app.queries.FindContractById(r.Context(), int64(id))
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data := ContractPageData{
+		Contract:    c,
+		IconResults: []LogoResult{},
+		FormAction:  fmt.Sprintf("/contracts/%d", c.ID),
+		SubmitLabel: "Save",
+	}
+	err = render(w, []string{
+		"./ui/html/base.tmpl.html",
+		"./ui/html/partials/icon-results.tmpl.html",
+		"./ui/html/pages/contract.tmpl.html",
+	}, data)
+	if err != nil {
+		app.serverError(w, r, err)
+	}
+}
+
+func (app *application) createContractPost(w http.ResponseWriter, r *http.Request) {
+	// 1. Formular parsen
+	if err := r.ParseForm(); err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+	// 2. Werte auslesen
+	name := r.FormValue("name")
+	company := r.FormValue("company")
+	category := r.FormValue("category")
+	logo := r.FormValue("icon_source")
+	costsStr := r.FormValue("costs")
+
+	costs, err := strconv.ParseFloat(costsStr, 64)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	// 4. Neuer Datensatz via sqlc
+	params := sqlc.InsertContractParams{
+		Name:       name,
+		Company:    &company,
+		Category:   category,
+		IconSource: &logo,
+		Costs:      &costs,
+	}
+	newID, err := app.queries.InsertContract(r.Context(), params)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	// 5. Redirect zu Detailseite
+	http.Redirect(w, r, fmt.Sprintf("/contracts/%d", newID.ID), http.StatusSeeOther)
 }
 
 func (app *application) contract(w http.ResponseWriter, r *http.Request) {

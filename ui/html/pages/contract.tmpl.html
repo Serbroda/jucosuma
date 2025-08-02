@@ -59,50 +59,98 @@
     </div>
 </dialog>
 
-<h1 class="text-3xl">Add Contract</h1>
+<h1 class="text-3xl">
+    {{ if .Contract.ID }}Edit Contract{{ else }}Add Contract{{ end }}
+</h1>
 
 <h2 class="text-lg py-4">Common</h2>
 
 <div class="list bg-base-100 rounded-box shadow-md p-4">
 
-    <form class="">
+    <form
+            action="{{ .FormAction }}"
+            method="POST"
+    >
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
 
+            <!-- Icon-Button -->
             <div class="lg:col-span-2">
-                <button class="hover:cursor-pointer" type="button" onclick="my_modal_1.showModal()">
-                    <img id="main-icon"
-                         class="w-12 h-12 rounded-box border border-gray-400 dark:border-gray-600"
-                         alt="Logo"
-                         src="https://dummyimage.com/400x400/c4c4c4/ffffff.png&text=Logo"/>
+                <button type="button" onclick="my_modal_1.showModal()">
+                    <img
+                            id="main-icon"
+                            class="w-12 h-12 rounded-box border border-gray-400 dark:border-gray-600 hover:cursor-pointer tooltip"
+                            data-tip="Choose Image"
+                            src="{{ if .Contract.IconSource }}{{ .Contract.IconSource }}{{ else }}https://dummyimage.com/400x400/c4c4c4/ffffff.png&text=Logo{{ end }}"
+                            alt="Logo"
+                    />
                 </button>
+                <input
+                        id="icon_source"
+                        name="icon_source"
+                        type="hidden"
+                        value="{{ if .Contract.IconSource }}{{ .Contract.IconSource }}{{ else }}{{ end }}"
+                />
             </div>
 
+            <!-- Name field -->
             <fieldset class="fieldset">
                 <legend class="fieldset-legend">Name</legend>
-                <input type="text" class="input w-full" placeholder="Type here"/>
+                <input
+                        type="text"
+                        name="name"
+                        class="input w-full"
+                        value="{{ .Contract.Name }}"
+                        placeholder="Type here"
+                />
             </fieldset>
 
+            <!-- Company field -->
             <fieldset class="fieldset">
                 <legend class="fieldset-legend">Company</legend>
-                <input type="text" class="input w-full" placeholder="Type here"/>
+                <input
+                        type="text"
+                        name="company"
+                        class="input w-full"
+                        value="{{ .Contract.Company }}"
+                        placeholder="Type here"
+                />
             </fieldset>
 
+            <!-- Category field -->
             <fieldset class="fieldset">
                 <legend class="fieldset-legend">Category</legend>
-                <select class="select w-full">
-                    <option disabled selected>Pick a browser</option>
-                    <option>Chrome</option>
-                    <option>FireFox</option>
-                    <option>Safari</option>
+                <select name="category" class="select w-full">
+                    <option disabled {{ if not .Contract.Category }}selected{{ end }}>Select…
+                    </option>
+                    <option {{ if eq .Contract.Category
+                    "Chrome" }}selected{{ end }}>Chrome</option>
+                    <option {{ if eq .Contract.Category
+                    "FireFox" }}selected{{ end }}>FireFox</option>
+                    <option {{ if eq .Contract.Category
+                    "Safari" }}selected{{ end }}>Safari</option>
                 </select>
             </fieldset>
 
+            <!-- Costs field -->
             <fieldset class="fieldset">
                 <legend class="fieldset-legend">Costs</legend>
-                <input type="number" class="input w-full" placeholder="Type here"/>
+                <input
+                        type="number"
+                        name="costs"
+                        class="input w-full"
+                        value="{{ .Contract.Costs }}"
+                        placeholder="Type here"
+                />
             </fieldset>
+
         </div>
 
+        <!-- Submit-Button -->
+        <div class="py-4 text-right">
+            <button type="submit" class="btn btn-primary">
+                {{ .SubmitLabel }}
+            </button>
+        </div>
     </form>
 
 </div>
@@ -131,6 +179,7 @@
         if (url) {
             // Haupt-Icon setzen
             document.getElementById('main-icon').src = url;
+            document.getElementById('icon_source').value = url;
         }
         // Dialog schließen
         document.getElementById('my_modal_1').close();

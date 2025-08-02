@@ -99,19 +99,19 @@ INSERT INTO contracts (created_at,
                        icon_source)
 VALUES (CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP,
-        LOWER(?1),
-        LOWER(?2),
-        LOWER(?3),
-        LOWER(?4),
-        LOWER(?5)) RETURNING id, name, company, category, costs, icon_source, created_at, updated_at, deleted_at
+        ?1,
+        ?2,
+        ?3,
+        ?4,
+        ?5) RETURNING id, name, company, category, costs, icon_source, created_at, updated_at, deleted_at
 `
 
 type InsertContractParams struct {
-	Name       string `db:"name" json:"name"`
-	Company    string `db:"company" json:"company"`
-	Category   string `db:"category" json:"category"`
-	Costs      string `db:"costs" json:"costs"`
-	IconSource string `db:"icon_source" json:"icon_source"`
+	Name       string   `db:"name" json:"name"`
+	Company    *string  `db:"company" json:"company"`
+	Category   string   `db:"category" json:"category"`
+	Costs      *float64 `db:"costs" json:"costs"`
+	IconSource *string  `db:"icon_source" json:"icon_source"`
 }
 
 func (q *Queries) InsertContract(ctx context.Context, arg InsertContractParams) (Contract, error) {

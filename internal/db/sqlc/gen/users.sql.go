@@ -48,7 +48,7 @@ INSERT INTO users (created_at,
                    name)
 VALUES (CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP,
-        LOWER(?1)) RETURNING id, name, created_at, updated_at, deleted_at
+        ?1) RETURNING id, name, created_at, updated_at, deleted_at
 `
 
 func (q *Queries) InsertUser(ctx context.Context, name string) (User, error) {
