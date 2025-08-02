@@ -9,15 +9,23 @@ import (
 )
 
 type Contract struct {
-	ID         int64      `db:"id" json:"id"`
-	Name       string     `db:"name" json:"name"`
-	Company    *string    `db:"company" json:"company"`
-	Category   string     `db:"category" json:"category"`
-	Costs      *float64   `db:"costs" json:"costs"`
-	IconSource *string    `db:"icon_source" json:"icon_source"`
-	CreatedAt  *time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt  *time.Time `db:"updated_at" json:"updated_at"`
-	DeletedAt  *time.Time `db:"deleted_at" json:"deleted_at"`
+	ID               int64      `db:"id" json:"id"`
+	Name             string     `db:"name" json:"name"`
+	Company          *string    `db:"company" json:"company"`
+	ContractType     string     `db:"contract_type" json:"contract_type"`
+	Category         string     `db:"category" json:"category"`
+	StartDate        time.Time  `db:"start_date" json:"start_date"`
+	EndDate          *time.Time `db:"end_date" json:"end_date"`
+	ContractNumber   *string    `db:"contract_number" json:"contract_number"`
+	CustomerNumber   *string    `db:"customer_number" json:"customer_number"`
+	ContractHolderID *int64     `db:"contract_holder_id" json:"contract_holder_id"`
+	Costs            *float64   `db:"costs" json:"costs"`
+	BillingPeriod    string     `db:"billing_period" json:"billing_period"`
+	IconSource       *string    `db:"icon_source" json:"icon_source"`
+	Notes            *string    `db:"notes" json:"notes"`
+	CreatedAt        *time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt        *time.Time `db:"updated_at" json:"updated_at"`
+	DeletedAt        *time.Time `db:"deleted_at" json:"deleted_at"`
 }
 
 type Document struct {
