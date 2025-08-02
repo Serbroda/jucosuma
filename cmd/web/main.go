@@ -7,7 +7,6 @@ import (
 	sqlc "github.com/Serbroda/contracts/internal/db/sqlc/gen"
 	_ "github.com/glebarez/sqlite"
 	"log"
-	"net/http"
 )
 
 type application struct {
@@ -31,8 +30,9 @@ func main() {
 		queries: sqlc.New(dbConn),
 	}
 
+	e := app.routes()
+
 	log.Printf("Starting server on %s", *addr)
 
-	err = http.ListenAndServe(*addr, app.routes())
-	log.Fatalf("%+v\n", err)
+	e.Logger.Fatal(e.Start(*addr))
 }

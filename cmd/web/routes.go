@@ -1,21 +1,26 @@
 package main
 
-import "net/http"
+import (
+	"github.com/Serbroda/contracts/ui"
+	"github.com/labstack/echo/v4"
+	"net/http"
+)
 
-func (app *application) routes() *http.ServeMux {
-	mux := http.NewServeMux()
+func (app *application) routes() *echo.Echo {
+	e := echo.New()
 
-	fileServer := http.FileServer(http.Dir("./ui/static/"))
-	mux.Handle("GET /static/", http.StripPrefix("/static", fileServer))
+	ui.RegisterUi(e)
 
-	mux.HandleFunc("GET /{$}", app.home)
-	mux.HandleFunc("GET /contracts/add", app.newContract)
-	mux.HandleFunc("GET /contracts/{id}", app.editContract)
-	mux.HandleFunc("POST /api/contracts", app.createContractPost)
-	mux.HandleFunc("PUT /api/contracts/{id}", app.updateContractPost)
+	e.GET("/api/contracts", app.getContracts)
 
-	mux.HandleFunc("GET /api/logos", app.apiLogos)
-	mux.HandleFunc("GET /api/icons", app.htmxIcons)
+	return e
+}
 
-	return mux
+func (app *application) getContracts(ctx echo.Context) error {
+	contracts, err := app.queries.FindAllContracts(ctx.Request().Context())
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return ctx.JSON(http.StatusOK, contracts)
 }
