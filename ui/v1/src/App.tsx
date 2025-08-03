@@ -8,6 +8,7 @@ import {usePreferences} from "./stores/usePreferences.ts";
 import {useEffect} from "react";
 import ContractPage from "./pages/ContractPage.tsx";
 import {contractLoader, contractsLoader} from "./loader/contracts.ts";
+import {contractAction} from "./actions/contracts.ts";
 
 const router = createHashRouter([
     {
@@ -20,8 +21,8 @@ const router = createHashRouter([
                     {path: '/', element: <HomePage/>, loader: contractsLoader},
                     {path: '/persons', element: <PersonsPage/>},
                     {path: '/settings', element: <SettingsPage/>},
-                    {path: '/contracts/add', element: <ContractPage mode="add"/>},
-                    {path: '/contracts/:id', element: <ContractPage mode="edit"/>, loader: contractLoader},
+                    {path: '/contracts/add', element: <ContractPage mode="add"/>, action: contractAction},
+                    {path: '/contracts/:id', element: <ContractPage mode="edit"/>, loader: contractLoader, action: contractAction},
                 ],
             },
         ],
