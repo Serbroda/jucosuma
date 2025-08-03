@@ -1,6 +1,7 @@
 // src/actions/contractAction.ts
 import type {ActionFunction} from "react-router";
 import type {Contract} from "../gen/types.gen";
+import {apiBasePath} from "../config.ts";
 
 export const contractAction: ActionFunction = async ({request, params}) => {
     const formData = await request.formData();         // get form data  [oai_citation:3‡GitHub](https://github.com/remix-run/react-router/discussions/12587?utm_source=chatgpt.com)
@@ -19,18 +20,11 @@ export const contractAction: ActionFunction = async ({request, params}) => {
         notes:  formData.get("notes"),
     } as Partial<Contract>;
 
-    console.log(payload)
-
     const id = params.id;
-
-    console.log(id)
-
-    return;
-
     const method = id ? "PUT" : "POST";                 // determine method
     const url = id
-        ? `/api/contracts/${id}`
-        : "/api/contracts";
+        ? `${apiBasePath}/contracts/${id}`
+        : `${apiBasePath}/contracts`;
 
     const res = await fetch(url, {
         method,

@@ -1,6 +1,7 @@
 package main
 
 import (
+	sqlc "github.com/Serbroda/contracts/internal/db/sqlc/gen"
 	"github.com/Serbroda/contracts/internal/utils"
 	"github.com/labstack/echo/v4"
 	"net/http"
@@ -29,6 +30,32 @@ func (app *application) getContractById(ctx echo.Context) error {
 	}
 
 	contract, err := app.queries.FindContractById(ctx.Request().Context(), id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	return ctx.JSON(http.StatusOK, contract)
+}
+
+func (app *application) createContract(ctx echo.Context) error {
+	var payload sqlc.Contract
+	if err := ctx.Bind(&payload); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	contract, err := app.queries.InsertContract(ctx.Request().Context(), sqlc.InsertContractParams{
+		Name:           payload.Name,
+		Company:        payload.Company,
+		ContractType:   payload.ContractType,
+		Category:       payload.Category,
+		StartDate:      payload.StartDate,
+		EndDate:        payload.EndDate,
+		ContractNumber: payload.ContractNumber,
+		CustomerNumber: payload.CustomerNumber,
+		Costs:          payload.Costs,
+		BillingPeriod:  payload.BillingPeriod,
+		IconSource:     payload.IconSource,
+		Notes:          payload.Notes,
+	})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}

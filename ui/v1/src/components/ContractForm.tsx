@@ -13,6 +13,7 @@ import {type FC, useEffect, useState} from "react";
 import {MagnifyingGlassIcon} from "@heroicons/react/16/solid";
 import {apiBasePath} from "../config.ts";
 import {classNames} from "../utils/dom.utils.ts";
+import image from "../assets/image.png"
 
 export interface ContractFormProps {
     contract: Partial<Contract>;
@@ -133,8 +134,8 @@ export default function ContractForm({contract}: ContractFormProps) {
                     <Button plain className="hover:cursor-pointer" onClick={() => setIsOpen(true)}>
                         <Avatar
                             square={true}
-                            className="w-16 h-16"
-                            src={contract?.icon_source}/>
+                            className={classNames("w-16 h-16", contract?.icon_source ? '' : 'dark:invert')}
+                            src={contract?.icon_source || image}/>
                     </Button>
 
                     <Input type="hidden" name="icon_source" value={contract?.icon_source}/>

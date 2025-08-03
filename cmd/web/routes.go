@@ -13,6 +13,7 @@ func (app *application) routes() *echo.Echo {
 	ui.RegisterUi(e)
 
 	e.GET("/api/contracts", app.getContracts)
+	e.POST("/api/contracts", app.createContract)
 	e.GET("/api/contracts/:id", app.getContractById)
 	e.GET("/api/logos", app.searchLogos)
 
