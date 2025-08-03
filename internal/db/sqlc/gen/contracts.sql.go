@@ -140,19 +140,19 @@ VALUES (CURRENT_TIMESTAMP,
 `
 
 type InsertContractParams struct {
-	Name             string     `db:"name" json:"name"`
-	Company          *string    `db:"company" json:"company"`
-	ContractType     string     `db:"contract_type" json:"contract_type"`
-	Category         string     `db:"category" json:"category"`
-	StartDate        time.Time  `db:"start_date" json:"start_date"`
-	EndDate          *time.Time `db:"end_date" json:"end_date"`
-	ContractNumber   *string    `db:"contract_number" json:"contract_number"`
-	CustomerNumber   *string    `db:"customer_number" json:"customer_number"`
-	ContractHolderID *int64     `db:"contract_holder_id" json:"contract_holder_id"`
-	Costs            *float64   `db:"costs" json:"costs"`
-	BillingPeriod    string     `db:"billing_period" json:"billing_period"`
-	IconSource       *string    `db:"icon_source" json:"icon_source"`
-	Notes            *string    `db:"notes" json:"notes"`
+	Name             string     `db:"name"`
+	Company          *string    `db:"company"`
+	ContractType     string     `db:"contract_type"`
+	Category         string     `db:"category"`
+	StartDate        time.Time  `db:"start_date"`
+	EndDate          *time.Time `db:"end_date"`
+	ContractNumber   *string    `db:"contract_number"`
+	CustomerNumber   *string    `db:"customer_number"`
+	ContractHolderID *int64     `db:"contract_holder_id"`
+	Costs            *float64   `db:"costs"`
+	BillingPeriod    string     `db:"billing_period"`
+	IconSource       *string    `db:"icon_source"`
+	Notes            *string    `db:"notes"`
 }
 
 func (q *Queries) InsertContract(ctx context.Context, arg InsertContractParams) (Contract, error) {
@@ -217,20 +217,20 @@ WHERE id = ?14
 `
 
 type UpdateContractByIdParams struct {
-	Name             string     `db:"name" json:"name"`
-	Company          *string    `db:"company" json:"company"`
-	ContractType     string     `db:"contract_type" json:"contract_type"`
-	Category         string     `db:"category" json:"category"`
-	StartDate        time.Time  `db:"start_date" json:"start_date"`
-	EndDate          *time.Time `db:"end_date" json:"end_date"`
-	ContractNumber   *string    `db:"contract_number" json:"contract_number"`
-	CustomerNumber   *string    `db:"customer_number" json:"customer_number"`
-	ContractHolderID *int64     `db:"contract_holder_id" json:"contract_holder_id"`
-	Costs            *float64   `db:"costs" json:"costs"`
-	BillingPeriod    string     `db:"billing_period" json:"billing_period"`
-	IconSource       *string    `db:"icon_source" json:"icon_source"`
-	Notes            *string    `db:"notes" json:"notes"`
-	ID               int64      `db:"id" json:"id"`
+	Name             string     `db:"name"`
+	Company          *string    `db:"company"`
+	ContractType     string     `db:"contract_type"`
+	Category         string     `db:"category"`
+	StartDate        time.Time  `db:"start_date"`
+	EndDate          *time.Time `db:"end_date"`
+	ContractNumber   *string    `db:"contract_number"`
+	CustomerNumber   *string    `db:"customer_number"`
+	ContractHolderID *int64     `db:"contract_holder_id"`
+	Costs            *float64   `db:"costs"`
+	BillingPeriod    string     `db:"billing_period"`
+	IconSource       *string    `db:"icon_source"`
+	Notes            *string    `db:"notes"`
+	ID               int64      `db:"id"`
 }
 
 func (q *Queries) UpdateContractById(ctx context.Context, arg UpdateContractByIdParams) error {

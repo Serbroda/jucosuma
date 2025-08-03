@@ -1,17 +1,14 @@
 package main
 
 import (
+	"github.com/Serbroda/contracts/cmd/web/dtos"
 	sqlc "github.com/Serbroda/contracts/internal/db/sqlc/gen"
 	"github.com/Serbroda/contracts/internal/utils"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
+	"time"
 )
-
-type LogoDto struct {
-	Name string `json:"name"`
-	Logo string `json:"logo"`
-}
 
 func (app *application) getContracts(ctx echo.Context) error {
 	contracts, err := app.queries.FindAllContracts(ctx.Request().Context())
@@ -19,7 +16,11 @@ func (app *application) getContracts(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	return ctx.JSON(http.StatusOK, contracts)
+	json := utils.MapSlice(contracts, func(item sqlc.Contract) dtos.ContractDto {
+		return dtos.MapContractToContractDto(item)
+	})
+
+	return ctx.JSON(http.StatusOK, json)
 }
 
 func (app *application) getContractById(ctx echo.Context) error {
@@ -33,11 +34,13 @@ func (app *application) getContractById(ctx echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-	return ctx.JSON(http.StatusOK, contract)
+
+	json := dtos.MapContractToContractDto(contract)
+	return ctx.JSON(http.StatusOK, json)
 }
 
 func (app *application) createContract(ctx echo.Context) error {
-	var payload sqlc.Contract
+	var payload dtos.CreateContractDto
 	if err := ctx.Bind(&payload); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
@@ -47,8 +50,8 @@ func (app *application) createContract(ctx echo.Context) error {
 		Company:        payload.Company,
 		ContractType:   payload.ContractType,
 		Category:       payload.Category,
-		StartDate:      payload.StartDate,
-		EndDate:        payload.EndDate,
+		StartDate:      time.Time(payload.StartDate),
+		EndDate:        (*time.Time)(payload.EndDate),
 		ContractNumber: payload.ContractNumber,
 		CustomerNumber: payload.CustomerNumber,
 		Costs:          payload.Costs,
@@ -73,9 +76,9 @@ func (app *application) searchLogos(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	var logos []LogoDto
+	var logos []dtos.LogoDto
 	for _, res := range results {
-		logos = append(logos, LogoDto{
+		logos = append(logos, dtos.LogoDto{
 			Name: res.TrackName,
 			Logo: res.ArtworkUrl100,
 		})

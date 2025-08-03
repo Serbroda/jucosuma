@@ -3,7 +3,7 @@ import {Button} from "../components/catalyst/button.tsx";
 import {PlusIcon} from "@heroicons/react/16/solid";
 
 export default function HomePage() {
-    const data = useLoaderData();
+    const {contracts} = useLoaderData();
 
     return (
         <>
@@ -15,7 +15,7 @@ export default function HomePage() {
                     Add Contract
                 </Button>
 
-                {data.contracts && data.contracts.map((contract: any) =>
+                {contracts?.map((contract: any) =>
                     <div key={contract.id}>
                         <Link to={"/contracts/" + contract.id}>{contract.name}</Link>
                     </div>

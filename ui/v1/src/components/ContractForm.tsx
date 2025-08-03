@@ -1,4 +1,4 @@
-import type {Contract} from "../gen/types.gen.ts";
+import type {ContractDto} from "../gen/types.gen.ts";
 import {Avatar} from "./catalyst/avatar.tsx";
 import {Field, Label} from "./catalyst/fieldset.tsx";
 import {Input, InputGroup} from "./catalyst/input.tsx";
@@ -16,7 +16,7 @@ import {classNames} from "../utils/dom.utils.ts";
 import image from "../assets/image.png"
 
 export interface ContractFormProps {
-    contract: Partial<Contract>;
+    contract: Partial<ContractDto>;
 }
 
 const categories = [

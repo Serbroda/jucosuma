@@ -1,10 +1,8 @@
 packages:
-  - path: "github.com/Serbroda/contracts/internal/db/sqlc/gen"      # the Go package containing your SQLC-generated structs
+  - path: "github.com/Serbroda/contracts/cmd/web/dtos"      # the Go package containing your SQLC-generated structs
     output_path: "./v1/src/gen/types.gen.ts" # where to emit the consolidated TS definitions
     type_mappings:
       time.Time:    "string /* RFC3339 */"
       json.Number:  "number"
     exclude_files:
-      - "contracts.sql.go"
-      - "db.go"
-      - "users.sql.go"
+      - "mappers.go"

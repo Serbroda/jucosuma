@@ -1,6 +1,6 @@
 // src/actions/contractAction.ts
 import type {ActionFunction} from "react-router";
-import type {Contract} from "../gen/types.gen";
+import type {ContractDto} from "../gen/types.gen";
 import {apiBasePath} from "../config.ts";
 
 export const contractAction: ActionFunction = async ({request, params}) => {
@@ -18,7 +18,7 @@ export const contractAction: ActionFunction = async ({request, params}) => {
         billing_period:  formData.get("billing_period"),
         icon_source:  formData.get("icon_source"),
         notes:  formData.get("notes"),
-    } as Partial<Contract>;
+    } as Partial<ContractDto>;
 
     const id = params.id;
     const method = id ? "PUT" : "POST";                 // determine method

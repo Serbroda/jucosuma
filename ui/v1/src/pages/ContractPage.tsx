@@ -1,7 +1,7 @@
 import {useActionData, useLoaderData} from "react-router";
 import {Heading} from "../components/catalyst/heading.tsx";
 import {Divider} from "../components/catalyst/divider.tsx";
-import type {Contract} from "../gen/types.gen.ts";
+import type {ContractDto} from "../gen/types.gen.ts";
 import ContractForm from "../components/ContractForm.tsx";
 
 export interface ContractPageProps {
@@ -10,15 +10,15 @@ export interface ContractPageProps {
 
 type ActionData = {
     errors?: Record<string,string>;
-    values?: Partial<Contract>;
+    values?: Partial<ContractDto>;
 };
 
 export default function ContractPage({mode}: ContractPageProps) {
-    const data = useLoaderData() as { contract?: Contract } | undefined;
-    const contract: Contract = data?.contract ?? ({} as Contract);
+    const data = useLoaderData() as { contract?: ContractDto } | undefined;
+    const contract: ContractDto = data?.contract ?? ({} as ContractDto);
 
     const actionData = useActionData() as ActionData | undefined;
-    const defaults: Partial<Contract> = actionData?.values ?? contract;
+    const defaults: Partial<ContractDto> = actionData?.values ?? contract;
 
     return (
         <div>
