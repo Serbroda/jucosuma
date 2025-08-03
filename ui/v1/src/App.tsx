@@ -6,6 +6,7 @@ import ErrorPage from "./pages/ErrorPage.tsx";
 import PersonsPage from "./pages/PersonsPage.tsx";
 import {usePreferences} from "./stores/usePreferences.ts";
 import {useEffect} from "react";
+import ContractPage from "./pages/ContractPage.tsx";
 
 const router = createHashRouter(
     createRoutesFromElements(
@@ -14,6 +15,7 @@ const router = createHashRouter(
                 <Route path="/" element={<HomePage/>}/>
                 <Route path="/persons" element={<PersonsPage/>}/>
                 <Route path="/settings" element={<SettingsPage/>}/>
+                <Route path="/contracts/:id" element={<ContractPage/>}/>
             </Route>
         </>
     )

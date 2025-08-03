@@ -1,5 +1,6 @@
 import {useEffect, useState} from "react";
 import {apiBasePath} from "../config.ts";
+import {Link} from "react-router";
 
 export default function HomePage() {
     const [contracts, setContracts] = useState<any[]>([]);
@@ -15,7 +16,7 @@ export default function HomePage() {
             <h1>Home</h1>
             {contracts && contracts.map(contract =>
                 <div key={contract.id}>
-                    <h2>{contract.name}</h2>
+                    <Link to={"/contracts/" + contract.id}>{contract.name}</Link>
                 </div>
             )}
         </div>
