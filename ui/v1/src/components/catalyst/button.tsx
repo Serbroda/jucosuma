@@ -160,9 +160,9 @@ const styles = {
 }
 
 type ButtonProps = (
-  | { color?: keyof typeof styles.colors; outline?: never; plain?: never }
+  | { color?: keyof typeof styles.colors; outline?: never; plain?: never, to?: string }
   | { color?: never; outline: true; plain?: never }
-  | { color?: never; outline?: never; plain: true, to: string }
+  | { color?: never; outline?: never; plain: true }
 ) & { className?: string; children: React.ReactNode } & (
     | Omit<Headless.ButtonProps, 'as' | 'className'>
     | Omit<React.ComponentPropsWithoutRef<typeof Link>, 'className'>
@@ -183,7 +183,7 @@ export const Button = forwardRef(function Button(
       <TouchTarget>{children}</TouchTarget>
     </Link>
   ) : 'to' in props ? (
-      <RLink className={classes} to={props.to}>
+      <RLink className={classes} to={props.to!}>
         <TouchTarget>{children}</TouchTarget>
       </RLink>
   ) : (

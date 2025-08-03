@@ -28,6 +28,7 @@ export interface ContractPageProps {
 export default function ContractPage({mode}: ContractPageProps) {
     const data = useLoaderData();
     const contract = data?.contract || {} as any;
+    console.log(contract)
 
     return (
         <div>
