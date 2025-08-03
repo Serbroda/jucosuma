@@ -7,7 +7,7 @@ import PersonsPage from "./pages/PersonsPage.tsx";
 import {usePreferences} from "./stores/usePreferences.ts";
 import {useEffect} from "react";
 import ContractPage from "./pages/ContractPage.tsx";
-import {apiBasePath} from "./config.ts";
+import {contractLoader, contractsLoader} from "./loader/contracts.ts";
 
 const router = createHashRouter([
     {
@@ -17,25 +17,10 @@ const router = createHashRouter([
             {
                 errorElement: <ErrorPage/>,
                 children: [
-                    {path: '/', element: <HomePage/>},
+                    {path: '/', element: <HomePage/>, loader: contractsLoader},
                     {path: '/persons', element: <PersonsPage/>},
                     {path: '/settings', element: <SettingsPage/>},
-                    {
-                        path: '/contracts/:id',
-                        element: <ContractPage/>,
-                        loader: async ({params}) => {
-                            const res = await fetch(`${apiBasePath}/contracts/${params.id}`);
-                            if (!res.ok) {
-                                throw new Response(res.statusText, {status: res.status});
-                            }
-
-                            const contract = await res.json();
-                            if (!contract) {
-                                throw new Response("Not Found", {status: 404});
-                            }
-                            return {contract: contract};
-                        }
-                    },
+                    {path: '/contracts/:id', element: <ContractPage/>, loader: contractLoader},
                 ],
             },
         ],
