@@ -1,21 +1,12 @@
-import {useParams} from "react-router";
-import {useEffect, useState} from "react";
-import {apiBasePath} from "../config.ts";
+import {useLoaderData} from "react-router";
 
 export default function ContractPage() {
-    const params = useParams();
-    const [contract, setContract] = useState<any>(null);
-
-    useEffect(() => {
-        fetch(`${apiBasePath}/contracts/${params.id}`)
-        .then(res => res.json())
-        .then(setContract)
-    }, [params])
+    const data = useLoaderData();
 
     return (
         <div>
             <h1>Contract</h1>
-            <p>{contract?.id}</p>
+            <p>{data?.contract?.id}</p>
         </div>
     )
 }
