@@ -2,6 +2,7 @@ import * as Headless from '@headlessui/react'
 import clsx from 'clsx'
 import React, { forwardRef } from 'react'
 import { Link } from './link.tsx'
+import { Link as RLink } from 'react-router'
 
 const styles = {
   base: [
@@ -161,7 +162,7 @@ const styles = {
 type ButtonProps = (
   | { color?: keyof typeof styles.colors; outline?: never; plain?: never }
   | { color?: never; outline: true; plain?: never }
-  | { color?: never; outline?: never; plain: true }
+  | { color?: never; outline?: never; plain: true, to: string }
 ) & { className?: string; children: React.ReactNode } & (
     | Omit<Headless.ButtonProps, 'as' | 'className'>
     | Omit<React.ComponentPropsWithoutRef<typeof Link>, 'className'>
@@ -181,6 +182,10 @@ export const Button = forwardRef(function Button(
     <Link {...props} className={classes} ref={ref as React.ForwardedRef<HTMLAnchorElement>}>
       <TouchTarget>{children}</TouchTarget>
     </Link>
+  ) : 'to' in props ? (
+      <RLink className={classes} to={props.to}>
+        <TouchTarget>{children}</TouchTarget>
+      </RLink>
   ) : (
     <Headless.Button {...props} className={clsx(classes, 'cursor-default')} ref={ref}>
       <TouchTarget>{children}</TouchTarget>

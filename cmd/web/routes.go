@@ -14,6 +14,7 @@ func (app *application) routes() *echo.Echo {
 
 	e.GET("/api/contracts", app.getContracts)
 	e.GET("/api/contracts/:id", app.getContractById)
+	e.GET("/api/logos", app.searchLogos)
 
 	return e
 }
