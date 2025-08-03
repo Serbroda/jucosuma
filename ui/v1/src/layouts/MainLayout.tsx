@@ -1,21 +1,37 @@
 import {StackedLayout} from "../components/catalyst/stacked-layout.tsx";
-import {Navbar, NavbarDivider, NavbarItem, NavbarLabel, NavbarSection} from "../components/catalyst/navbar.tsx";
+import {
+    Navbar,
+    NavbarDivider,
+    NavbarItem,
+    NavbarLabel,
+    NavbarSection,
+    NavbarSpacer
+} from "../components/catalyst/navbar.tsx";
 import {Sidebar, SidebarBody, SidebarHeader, SidebarItem, SidebarSection} from "../components/catalyst/sidebar.tsx";
 import {href, NavLink, Outlet} from "react-router";
 import {Avatar} from "../components/catalyst/avatar.tsx";
 
 import reactLogo from '../assets/react.svg'
+import {Switch} from "../components/catalyst/switch.tsx";
+import {usePreferences} from "../stores/usePreferences.ts";
+import {useEffect, useState} from "react";
 
 const navItems = [
-    {label: 'HomePage', url: '/'},
+    {label: 'Home', url: '/'},
     {label: 'Persons', url: '/persons'},
     {label: 'Settings', url: '/settings'},
-    {label: 'AboutPage', url: '/about'},
 ]
 
 function MainLayout() {
+    const {theme, setTheme} = usePreferences()
+    const [darkMode, setDarkMode] = useState<boolean>(theme == "dark")
+
+    useEffect(() => {
+        setDarkMode(theme == "dark")
+    }, [theme])
+
     return (
-        <div>
+        <div className="text-black dark:text-white">
             <StackedLayout
                 navbar={
                     <Navbar>
@@ -34,6 +50,13 @@ function MainLayout() {
                                     {label}
                                 </NavbarItem>
                             ))}
+                        </NavbarSection>
+                        <NavbarSpacer/>
+                        <NavbarSection>
+                            <Switch checked={darkMode} onChange={(val) => {
+                                setTheme(val ? "dark" : "light")
+                                setDarkMode(val)
+                            }}/>
                         </NavbarSection>
                     </Navbar>
                 }
