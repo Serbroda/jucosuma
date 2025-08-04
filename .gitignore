@@ -294,3 +294,4 @@ bin/
 *.db
 ui/package.json
 ui/package-lock.json
+uploads/

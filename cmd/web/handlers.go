@@ -1,11 +1,15 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/Serbroda/contracts/cmd/web/dtos"
 	sqlc "github.com/Serbroda/contracts/internal/db/sqlc/gen"
 	"github.com/Serbroda/contracts/internal/utils"
 	"github.com/labstack/echo/v4"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -39,13 +43,47 @@ func (app *application) getContractById(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, json)
 }
 
-func (app *application) createContract(ctx echo.Context) error {
+func (app *application) createContract(c echo.Context) error {
+	// 1) Meta-JSON auslesen und in dein DTO unmarshaln
+	metaStr := c.FormValue("meta")
+	if metaStr == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "missing meta field")
+	}
 	var payload dtos.CreateContractDto
-	if err := BindAndValidate(ctx, &payload); err != nil {
-		return err
+	if err := json.Unmarshal([]byte(metaStr), &payload); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid meta JSON: "+err.Error())
 	}
 
-	contract, err := app.queries.InsertContract(ctx.Request().Context(), sqlc.InsertContractParams{
+	// 2) Datei aus dem FormData-Part holen
+	fileHeader, err := c.FormFile("file")
+	if err == nil {
+		// 3) Datei öffnen und speichern
+		src, err := fileHeader.Open()
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "cannot open uploaded file: "+err.Error())
+		}
+		defer src.Close()
+
+		// Upload-Ordner anlegen
+		os.MkdirAll("uploads", 0755)
+		dstPath := filepath.Join("uploads", filepath.Base(fileHeader.Filename))
+		dst, err := os.Create(dstPath)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "cannot create file: "+err.Error())
+		}
+		defer dst.Close()
+
+		if _, err := io.Copy(dst, src); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "cannot save file: "+err.Error())
+		}
+
+		// 4) Setze IconSource auf den Pfad (oder URL) der gespeicherten Datei
+		url := "/uploads/" + filepath.Base(fileHeader.Filename)
+		payload.IconSource = &url
+	}
+
+	// 5) Jetzt wie gehabt in die DB schreiben
+	contract, err := app.queries.InsertContract(c.Request().Context(), sqlc.InsertContractParams{
 		Name:           payload.Name,
 		Company:        payload.Company,
 		ContractType:   payload.ContractType,
@@ -62,7 +100,9 @@ func (app *application) createContract(ctx echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-	return ctx.JSON(http.StatusOK, dtos.MapContractToContractDto(contract))
+
+	// 6) Erfolgsantwort zurückgeben
+	return c.JSON(http.StatusOK, dtos.MapContractToContractDto(contract))
 }
 
 func (app *application) updateContract(ctx echo.Context) error {

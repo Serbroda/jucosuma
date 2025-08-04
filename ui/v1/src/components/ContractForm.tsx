@@ -138,6 +138,7 @@ export default function ContractForm({contract}: ContractFormProps) {
 
             <Form
                 method="post"
+                encType="multipart/form-data"
                 className="grid grid-cols-1 gap-4"
                 onChange={() => console.log("changed")}>
 
@@ -225,7 +226,7 @@ export default function ContractForm({contract}: ContractFormProps) {
                 <Subheading>Data</Subheading>
                 <Field>
                     <Label>Documents</Label>
-                    <Input type="file" multiple={true} aria-label="Documents" name="documents" value={contract?.costs}/>
+                    <Input type="file" multiple={true} aria-label="Documents" name="file" value={contract?.costs}/>
                 </Field>
                 {/*<Field>
                     <Label>Links</Label>
