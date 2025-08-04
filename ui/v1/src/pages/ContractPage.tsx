@@ -25,7 +25,8 @@ export default function ContractPage({mode}: ContractPageProps) {
             <Heading>{mode == 'add' ? 'Add ' : ''}Contract</Heading>
             <Divider className="my-10 mt-6"/>
 
-            <ContractForm contract={defaults}/>
+            <ContractForm
+                contract={defaults}/>
         </div>
     )
 }

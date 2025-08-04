@@ -7,7 +7,7 @@ import {Radio, RadioField, RadioGroup} from "./catalyst/radio.tsx";
 import {Divider} from "./catalyst/divider.tsx";
 import {Subheading} from "./catalyst/heading.tsx";
 import {Button} from "./catalyst/button.tsx";
-import {Form} from "react-router";
+import {Form, useNavigate} from "react-router";
 import {Dialog, DialogActions, DialogBody, DialogTitle} from "./catalyst/dialog.tsx";
 import {type FC, useEffect, useState} from "react";
 import {MagnifyingGlassIcon} from "@heroicons/react/16/solid";
@@ -111,7 +111,17 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
 }
 
 export default function ContractForm({contract}: ContractFormProps) {
+    const navigation = useNavigate()
     const [isOpen, setIsOpen] = useState(false)
+
+    const deleteContract = async () => {
+        const res = await fetch(`${apiBasePath}/contracts/${contract.id}`, {
+            method: 'DELETE',
+        })
+        if (res.ok) {
+            navigation('/')
+        }
+    }
 
     return (
         <>
@@ -208,8 +218,12 @@ export default function ContractForm({contract}: ContractFormProps) {
                     </Select>
                 </Field>
 
-                <div className="flex justify-end mt-6">
-                    <Button type="submit" className="grow lg:grow-0">Save</Button>
+                <div className="flex mt-6 gap-4 lg:gap-2 flex-wrap">
+
+                    <Button type="button" className="w-full lg:w-auto hover:cursor-pointer" color="red" onClick={() => deleteContract()}>Delete</Button>
+                    <div className="hidden lg:block lg:grow"></div>
+                    <Button type="submit" className="w-full lg:w-auto hover:cursor-pointer">Save</Button>
+                    <Button type="button" className="w-full lg:w-auto hover:cursor-pointer" outline onClick={() => navigation("/")}>Cancel</Button>
                 </div>
             </Form>
         </>

@@ -98,6 +98,19 @@ func (app *application) updateContract(ctx echo.Context) error {
 	return ctx.String(http.StatusOK, "successfully updated")
 }
 
+func (app *application) deleteContract(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	err = app.queries.DeleteContractSoft(ctx.Request().Context(), id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	return ctx.String(http.StatusOK, "successfully deleted")
+}
+
 func (app *application) searchLogos(ctx echo.Context) error {
 	term := ctx.QueryParam("term")
 	if term == "" {
