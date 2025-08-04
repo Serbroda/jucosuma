@@ -46,42 +46,94 @@ func (app *application) getContractById(ctx echo.Context) error {
 }
 
 func (app *application) createContract(c echo.Context) error {
-	// 1) Meta-JSON auslesen und in dein DTO unmarshaln
+	contract, err := app.upsertContract(c, nil)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, dtos.MapContractToContractDto(*contract))
+}
+
+func (app *application) updateContract(c echo.Context) error {
+	idParam := c.Param("id")
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+	}
+	contract, err := app.upsertContract(c, &id)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, dtos.MapContractToContractDto(*contract))
+}
+
+// upsertContract übernimmt sowohl Insert als auch Update,
+// plus optionales Abspeichern eines Uploads und zugehöriger Dokument-Daten.
+func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contract, error) {
+	// 1) Meta-JSON auslesen
 	metaStr := c.FormValue("meta")
 	if metaStr == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "missing meta field")
+		return nil, echo.NewHTTPError(http.StatusBadRequest, "missing meta field")
 	}
 	var payload dtos.CreateContractDto
 	if err := json.Unmarshal([]byte(metaStr), &payload); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid meta JSON: "+err.Error())
+		return nil, echo.NewHTTPError(http.StatusBadRequest, "invalid meta JSON: "+err.Error())
 	}
 
-	// 2) Jetzt wie gehabt in die DB schreiben
-	contract, err := app.queries.InsertContract(c.Request().Context(), sqlc.InsertContractParams{
-		Name:           payload.Name,
-		Company:        payload.Company,
-		ContractType:   payload.ContractType,
-		Category:       payload.Category,
-		StartDate:      time.Time(payload.StartDate),
-		EndDate:        (*time.Time)(payload.EndDate),
-		ContractNumber: payload.ContractNumber,
-		CustomerNumber: payload.CustomerNumber,
-		Costs:          payload.Costs,
-		BillingPeriod:  payload.BillingPeriod,
-		IconSource:     payload.IconSource,
-		Notes:          payload.Notes,
-	})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	// 2) DB-Operation: Insert oder Update
+	var contract *sqlc.Contract
+	ctx := c.Request().Context()
+	if id == nil {
+		inserted, err := app.queries.InsertContract(ctx, sqlc.InsertContractParams{
+			Name:           payload.Name,
+			Company:        payload.Company,
+			ContractType:   payload.ContractType,
+			Category:       payload.Category,
+			StartDate:      time.Time(payload.StartDate),
+			EndDate:        (*time.Time)(payload.EndDate),
+			ContractNumber: payload.ContractNumber,
+			CustomerNumber: payload.CustomerNumber,
+			Costs:          payload.Costs,
+			BillingPeriod:  payload.BillingPeriod,
+			IconSource:     payload.IconSource,
+			Notes:          payload.Notes,
+		})
+		if err != nil {
+			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+		contract = &inserted
+	} else {
+		// UpdateContractById liefert keinen Contract zurück, daher nachladen
+		err := app.queries.UpdateContractById(ctx, sqlc.UpdateContractByIdParams{
+			ID:             *id,
+			Name:           payload.Name,
+			Company:        payload.Company,
+			ContractType:   payload.ContractType,
+			Category:       payload.Category,
+			StartDate:      time.Time(payload.StartDate),
+			EndDate:        (*time.Time)(payload.EndDate),
+			ContractNumber: payload.ContractNumber,
+			CustomerNumber: payload.CustomerNumber,
+			Costs:          payload.Costs,
+			BillingPeriod:  payload.BillingPeriod,
+			IconSource:     payload.IconSource,
+			Notes:          payload.Notes,
+		})
+		if err != nil {
+			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+		updated, err := app.queries.FindContractById(ctx, *id)
+		if err != nil {
+			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+		contract = &updated
 	}
 
-	// 3) Datei aus dem FormData-Part holen
+	// 3) Optional: Datei-Upload verarbeiten
 	fileHeader, err := c.FormFile("file")
 	if err == nil {
-		// 4) Datei öffnen und speichern
 		src, err := fileHeader.Open()
 		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "cannot open uploaded file: "+err.Error())
+			return nil, echo.NewHTTPError(http.StatusInternalServerError, "cannot open uploaded file: "+err.Error())
 		}
 		defer src.Close()
 
@@ -89,64 +141,32 @@ func (app *application) createContract(c echo.Context) error {
 		ext := filepath.Ext(fileHeader.Filename)
 		docName := fmt.Sprintf("%s%s", docId, ext)
 
-		// Upload-Ordner anlegen
-		os.MkdirAll("uploads", 0755)
+		if err := os.MkdirAll("uploads", 0o755); err != nil {
+			return nil, echo.NewHTTPError(http.StatusInternalServerError, "cannot create upload dir: "+err.Error())
+		}
 		dstPath := filepath.Join("uploads", docName)
 		dst, err := os.Create(dstPath)
 		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "cannot create file: "+err.Error())
+			return nil, echo.NewHTTPError(http.StatusInternalServerError, "cannot create file: "+err.Error())
 		}
 		defer dst.Close()
 
 		if _, err := io.Copy(dst, src); err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "cannot save file: "+err.Error())
+			return nil, echo.NewHTTPError(http.StatusInternalServerError, "cannot save file: "+err.Error())
 		}
 
-		_, err = app.queries.InsertDocument(c.Request().Context(), sqlc.InsertDocumentParams{
+		// Dokument in der DB speichern
+		_, err = app.queries.InsertDocument(ctx, sqlc.InsertDocumentParams{
 			ContractID: contract.ID,
 			Path:       docName,
 			Title:      &fileHeader.Filename,
 		})
 		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "cannot save file: "+err.Error())
+			return nil, echo.NewHTTPError(http.StatusInternalServerError, "cannot save document record: "+err.Error())
 		}
 	}
-
-	// 6) Erfolgsantwort zurückgeben
-	return c.JSON(http.StatusOK, dtos.MapContractToContractDto(contract))
-}
-
-func (app *application) updateContract(ctx echo.Context) error {
-	idParam := ctx.Param("id")
-	id, err := strconv.ParseInt(idParam, 10, 64)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-
-	var payload dtos.UpdateContractDto
-	if err := BindAndValidate(ctx, &payload); err != nil {
-		return err
-	}
-
-	err = app.queries.UpdateContractById(ctx.Request().Context(), sqlc.UpdateContractByIdParams{
-		ID:             id,
-		Name:           payload.Name,
-		Company:        payload.Company,
-		ContractType:   payload.ContractType,
-		Category:       payload.Category,
-		StartDate:      time.Time(payload.StartDate),
-		EndDate:        (*time.Time)(payload.EndDate),
-		ContractNumber: payload.ContractNumber,
-		CustomerNumber: payload.CustomerNumber,
-		Costs:          payload.Costs,
-		BillingPeriod:  payload.BillingPeriod,
-		IconSource:     payload.IconSource,
-		Notes:          payload.Notes,
-	})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-	}
-	return ctx.String(http.StatusOK, "successfully updated")
+	// 4) Ergebnis zurückgeben
+	return contract, nil
 }
 
 func (app *application) deleteContract(ctx echo.Context) error {
