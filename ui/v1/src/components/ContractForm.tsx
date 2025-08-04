@@ -14,6 +14,7 @@ import {MagnifyingGlassIcon} from "@heroicons/react/16/solid";
 import {apiBasePath} from "../config.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import image from "../assets/image.png"
+import {Textarea} from "./catalyst/textarea.tsx";
 
 export interface ContractFormProps {
     contract: Partial<ContractDto>;
@@ -211,19 +212,58 @@ export default function ContractForm({contract}: ContractFormProps) {
                     <Label>Billing Period</Label>
                     <Select aria-label="Billing Period" name="billing_period" defaultValue="weekly"
                             value={contract?.billing_period}>
-                        <option value="daily">Daily</option>
                         <option value="weekly">Weekly</option>
                         <option value="monthly">Monthly</option>
-                        <option value="yearly">Yearly</option>
+                        <option value="quarterly">Quarterly</option>
+                        <option value="biannually">Biannually</option>
+                        <option value="annually">Annually</option>
+                        <option value="every-to-years">Every two years</option>
                     </Select>
                 </Field>
 
-                <div className="flex mt-6 gap-4 lg:gap-2 flex-wrap">
+                <Divider className="mt-6"/>
+                <Subheading>Data</Subheading>
+                <Field>
+                    <Label>Documents</Label>
+                    <Input type="file" multiple={true} aria-label="Documents" name="documents" value={contract?.costs}/>
+                </Field>
+                {/*<Field>
+                    <Label>Links</Label>
+                    <div className="flex gap-2 mt-3 flex-wrap">
+                        <Input type="text" aria-label="Links" name="links" value={contract?.costs} className="w-full lg:flex-1"/>
+                        <Input type="text" aria-label="Links" name="links" value={contract?.costs} className="w-full lg:flex-2"/>
+                        <Button type="button" className="w-full lg:w-auto hover:cursor-pointer"
+                            onClick={() => setLinks([...links, {name: 'Dummy', url: 'https://www.google.de'}])}>
+                            <PlusIcon className="w-5 h-5 "/>
+                            <span className="block lg:hidden">Add Link</span>
+                        </Button>
+                    </div>
+                    <ul className="mt-2 list-disc list-inside text-sm">
+                        {links.map((link, idx) => (
+                            <li key={idx}>
+                                {link.name} - <a href={link.url} target="_blank">{link.url}</a>
+                                <Button plain className="w-5 h-5 hover:cursor-pointer">
+                                    <XMarkIcon className="w-5 h-5 "/>
+                                </Button>
+                            </li>
+                        ))}
+                    </ul>
+                </Field>*/}
 
-                    <Button type="button" className="w-full lg:w-auto hover:cursor-pointer" color="red" onClick={() => deleteContract()}>Delete</Button>
+                <Divider className="mt-6"/>
+                <Subheading>Other</Subheading>
+                <Field>
+                    <Label>Notes</Label>
+                    <Textarea name="description"/>
+                </Field>
+
+                <div className="flex mt-6 gap-4 lg:gap-2 flex-wrap">
+                    <Button type="button" className="w-full lg:w-auto hover:cursor-pointer" color="red"
+                            onClick={() => deleteContract()}>Delete</Button>
                     <div className="hidden lg:block lg:grow"></div>
                     <Button type="submit" className="w-full lg:w-auto hover:cursor-pointer">Save</Button>
-                    <Button type="button" className="w-full lg:w-auto hover:cursor-pointer" outline onClick={() => navigation("/")}>Cancel</Button>
+                    <Button type="button" className="w-full lg:w-auto hover:cursor-pointer" outline
+                            onClick={() => navigation("/")}>Cancel</Button>
                 </div>
             </Form>
         </>

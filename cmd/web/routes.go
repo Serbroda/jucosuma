@@ -11,6 +11,9 @@ func (app *application) routes() *echo.Echo {
 	e := echo.New()
 	e.Validator = &CustomValidator{validator: validator.New()}
 	e.Use(middleware.CORS())
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+	e.Use(middleware.BodyLimit("20M"))
 
 	ui.RegisterUi(e)
 
