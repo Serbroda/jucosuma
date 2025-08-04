@@ -39,12 +39,12 @@ build-ui:
 build-docker: generate-go
 	docker build \
 	  --build-arg VERSION=$(cat VERSION) \
-	  -t jucoma:latest .
+	  -t ${BINARY_NAME}:latest .
 
 build-podman: generate-go
 	podman build \
 	  --build-arg VERSION=$(cat VERSION) \
-	  -t jucoma:latest .
+	  -t ${BINARY_NAME}:latest .
 
 generate-go:
 	@echo "==> Generating Go code..."

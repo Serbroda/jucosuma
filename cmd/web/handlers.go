@@ -41,8 +41,8 @@ func (app *application) getContractById(ctx echo.Context) error {
 
 func (app *application) createContract(ctx echo.Context) error {
 	var payload dtos.CreateContractDto
-	if err := ctx.Bind(&payload); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	if err := BindAndValidate(ctx, &payload); err != nil {
+		return err
 	}
 
 	contract, err := app.queries.InsertContract(ctx.Request().Context(), sqlc.InsertContractParams{
@@ -62,7 +62,40 @@ func (app *application) createContract(ctx echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-	return ctx.JSON(http.StatusOK, contract)
+	return ctx.JSON(http.StatusOK, dtos.MapContractToContractDto(contract))
+}
+
+func (app *application) updateContract(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	var payload dtos.UpdateContractDto
+	if err := BindAndValidate(ctx, &payload); err != nil {
+		return err
+	}
+
+	err = app.queries.UpdateContractById(ctx.Request().Context(), sqlc.UpdateContractByIdParams{
+		ID:             id,
+		Name:           payload.Name,
+		Company:        payload.Company,
+		ContractType:   payload.ContractType,
+		Category:       payload.Category,
+		StartDate:      time.Time(payload.StartDate),
+		EndDate:        (*time.Time)(payload.EndDate),
+		ContractNumber: payload.ContractNumber,
+		CustomerNumber: payload.CustomerNumber,
+		Costs:          payload.Costs,
+		BillingPeriod:  payload.BillingPeriod,
+		IconSource:     payload.IconSource,
+		Notes:          payload.Notes,
+	})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	return ctx.String(http.StatusOK, "successfully updated")
 }
 
 func (app *application) searchLogos(ctx echo.Context) error {

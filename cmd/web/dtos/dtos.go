@@ -51,9 +51,9 @@ type ContractDto struct {
 }
 
 type CreateContractDto struct {
-	Name           string    `json:"name"`
+	Name           string    `json:"name" validate:"required,min=1,max=256"`
 	Company        *string   `json:"company"`
-	ContractType   string    `json:"contract_type"`
+	ContractType   string    `json:"contract_type" validate:"required,min=1,max=256"`
 	Category       string    `json:"category"`
 	StartDate      DateOnly  `json:"start_date"`
 	EndDate        *DateOnly `json:"end_date"`
@@ -66,9 +66,9 @@ type CreateContractDto struct {
 }
 
 type UpdateContractDto struct {
-	Name           string    `json:"name"`
+	Name           string    `json:"name" validate:"required,min=1,max=256"`
 	Company        *string   `json:"company"`
-	ContractType   string    `json:"contract_type"`
+	ContractType   string    `json:"contract_type" validate:"required,min=1,max=256"`
 	Category       string    `json:"category"`
 	StartDate      DateOnly  `json:"start_date"`
 	EndDate        *DateOnly `json:"end_date"`

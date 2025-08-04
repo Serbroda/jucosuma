@@ -20,6 +20,8 @@ export const contractAction: ActionFunction = async ({request, params}) => {
         notes:  formData.get("notes"),
     } as Partial<ContractDto>;
 
+    console.log(payload)
+
     const id = params.id;
     const method = id ? "PUT" : "POST";                 // determine method
     const url = id
