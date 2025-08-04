@@ -1,4 +1,4 @@
-SHELL := /bin/bash
+SHELL := /bin/sh
 
 # ------------------------------------------------------------
 # Project informations
@@ -35,6 +35,16 @@ build-ui:
 	cd ui/v1 && \
 		npm i && \
 		npm run build
+
+build-docker: generate-go
+	docker build \
+	  --build-arg VERSION=$(cat VERSION) \
+	  -t jucoma:latest .
+
+build-podman: generate-go
+	podman build \
+	  --build-arg VERSION=$(cat VERSION) \
+	  -t jucoma:latest .
 
 generate-go:
 	@echo "==> Generating Go code..."
