@@ -29,12 +29,23 @@ type Contract struct {
 }
 
 type Document struct {
-	ID        int64      `db:"id"`
-	Path      string     `db:"path"`
-	Title     *string    `db:"title"`
-	CreatedAt *time.Time `db:"created_at"`
-	UpdatedAt *time.Time `db:"updated_at"`
-	DeletedAt *time.Time `db:"deleted_at"`
+	ID         string     `db:"id"`
+	ContractID int64      `db:"contract_id"`
+	Path       string     `db:"path"`
+	Title      *string    `db:"title"`
+	CreatedAt  *time.Time `db:"created_at"`
+	UpdatedAt  *time.Time `db:"updated_at"`
+	DeletedAt  *time.Time `db:"deleted_at"`
+}
+
+type Link struct {
+	ID         int64      `db:"id"`
+	ContractID int64      `db:"contract_id"`
+	Url        string     `db:"url"`
+	Title      *string    `db:"title"`
+	CreatedAt  *time.Time `db:"created_at"`
+	UpdatedAt  *time.Time `db:"updated_at"`
+	DeletedAt  *time.Time `db:"deleted_at"`
 }
 
 type User struct {

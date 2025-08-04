@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/Serbroda/contracts/cmd/web/dtos"
 	sqlc "github.com/Serbroda/contracts/internal/db/sqlc/gen"
 	"github.com/Serbroda/contracts/internal/utils"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"io"
 	"net/http"
@@ -54,35 +56,7 @@ func (app *application) createContract(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid meta JSON: "+err.Error())
 	}
 
-	// 2) Datei aus dem FormData-Part holen
-	fileHeader, err := c.FormFile("file")
-	if err == nil {
-		// 3) Datei öffnen und speichern
-		src, err := fileHeader.Open()
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "cannot open uploaded file: "+err.Error())
-		}
-		defer src.Close()
-
-		// Upload-Ordner anlegen
-		os.MkdirAll("uploads", 0755)
-		dstPath := filepath.Join("uploads", filepath.Base(fileHeader.Filename))
-		dst, err := os.Create(dstPath)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "cannot create file: "+err.Error())
-		}
-		defer dst.Close()
-
-		if _, err := io.Copy(dst, src); err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "cannot save file: "+err.Error())
-		}
-
-		// 4) Setze IconSource auf den Pfad (oder URL) der gespeicherten Datei
-		url := "/uploads/" + filepath.Base(fileHeader.Filename)
-		payload.IconSource = &url
-	}
-
-	// 5) Jetzt wie gehabt in die DB schreiben
+	// 2) Jetzt wie gehabt in die DB schreiben
 	contract, err := app.queries.InsertContract(c.Request().Context(), sqlc.InsertContractParams{
 		Name:           payload.Name,
 		Company:        payload.Company,
@@ -99,6 +73,43 @@ func (app *application) createContract(c echo.Context) error {
 	})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	// 3) Datei aus dem FormData-Part holen
+	fileHeader, err := c.FormFile("file")
+	if err == nil {
+		// 4) Datei öffnen und speichern
+		src, err := fileHeader.Open()
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "cannot open uploaded file: "+err.Error())
+		}
+		defer src.Close()
+
+		docId := uuid.NewString()
+		ext := filepath.Ext(fileHeader.Filename)
+		docName := fmt.Sprintf("%s%s", docId, ext)
+
+		// Upload-Ordner anlegen
+		os.MkdirAll("uploads", 0755)
+		dstPath := filepath.Join("uploads", docName)
+		dst, err := os.Create(dstPath)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "cannot create file: "+err.Error())
+		}
+		defer dst.Close()
+
+		if _, err := io.Copy(dst, src); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "cannot save file: "+err.Error())
+		}
+
+		_, err = app.queries.InsertDocument(c.Request().Context(), sqlc.InsertDocumentParams{
+			ContractID: contract.ID,
+			Path:       docName,
+			Title:      &fileHeader.Filename,
+		})
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "cannot save file: "+err.Error())
+		}
 	}
 
 	// 6) Erfolgsantwort zurückgeben
