@@ -1,25 +1,25 @@
-import type { ContractDto } from "../gen/types.gen.ts";
-import { Avatar } from "./catalyst/avatar.tsx";
-import { Field, Label } from "./catalyst/fieldset.tsx";
-import { Input, InputGroup } from "./catalyst/input.tsx";
-import { Select } from "./catalyst/select.tsx";
-import { Radio, RadioField, RadioGroup } from "./catalyst/radio.tsx";
-import { Divider } from "./catalyst/divider.tsx";
-import { Subheading } from "./catalyst/heading.tsx";
-import { Button } from "./catalyst/button.tsx";
-import { Form, useNavigate } from "react-router";
+import type {ContractDto} from "../gen/types.gen.ts";
+import {Avatar} from "./catalyst/avatar.tsx";
+import {Field, Label} from "./catalyst/fieldset.tsx";
+import {Input, InputGroup} from "./catalyst/input.tsx";
+import {Select} from "./catalyst/select.tsx";
+import {Radio, RadioField, RadioGroup} from "./catalyst/radio.tsx";
+import {Divider} from "./catalyst/divider.tsx";
+import {Subheading} from "./catalyst/heading.tsx";
+import {Button} from "./catalyst/button.tsx";
+import {Form, useNavigate} from "react-router";
 import {
     Dialog,
     DialogActions,
     DialogBody,
     DialogTitle,
 } from "./catalyst/dialog.tsx";
-import { type FC, useEffect, useState } from "react";
-import { MagnifyingGlassIcon } from "@heroicons/react/16/solid";
-import { apiBasePath } from "../config.ts";
-import { classNames } from "../utils/dom.utils.ts";
+import {type FC, useEffect, useState} from "react";
+import {MagnifyingGlassIcon} from "@heroicons/react/16/solid";
+import {apiBasePath} from "../config.ts";
+import {classNames} from "../utils/dom.utils.ts";
 import image from "../assets/image.png";
-import { Textarea } from "./catalyst/textarea.tsx";
+import {Textarea} from "./catalyst/textarea.tsx";
 import dayjs from "../lib/dayjs";
 
 export interface ContractFormProps {
@@ -27,17 +27,17 @@ export interface ContractFormProps {
 }
 
 const categories = [
-    { name: "Other" },
-    { name: "Education" },
-    { name: "Entertainment" },
-    { name: "Finance" },
-    { name: "Health & Fitness" },
-    { name: "Housing & Rent" },
-    { name: "Insurance" },
-    { name: "Software & Services" },
-    { name: "Telecommunications & Internet" },
-    { name: "Transportation" },
-    { name: "Utilities" },
+    {name: "Other"},
+    {name: "Education"},
+    {name: "Entertainment"},
+    {name: "Finance"},
+    {name: "Health & Fitness"},
+    {name: "Housing & Rent"},
+    {name: "Insurance"},
+    {name: "Software & Services"},
+    {name: "Telecommunications & Internet"},
+    {name: "Transportation"},
+    {name: "Utilities"},
 ];
 
 interface ChooseIconDialogProps {
@@ -78,7 +78,7 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({
                 <Field>
                     <Label>Search</Label>
                     <InputGroup>
-                        <MagnifyingGlassIcon />
+                        <MagnifyingGlassIcon/>
                         <Input
                             type="search"
                             name="term"
@@ -125,7 +125,7 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({
     );
 };
 
-export default function ContractForm({ contract }: ContractFormProps) {
+export default function ContractForm({contract}: ContractFormProps) {
     const navigation = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
 
@@ -211,17 +211,17 @@ export default function ContractForm({ contract }: ContractFormProps) {
                         defaultValue={contract.contract_type ?? "insurance"}
                     >
                         <RadioField>
-                            <Radio value="insurance" defaultChecked={contract.contract_type === "insurance"} />
+                            <Radio value="insurance" defaultChecked={contract.contract_type === "insurance"}/>
                             <Label>Insurance</Label>
                         </RadioField>
                         <RadioField>
-                            <Radio value="subscription" defaultChecked={contract.contract_type === "subscription"} />
+                            <Radio value="subscription" defaultChecked={contract.contract_type === "subscription"}/>
                             <Label>Subscription</Label>
                         </RadioField>
                     </RadioGroup>
                 </Field>
 
-                <Divider className="mt-6" />
+                <Divider className="mt-6"/>
                 <Subheading>Details</Subheading>
 
                 <Field>
@@ -266,15 +266,16 @@ export default function ContractForm({ contract }: ContractFormProps) {
                     />
                 </Field>
 
-                <Divider className="mt-6" />
+                <Divider className="mt-6"/>
                 <Subheading>Costs</Subheading>
 
                 <Field>
                     <Label>Costs</Label>
                     <Input
-                        type="number"
+                        type="text"
                         name="costs"
                         defaultValue={contract.costs?.toString() ?? ""}
+                        pattern="^-?\d+(.\d{1,2})?$"
                     />
                 </Field>
 
@@ -293,7 +294,7 @@ export default function ContractForm({ contract }: ContractFormProps) {
                     </Select>
                 </Field>
 
-                <Divider className="mt-6" />
+                <Divider className="mt-6"/>
                 <Subheading>Data</Subheading>
 
                 <Field>
@@ -305,7 +306,7 @@ export default function ContractForm({ contract }: ContractFormProps) {
                     />
                 </Field>
 
-                <Divider className="mt-6" />
+                <Divider className="mt-6"/>
                 <Subheading>Other</Subheading>
 
                 <Field>
@@ -325,7 +326,7 @@ export default function ContractForm({ contract }: ContractFormProps) {
                     >
                         Delete
                     </Button>
-                    <div className="hidden lg:block lg:grow" />
+                    <div className="hidden lg:block lg:grow"/>
                     <Button type="submit" className="w-full lg:w-auto">
                         Save
                     </Button>

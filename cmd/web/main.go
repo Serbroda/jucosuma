@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"github.com/Serbroda/contracts/internal/db"
 	"github.com/Serbroda/contracts/internal/db/migrations"
@@ -10,6 +11,7 @@ import (
 )
 
 type application struct {
+	db      *sql.DB
 	queries *sqlc.Queries
 }
 
@@ -27,6 +29,7 @@ func main() {
 	db.Migrate(dbConn, "sqlite", migrations.MigrationsCommon, migrations.MigrationsCommonDir)
 
 	app := application{
+		db:      dbConn,
 		queries: sqlc.New(dbConn),
 	}
 

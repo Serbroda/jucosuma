@@ -79,11 +79,19 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 		return nil, echo.NewHTTPError(http.StatusBadRequest, "invalid meta JSON: "+err.Error())
 	}
 
+	ctx := c.Request().Context()
+	tx, err := app.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	defer tx.Rollback()
+
+	qtx := app.queries.WithTx(tx)
+
 	// 2) DB-Operation: Insert oder Update
 	var contract *sqlc.Contract
-	ctx := c.Request().Context()
 	if id == nil {
-		inserted, err := app.queries.InsertContract(ctx, sqlc.InsertContractParams{
+		inserted, err := qtx.InsertContract(ctx, sqlc.InsertContractParams{
 			Name:           payload.Name,
 			Company:        payload.Company,
 			ContractType:   payload.ContractType,
@@ -103,7 +111,7 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 		contract = &inserted
 	} else {
 		// UpdateContractById liefert keinen Contract zurück, daher nachladen
-		err := app.queries.UpdateContractById(ctx, sqlc.UpdateContractByIdParams{
+		err := qtx.UpdateContractById(ctx, sqlc.UpdateContractByIdParams{
 			ID:             *id,
 			Name:           payload.Name,
 			Company:        payload.Company,
@@ -121,7 +129,7 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 		if err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
-		updated, err := app.queries.FindContractById(ctx, *id)
+		updated, err := qtx.FindContractById(ctx, *id)
 		if err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
@@ -156,7 +164,7 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 		}
 
 		// Dokument in der DB speichern
-		_, err = app.queries.InsertDocument(ctx, sqlc.InsertDocumentParams{
+		_, err = qtx.InsertDocument(ctx, sqlc.InsertDocumentParams{
 			ContractID: contract.ID,
 			Path:       docName,
 			Title:      &fileHeader.Filename,
@@ -165,6 +173,10 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, "cannot save document record: "+err.Error())
 		}
 	}
+	if err := tx.Commit(); err != nil {
+		return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
 	// 4) Ergebnis zurückgeben
 	return contract, nil
 }

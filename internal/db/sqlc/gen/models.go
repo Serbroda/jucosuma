@@ -29,7 +29,7 @@ type Contract struct {
 }
 
 type Document struct {
-	ID         string     `db:"id"`
+	ID         int64      `db:"id"`
 	ContractID int64      `db:"contract_id"`
 	Path       string     `db:"path"`
 	Title      *string    `db:"title"`

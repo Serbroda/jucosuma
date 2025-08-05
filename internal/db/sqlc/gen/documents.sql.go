@@ -17,7 +17,7 @@ SET deleted_at = CURRENT_TIMESTAMP
 WHERE id = ?
 `
 
-func (q *Queries) DeleteDocumentSoft(ctx context.Context, id string) error {
+func (q *Queries) DeleteDocumentSoft(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, deleteDocumentSoft, id)
 	return err
 }
@@ -31,7 +31,7 @@ WHERE id = ?
   AND deleted_at IS NULL LIMIT 1
 `
 
-func (q *Queries) FindDocumentById(ctx context.Context, id string) (Document, error) {
+func (q *Queries) FindDocumentById(ctx context.Context, id int64) (Document, error) {
 	row := q.db.QueryRowContext(ctx, findDocumentById, id)
 	var i Document
 	err := row.Scan(
@@ -52,7 +52,7 @@ const findDocumentsByContractId = `-- name: FindDocumentsByContractId :many
 SELECT id, contract_id, path, title, created_at, updated_at, deleted_at
 FROM documents
 WHERE contract_id = ?
-  AND deleted_at IS NULL
+    AND deleted_at IS NULL
 `
 
 func (q *Queries) FindDocumentsByContractId(ctx context.Context, contractID int64) ([]Document, error) {
@@ -89,7 +89,6 @@ func (q *Queries) FindDocumentsByContractId(ctx context.Context, contractID int6
 const insertDocument = `-- name: InsertDocument :one
 INSERT INTO documents (created_at,
                        updated_at,
-                       id,
                        contract_id,
                        path,
                        title)
@@ -97,24 +96,17 @@ VALUES (CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP,
         ?1,
         ?2,
-        ?3,
-        ?4) RETURNING id, contract_id, path, title, created_at, updated_at, deleted_at
+        ?3) RETURNING id, contract_id, path, title, created_at, updated_at, deleted_at
 `
 
 type InsertDocumentParams struct {
-	ID         string  `db:"id"`
 	ContractID int64   `db:"contract_id"`
 	Path       string  `db:"path"`
 	Title      *string `db:"title"`
 }
 
 func (q *Queries) InsertDocument(ctx context.Context, arg InsertDocumentParams) (Document, error) {
-	row := q.db.QueryRowContext(ctx, insertDocument,
-		arg.ID,
-		arg.ContractID,
-		arg.Path,
-		arg.Title,
-	)
+	row := q.db.QueryRowContext(ctx, insertDocument, arg.ContractID, arg.Path, arg.Title)
 	var i Document
 	err := row.Scan(
 		&i.ID,
@@ -132,7 +124,7 @@ const updateDocumentById = `-- name: UpdateDocumentById :exec
 ;
 
 UPDATE documents
-SET title      = ?1,
+SET title = ?1,
     updated_at = CURRENT_TIMESTAMP
 WHERE id = ?2
   AND deleted_at IS NULL
@@ -140,7 +132,7 @@ WHERE id = ?2
 
 type UpdateDocumentByIdParams struct {
 	Title *string `db:"title"`
-	ID    string  `db:"id"`
+	ID    int64   `db:"id"`
 }
 
 func (q *Queries) UpdateDocumentById(ctx context.Context, arg UpdateDocumentByIdParams) error {
