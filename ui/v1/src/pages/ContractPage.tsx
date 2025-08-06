@@ -3,23 +3,26 @@ import {Heading, Subheading} from "../components/catalyst/heading.tsx";
 import {Divider} from "../components/catalyst/divider.tsx";
 import type {ContractDto} from "../gen/types.gen.ts";
 import {
+    BanknotesIcon,
     CalendarIcon,
-    ChevronLeftIcon,
-    CreditCardIcon,
-    HashtagIcon,
-    PencilIcon,
+    DocumentIcon,
+    PencilIcon, UserIcon,
 } from "@heroicons/react/16/solid";
 import {Button} from "../components/catalyst/button.tsx";
-import {Link} from "../components/catalyst/link.tsx";
 import {DescriptionDetails, DescriptionList, DescriptionTerm} from "../components/catalyst/description-list.tsx";
 import {Avatar} from "../components/catalyst/avatar.tsx";
 import {classNames} from "../utils/dom.utils.ts";
 import image from "../assets/image.png";
 import type {ReactNode} from "react";
+import Tooltip from "../components/Tooltip.tsx";
+import dayjs from "../lib/dayjs";
 
-const HeaderDetails = ({icon, info}: { icon: ReactNode, info: string }) => {
+
+const HeaderDetails = ({icon, info}: { icon: ReactNode, info: string, tooltip?: string }) => {
     return (
-        <span className="flex items-center gap-3 text-base/6 text-zinc-950 sm:text-sm/6 dark:text-white">
+        <span
+            className={classNames("flex items-center gap-3 text-base/6 text-zinc-950 sm:text-sm/6 dark:text-white")}
+        >
             {icon}
             <span>{info}</span>
         </span>
@@ -31,44 +34,58 @@ export default function ContractPage() {
 
     return (
         <>
-            <div className="max-lg:hidden">
+            {/*<div className="max-lg:hidden">
                 <Link href="/orders"
                       className="inline-flex items-center gap-2 text-sm/6 text-zinc-500 dark:text-zinc-400">
                     <ChevronLeftIcon className="size-4 fill-zinc-400 dark:fill-zinc-500"/>
                     Orders
                 </Link>
-            </div>
+            </div>*/}
             <div className="mt-4 lg:mt-8">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 lg:flex-wrap">
                     <Avatar
                         square={true}
                         className={classNames("w-10 h-10", data?.contract?.icon_source ? '' : 'dark:invert')}
                         src={data?.contract.icon_source || image}/>
-                    <Heading>{data?.contract.name}</Heading>
+                    <Heading className="truncate">{data?.contract.name}</Heading>
                 </div>
-                <div className="isolate mt-2.5 flex flex-wrap justify-between gap-x-6 gap-y-4">
-                    <div className="flex flex-wrap gap-x-10 gap-y-4 py-1.5">
 
-                        <HeaderDetails
-                            icon={<HashtagIcon className="size-4 fill-zinc-400 dark:fill-zinc-500"/>}
-                            info={data?.contract.contract_number as string}
-                        />
-                        <span
-                            className="flex items-center gap-3 text-base/6 text-zinc-950 sm:text-sm/6 dark:text-white">
-              <CreditCardIcon className="size-4 shrink-0 fill-zinc-400 dark:fill-zinc-500"/>
-              <span className="inline-flex gap-3">
-               {/* {order.payment.card.type}{' '}*/}
-                  <span>
-                  <span aria-hidden="true">••••</span> #123231
-                </span>
-              </span>
-            </span>
-                        <span
-                            className="flex items-center gap-3 text-base/6 text-zinc-950 sm:text-sm/6 dark:text-white">
-              <CalendarIcon className="size-4 shrink-0 fill-zinc-400 dark:fill-zinc-500"/>
-              <span>DATUM</span>
-            </span>
+                <div className="isolate mt-2.5 hidden lg:flex flex-wrap justify-between gap-x-6 gap-y-4">
+                    <div className="flex flex-wrap gap-x-6 gap-y-4 py-1.5 lg:gap-x-10">
+                        {data?.contract.contract_number &&
+                            <Tooltip text="Contract Number">
+                                <HeaderDetails
+                                    icon={<DocumentIcon className="size-4 fill-zinc-400 dark:fill-zinc-500"/>}
+                                    info={data?.contract.contract_number as string}
+                                />
+                            </Tooltip>
+                        }
+                        {data?.contract.customer_number &&
+                            <Tooltip text="Customer Number">
+                                <HeaderDetails
+                                    icon={<UserIcon className="size-4 fill-zinc-400 dark:fill-zinc-500"/>}
+                                    info={data?.contract.customer_number as string}
+                                />
+                            </Tooltip>
+                        }
+                        {data?.contract.start_date &&
+                            <Tooltip text="Start Date">
+                                <HeaderDetails
+                                    icon={<CalendarIcon className="size-4 fill-zinc-400 dark:fill-zinc-500"/>}
+                                    info={dayjs(data?.contract.start_date).format('DD.MM.YYYY')}
+                                />
+                            </Tooltip>
+                        }
+                        {data?.contract.costs &&
+                            <Tooltip text="Costs">
+                                <HeaderDetails
+                                    icon={<BanknotesIcon className="size-4 fill-zinc-400 dark:fill-zinc-500"/>}
+                                    info={`${data?.contract.costs} €`}
+                                />
+                            </Tooltip>
+                        }
                     </div>
+
                     <div className="flex gap-4">
                         <Button className="hover:cursor-pointer" to={`/contracts/${data?.contract.id}/edit`}>
                             <PencilIcon/>
@@ -77,14 +94,54 @@ export default function ContractPage() {
                     </div>
                 </div>
             </div>
+
             <div className="mt-12">
                 <Subheading>Summary</Subheading>
                 <Divider className="mt-4"/>
                 <DescriptionList>
-                    <DescriptionTerm>Customer</DescriptionTerm>
-                    <DescriptionDetails>{data?.contract.name}</DescriptionDetails>
-                    <DescriptionTerm>Event</DescriptionTerm>
+                    <DescriptionTerm>Company</DescriptionTerm>
+                    <DescriptionDetails>{data?.contract.company}</DescriptionDetails>
+                    <DescriptionTerm>Category</DescriptionTerm>
+                    <DescriptionDetails>{data?.contract.category}</DescriptionDetails>
+                    <DescriptionTerm>Type</DescriptionTerm>
+                    <DescriptionDetails className="capitalize">{data?.contract.contract_type}</DescriptionDetails>
                 </DescriptionList>
+
+                <Subheading className="mt-10">Details</Subheading>
+                <Divider className="mt-4"/>
+                <DescriptionList>
+                    <DescriptionTerm>Start Date</DescriptionTerm>
+                    <DescriptionDetails>{dayjs(data?.contract.start_date).format('DD.MM.YYYY')}</DescriptionDetails>
+                    <DescriptionTerm>End Date</DescriptionTerm>
+                    <DescriptionDetails>{data?.contract.end_date ? dayjs(data?.contract.end_date).format('DD.MM.YYYY') : ''}</DescriptionDetails>
+                    <DescriptionTerm>Contract Number</DescriptionTerm>
+                    <DescriptionDetails>{data?.contract.contract_number}</DescriptionDetails>
+                    <DescriptionTerm>Customer Number</DescriptionTerm>
+                    <DescriptionDetails>{data?.contract.customer_number}</DescriptionDetails>
+                </DescriptionList>
+
+                <Subheading className="mt-10">Costs</Subheading>
+                <Divider className="mt-4"/>
+                <DescriptionList>
+                    <DescriptionTerm>Costs</DescriptionTerm>
+                    <DescriptionDetails>{data?.contract.costs} €</DescriptionDetails>
+                    <DescriptionTerm>Billing Period</DescriptionTerm>
+                    <DescriptionDetails className="capitalize">{data?.contract.billing_period}</DescriptionDetails>
+                </DescriptionList>
+
+                <Subheading className="mt-10">Other</Subheading>
+                <Divider className="mt-4"/>
+                <DescriptionList>
+                    <DescriptionTerm>Notes</DescriptionTerm>
+                    <DescriptionDetails>{data?.contract.notes}</DescriptionDetails>
+                </DescriptionList>
+            </div>
+
+            <div className="flex gap-4 lg:hidden mt-6 w-full">
+                <Button className="hover:cursor-pointer w-full" to={`/contracts/${data?.contract.id}/edit`}>
+                    <PencilIcon/>
+                    <span>Edit Contract</span>
+                </Button>
             </div>
         </>
     )

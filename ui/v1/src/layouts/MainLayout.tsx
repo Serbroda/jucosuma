@@ -68,7 +68,10 @@ function MainLayout() {
                         <SidebarHeader>
                             <SidebarItem>
                                 <NavLink to="/">
-                                    <Avatar src={logo} className="w-10 h-10 pr-2"/>
+                                    <Avatar
+                                        src={logo}
+                                        square
+                                        className="w-10 h-10 pr-2 outline-0 dark:invert"/>
                                     <NavbarLabel>Jacumbo</NavbarLabel>
                                 </NavLink>
                             </SidebarItem>
