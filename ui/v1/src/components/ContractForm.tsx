@@ -1,27 +1,21 @@
 import type {ContractDto} from "../gen/types.gen.ts";
 import {Avatar} from "./catalyst/avatar.tsx";
 import {Field, Label} from "./catalyst/fieldset.tsx";
-import {Input, InputGroup} from "./catalyst/input.tsx";
+import {Input} from "./catalyst/input.tsx";
 import {Select} from "./catalyst/select.tsx";
 import {Radio, RadioField, RadioGroup} from "./catalyst/radio.tsx";
 import {Divider} from "./catalyst/divider.tsx";
 import {Subheading} from "./catalyst/heading.tsx";
 import {Button} from "./catalyst/button.tsx";
 import {Form, useNavigate} from "react-router";
-import {
-    Dialog,
-    DialogActions,
-    DialogBody,
-    DialogTitle,
-} from "./catalyst/dialog.tsx";
-import {type FC, useEffect, useState} from "react";
-import {MagnifyingGlassIcon} from "@heroicons/react/16/solid";
+import {useState} from "react";
 import {apiBasePath} from "../config.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import image from "../assets/image.png";
 import {Textarea} from "./catalyst/textarea.tsx";
 import dayjs from "../lib/dayjs";
 import ConfirmDialog from "./dialogs/ConfirmDialog.tsx";
+import ChooseIconDialog from "./dialogs/ChooseIconDialog.tsx";
 
 export interface ContractFormProps {
     contract: Partial<ContractDto>;
@@ -41,100 +35,9 @@ const categories = [
     {name: "Utilities"},
 ];
 
-interface ChooseIconDialogProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onSubmit: (iconSource: string) => void;
-}
-
-const ChooseIconDialog: FC<ChooseIconDialogProps> = ({
-                                                         isOpen,
-                                                         onClose,
-                                                         onSubmit,
-                                                     }) => {
-    const [term, setTerm] = useState("");
-    const [icons, setIcons] = useState([] as any[]);
-    const [selectedIcon, setSelectedIcon] = useState({} as any);
-
-    useEffect(() => {
-        if (!term) {
-            setIcons([]);
-            return;
-        }
-        const timer = setTimeout(() => {
-            fetch(`${apiBasePath}/logos?term=${encodeURIComponent(term)}`)
-                .then((res) => res.json())
-                .then((data) => setIcons(data))
-                .catch(console.error);
-        }, 750);
-        return () => {
-            clearTimeout(timer);
-        };
-    }, [term]);
-
-    return (
-        <Dialog open={isOpen} onClose={onClose}>
-            <DialogTitle>Choose Icon</DialogTitle>
-            <DialogBody>
-                <Field>
-                    <Label>Search</Label>
-                    <InputGroup>
-                        <MagnifyingGlassIcon/>
-                        <Input
-                            type="search"
-                            name="term"
-                            value={term}
-                            autoFocus
-                            onChange={(e) => setTerm(e.target.value)}
-                        />
-                    </InputGroup>
-                </Field>
-                <div className="flex flex-wrap gap-2 mt-4 hover:cursor-pointer">
-                    {icons.map((icon, idx) => (
-                        <Avatar
-                            key={idx}
-                            src={icon.logo}
-                            square
-                            className={classNames(
-                                "w-11 h-11 hover:cursor-pointer",
-                                selectedIcon.logo === icon.logo
-                                    ? "border-2 border-indigo-500"
-                                    : ""
-                            )}
-                            onClick={() => {
-                                if (selectedIcon.logo === icon.logo) {
-                                    setSelectedIcon({});
-                                } else {
-                                    setSelectedIcon(icon);
-                                }
-                            }}
-                        />
-                    ))}
-                </div>
-            </DialogBody>
-            <DialogActions>
-                <Button
-                    disabled={!selectedIcon.logo}
-                    onClick={() => onSubmit(selectedIcon.logo)}
-                    className="hover:cursor-pointer"
-                >
-                    Apply
-                </Button>
-                <Button
-                    plain
-                    onClick={onClose}
-                    className="hover:cursor-pointer"
-                >
-                    Cancel
-                </Button>
-            </DialogActions>
-        </Dialog>
-    );
-};
-
 export default function ContractForm({contract}: ContractFormProps) {
     const navigation = useNavigate();
-    const [isOpen, setIsOpen] = useState(false);
+    const [isChooseIconOpen, setChooseIconOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
     const deleteContract = async () => {
@@ -149,11 +52,11 @@ export default function ContractForm({contract}: ContractFormProps) {
     return (
         <>
             <ChooseIconDialog
-                isOpen={isOpen}
-                onClose={() => setIsOpen(false)}
+                isOpen={isChooseIconOpen}
+                onClose={() => setChooseIconOpen(false)}
                 onSubmit={(iconSource) => {
                     contract.icon_source = iconSource;
-                    setIsOpen(false);
+                    setChooseIconOpen(false);
                 }}
             />
 
@@ -177,7 +80,7 @@ export default function ContractForm({contract}: ContractFormProps) {
                 <div className="justify-self-center">
                     <Button
                         plain
-                        onClick={() => setIsOpen(true)}
+                        onClick={() => setChooseIconOpen(true)}
                         className="hover:cursor-pointer"
                     >
                         <Avatar
