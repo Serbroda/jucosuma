@@ -42,30 +42,33 @@ export default function HomePage() {
                         ?.filter((contract: any) => startWithAnyIgnoreCase(search, contract.name, contract.company))
                         .map((contract: any) =>
 
-                        <li
-                            key={contract.id}
-                            className="">
-                            <NavLink
-                                to={"/contracts/" + contract.id}
-                                className="p-2 flex gap-2 items-center border-b border-zinc-200 dark:border-zinc-800 hover:cursor-pointer hover:bg-zinc-950/5 dark:hover:bg-white/5">
+                            <li
+                                key={contract.id}
+                                className="">
+                                <NavLink
+                                    to={"/contracts/" + contract.id}
+                                    className="p-2 flex gap-2 items-center border-b border-zinc-200 dark:border-zinc-800 hover:cursor-pointer hover:bg-zinc-950/5 dark:hover:bg-white/5">
 
-                                <Avatar
-                                    square={true}
-                                    className={classNames("w-10 h-10", contract?.icon_source ? '' : 'dark:invert')}
-                                    src={contract?.icon_source || image}/>
+                                    <Avatar
+                                        square={true}
+                                        className={classNames("w-10 h-10", contract?.icon_source ? '' : 'dark:invert')}
+                                        src={contract?.icon_source || image}/>
 
-                                <div className="flex flex-col grow min-w-0">
-                                    <div
-                                        className="truncate text-base/6 font-semibold text-zinc-950 dark:text-white">{contract.name}</div>
-                                    <div
-                                        className="text-sm/6 text-zinc-500 dark:text-zinc-400">{contract.contract_type} - {contract.company}</div>
-                                </div>
+                                    <div className="flex flex-col grow min-w-0">
+                                        <div
+                                            className="truncate text-base/6 font-semibold text-zinc-950 dark:text-white">{contract.name}</div>
+                                        <div
+                                            className="text-sm/6 text-zinc-500 dark:text-zinc-400">
+                                            <span
+                                                className="capitalize">{contract.contract_type}</span> - {contract.company}
+                                        </div>
+                                    </div>
 
-                                <Badge className="shrink-0">{contract.costs} €</Badge>
-                                <ChevronRightIcon className={"h-5 w-5 shrink-0 text-zinc-950 dark:text-white"}/>
-                            </NavLink>
-                        </li>
-                    )}
+                                    <Badge className="shrink-0">{contract.costs} €</Badge>
+                                    <ChevronRightIcon className={"h-5 w-5 shrink-0 text-zinc-950 dark:text-white"}/>
+                                </NavLink>
+                            </li>
+                        )}
                 </ul>
             </div>
         </>

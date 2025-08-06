@@ -3,17 +3,18 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Serbroda/contracts/cmd/web/dtos"
-	sqlc "github.com/Serbroda/contracts/internal/db/sqlc/gen"
-	"github.com/Serbroda/contracts/internal/utils"
-	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
+
+	"github.com/Serbroda/contracts/cmd/web/dtos"
+	sqlc "github.com/Serbroda/contracts/internal/db/sqlc/gen"
+	"github.com/Serbroda/contracts/internal/utils"
+	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 )
 
 func (app *application) getContracts(ctx echo.Context) error {
@@ -149,10 +150,10 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 		ext := filepath.Ext(fileHeader.Filename)
 		docName := fmt.Sprintf("%s%s", docId, ext)
 
-		if err := os.MkdirAll("uploads", 0o755); err != nil {
+		if err := os.MkdirAll(app.uploadsDir, 0o755); err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, "cannot create upload dir: "+err.Error())
 		}
-		dstPath := filepath.Join("uploads", docName)
+		dstPath := filepath.Join(app.uploadsDir, docName)
 		dst, err := os.Create(dstPath)
 		if err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, "cannot create file: "+err.Error())

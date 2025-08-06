@@ -11,13 +11,13 @@ import {Sidebar, SidebarBody, SidebarHeader, SidebarItem, SidebarSection} from "
 import {href, NavLink, Outlet} from "react-router";
 import {Avatar} from "../components/catalyst/avatar.tsx";
 
-import reactLogo from '../assets/react.svg'
+import logo from '../assets/logo.svg'
 import {Switch} from "../components/catalyst/switch.tsx";
 import {usePreferences} from "../stores/usePreferences.ts";
 import {useEffect, useState} from "react";
 
 const navItems = [
-    {label: 'Home', url: '/'},
+    {label: 'Contracts', url: '/'},
     {label: 'Persons', url: '/persons'},
     {label: 'Settings', url: '/settings'},
 ]
@@ -38,7 +38,10 @@ function MainLayout() {
                         <NavbarSection className="max-lg:hidden">
                             <NavbarItem>
                                 <NavLink to="/">
-                                    <Avatar src={reactLogo} className="pr-2"/>
+                                    <Avatar
+                                        src={logo}
+                                        square
+                                        className="w-10 h-10 pr-2 outline-0 dark:invert"/>
                                     <NavbarLabel>Jacumbo</NavbarLabel>
                                 </NavLink>
                             </NavbarItem>
@@ -65,7 +68,7 @@ function MainLayout() {
                         <SidebarHeader>
                             <SidebarItem>
                                 <NavLink to="/">
-                                    <Avatar src={reactLogo} className="pr-2"/>
+                                    <Avatar src={logo} className="w-10 h-10 pr-2"/>
                                     <NavbarLabel>Jacumbo</NavbarLabel>
                                 </NavLink>
                             </SidebarItem>

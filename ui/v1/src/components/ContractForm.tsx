@@ -21,6 +21,7 @@ import {classNames} from "../utils/dom.utils.ts";
 import image from "../assets/image.png";
 import {Textarea} from "./catalyst/textarea.tsx";
 import dayjs from "../lib/dayjs";
+import ConfirmDialog from "./dialogs/ConfirmDialog.tsx";
 
 export interface ContractFormProps {
     contract: Partial<ContractDto>;
@@ -83,18 +84,19 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({
                             type="search"
                             name="term"
                             value={term}
+                            autoFocus
                             onChange={(e) => setTerm(e.target.value)}
                         />
                     </InputGroup>
                 </Field>
-                <div className="flex flex-wrap gap-2 mt-4">
+                <div className="flex flex-wrap gap-2 mt-4 hover:cursor-pointer">
                     {icons.map((icon, idx) => (
                         <Avatar
                             key={idx}
                             src={icon.logo}
                             square
                             className={classNames(
-                                "w-10 h-10 hover:cursor-pointer",
+                                "w-11 h-11 hover:cursor-pointer",
                                 selectedIcon.logo === icon.logo
                                     ? "border-2 border-indigo-500"
                                     : ""
@@ -111,14 +113,19 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({
                 </div>
             </DialogBody>
             <DialogActions>
-                <Button plain onClick={onClose}>
-                    Cancel
-                </Button>
                 <Button
                     disabled={!selectedIcon.logo}
                     onClick={() => onSubmit(selectedIcon.logo)}
+                    className="hover:cursor-pointer"
                 >
                     Apply
+                </Button>
+                <Button
+                    plain
+                    onClick={onClose}
+                    className="hover:cursor-pointer"
+                >
+                    Cancel
                 </Button>
             </DialogActions>
         </Dialog>
@@ -128,6 +135,7 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({
 export default function ContractForm({contract}: ContractFormProps) {
     const navigation = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
     const deleteContract = async () => {
         const res = await fetch(`${apiBasePath}/contracts/${contract.id}`, {
@@ -149,13 +157,29 @@ export default function ContractForm({contract}: ContractFormProps) {
                 }}
             />
 
+            <ConfirmDialog
+                isOpen={isDeleteOpen}
+                title="Delete Contract"
+                message="Do you really want to delete this contract?"
+                onClose={() => setIsDeleteOpen(false)}
+                submitLabel="Delete"
+                onSubmit={async () => {
+                    await deleteContract();
+                    setIsDeleteOpen(false);
+                }}
+            />
+
             <Form
                 method="post"
                 encType="multipart/form-data"
                 className="grid grid-cols-1 gap-4"
             >
                 <div className="justify-self-center">
-                    <Button plain onClick={() => setIsOpen(true)}>
+                    <Button
+                        plain
+                        onClick={() => setIsOpen(true)}
+                        className="hover:cursor-pointer"
+                    >
                         <Avatar
                             square
                             className={classNames(
@@ -321,20 +345,20 @@ export default function ContractForm({contract}: ContractFormProps) {
                     <Button
                         type="button"
                         color="red"
-                        onClick={deleteContract}
-                        className="w-full lg:w-auto"
+                        onClick={() => setIsDeleteOpen(true)}
+                        className="w-full lg:w-auto hover:cursor-pointer"
                     >
                         Delete
                     </Button>
                     <div className="hidden lg:block lg:grow"/>
-                    <Button type="submit" className="w-full lg:w-auto">
+                    <Button type="submit" className="w-full lg:w-auto hover:cursor-pointer">
                         Save
                     </Button>
                     <Button
                         type="button"
                         outline
                         onClick={() => navigation("/")}
-                        className="w-full lg:w-auto"
+                        className="w-full lg:w-auto hover:cursor-pointer"
                     >
                         Cancel
                     </Button>
