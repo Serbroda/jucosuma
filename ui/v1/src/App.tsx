@@ -6,9 +6,10 @@ import ErrorPage from "./pages/ErrorPage.tsx";
 import PersonsPage from "./pages/PersonsPage.tsx";
 import {usePreferences} from "./stores/usePreferences.ts";
 import {useEffect} from "react";
-import ContractPage from "./pages/ContractPage.tsx";
+import ContractFormPage from "./pages/ContractFormPage.tsx";
 import {contractLoader, contractsLoader} from "./loader/contracts.ts";
 import {contractAction} from "./actions/contracts.ts";
+import ContractPage from "./pages/ContractPage.tsx";
 
 const router = createHashRouter([
     {
@@ -21,8 +22,9 @@ const router = createHashRouter([
                     {path: '/', element: <HomePage/>, loader: contractsLoader},
                     {path: '/persons', element: <PersonsPage/>},
                     {path: '/settings', element: <SettingsPage/>},
-                    {path: '/contracts/add', element: <ContractPage mode="add"/>, action: contractAction},
-                    {path: '/contracts/:id', element: <ContractPage mode="edit"/>, loader: contractLoader, action: contractAction},
+                    {path: '/contracts/add', element: <ContractFormPage mode="add"/>, action: contractAction},
+                    {path: '/contracts/:id', element: <ContractPage/>, loader: contractLoader},
+                    {path: '/contracts/:id/edit', element: <ContractFormPage mode="edit"/>, loader: contractLoader, action: contractAction},
                 ],
             },
         ],
