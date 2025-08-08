@@ -8,6 +8,13 @@ export interface LogoDto {
   name: string;
   logo: string;
 }
+export type BillingPeriod = string;
+export const BillingPeriodWeekly: BillingPeriod = "weekly";
+export const BillingPeriodMonthly: BillingPeriod = "monthly";
+export const BillingPeriodQuarterly: BillingPeriod = "quarterly";
+export const BillingPeriodSemiannual: BillingPeriod = "semiannually";
+export const BillingPeriodAnnually: BillingPeriod = "annually";
+export const BillingPeriodEveryTwoYears: BillingPeriod = "every_two_years";
 export interface ContractDto {
   id: number /* int64 */;
   name: string;

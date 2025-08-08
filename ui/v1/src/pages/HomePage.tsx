@@ -9,6 +9,7 @@ import {Input, InputGroup} from "../components/catalyst/input.tsx";
 import {useState} from "react";
 import {startWithAnyIgnoreCase} from "../utils/string.utils.ts";
 import {formatCurrency} from "../utils/number.utils.ts";
+import {billingPeriodShorthand} from "../utils/data.utils.ts";
 
 export default function HomePage() {
     const {contracts} = useLoaderData();
@@ -65,7 +66,7 @@ export default function HomePage() {
                                         </div>
                                     </div>
 
-                                    {contract.costs && <Badge className="shrink-0">{formatCurrency(contract.costs)}</Badge>}
+                                    {contract.costs && <Badge className="shrink-0">{formatCurrency(contract.costs) + (contract.billing_period ? ` ${billingPeriodShorthand(contract.billing_period)}` : '')}</Badge>}
                                     <ChevronRightIcon className={"h-5 w-5 shrink-0 text-zinc-950 dark:text-white"}/>
                                 </NavLink>
                             </li>

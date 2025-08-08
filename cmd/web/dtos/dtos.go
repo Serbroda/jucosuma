@@ -31,6 +31,17 @@ type LogoDto struct {
 	Logo string `json:"logo"`
 }
 
+type BillingPeriod string
+
+const (
+	BillingPeriodWeekly        BillingPeriod = "weekly"
+	BillingPeriodMonthly       BillingPeriod = "monthly"
+	BillingPeriodQuarterly     BillingPeriod = "quarterly"
+	BillingPeriodSemiannual    BillingPeriod = "semiannually"
+	BillingPeriodAnnually      BillingPeriod = "annually"
+	BillingPeriodEveryTwoYears BillingPeriod = "every_two_years"
+)
+
 type ContractDto struct {
 	ID               int64         `json:"id"`
 	Name             string        `json:"name"`

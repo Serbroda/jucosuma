@@ -1,4 +1,11 @@
-import type {ContractDto} from "../gen/types.gen.ts";
+import {
+    BillingPeriodAnnually,
+    BillingPeriodEveryTwoYears,
+    BillingPeriodMonthly,
+    BillingPeriodQuarterly, BillingPeriodSemiannual,
+    BillingPeriodWeekly,
+    type ContractDto
+} from "../gen/types.gen.ts";
 import {Avatar} from "./catalyst/avatar.tsx";
 import {Field, Label} from "./catalyst/fieldset.tsx";
 import {Input} from "./catalyst/input.tsx";
@@ -158,7 +165,7 @@ export default function ContractForm({contract}: ContractFormProps) {
                         </RadioField>
                         <RadioField>
                             <Radio
-                                value="subscription" 
+                                value="subscription"
                                 defaultChecked={contract.contract_type === "subscription"}
                                 className="hover:cursor-pointer"
                             />
@@ -229,12 +236,12 @@ export default function ContractForm({contract}: ContractFormProps) {
                         name="billing_period"
                         defaultValue={contract.billing_period ?? "weekly"}
                     >
-                        <option value="weekly">Weekly</option>
-                        <option value="monthly">Monthly</option>
-                        <option value="quarterly">Quarterly</option>
-                        <option value="biannually">Biannually</option>
-                        <option value="annually">Annually</option>
-                        <option value="every-two-years">Every two years</option>
+                        <option value={BillingPeriodWeekly}>Weekly</option>
+                        <option value={BillingPeriodMonthly}>Monthly</option>
+                        <option value={BillingPeriodQuarterly}>Quarterly</option>
+                        <option value={BillingPeriodSemiannual}>Semiannually</option>
+                        <option value={BillingPeriodAnnually}>Annually</option>
+                        <option value={BillingPeriodEveryTwoYears}>Every two years</option>
                     </Select>
                 </Field>
 
