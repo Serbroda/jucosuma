@@ -33,15 +33,15 @@ endef
 
 build-ui:
 	cd ui/v1 && \
-		npm i && \
+		npm install && \
 		npm run build
 
-build-docker: generate-go
+build-docker:
 	docker build \
 	  --build-arg VERSION=$(cat VERSION) \
 	  -t ${BINARY_NAME}:latest .
 
-build-podman: generate-go
+build-podman:
 	podman build \
 	  --build-arg VERSION=$(cat VERSION) \
 	  -t ${BINARY_NAME}:latest .
@@ -53,9 +53,9 @@ generate-go:
 
 clean:
 	@echo "==> Cleaning up..."
-	rm -rf bin/
-	rm -rf ui/v1/node_modules
-	rm -rf ui/v1/dist
+	rm -rf ./bin/
+	rm -rf ./ui/v1/node_modules/
+	rm -rf ./ui/v1/dist/
 
 test:
 	@echo "==> Running tests..."

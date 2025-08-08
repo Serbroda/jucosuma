@@ -148,7 +148,7 @@ export default function ContractPage() {
                 </DescriptionList>
 
 
-                <Subheading className="mt-10">Documents</Subheading>
+                <Subheading className="mt-10">Data</Subheading>
                 <Divider className="mt-4"/>
                 <DescriptionList>
                     <DescriptionTerm>Documents</DescriptionTerm>

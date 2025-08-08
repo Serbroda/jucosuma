@@ -2,11 +2,11 @@ FROM node:18-alpine AS build-ui
 
 WORKDIR /build
 
-COPY ./ui/v1/package.json .
+COPY ui/v1/package.json .
 
 RUN npm install
 
-COPY ./ui/v1/ .
+COPY ui/v1 .
 
 RUN npm run build
 
@@ -25,7 +25,7 @@ COPY go.mod ./
 COPY go.sum ./
 RUN go mod download
 
-COPY . .
+COPY .. .
 RUN rm -rf ui/v1
 COPY --from=build-ui /build/dist ./ui/v1/dist
 

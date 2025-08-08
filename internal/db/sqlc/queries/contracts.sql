@@ -50,6 +50,7 @@ WHERE id = ?
 SELECT *
 FROM contracts
 WHERE deleted_at IS NULL
+ORDER BY name ASC
 ;
 
 -- name: UpdateContractById :exec

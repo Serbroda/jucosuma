@@ -23,6 +23,7 @@ SELECT *
 FROM documents
 WHERE contract_id = ?
     AND deleted_at IS NULL
+ORDER BY title ASC
 ;
 
 -- name: UpdateDocumentById :exec
