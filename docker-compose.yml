@@ -1,0 +1,10 @@
+services:
+  jucosuma:
+    image: jucosuma:latest
+    container_name: jucosuma
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads
