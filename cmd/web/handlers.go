@@ -138,8 +138,12 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 	}
 
 	// 3) Optional: Datei-Upload verarbeiten
-	fileHeader, err := c.FormFile("file")
-	if err == nil {
+	form, err := c.MultipartForm()
+	if err != nil {
+		return nil, echo.NewHTTPError(http.StatusBadRequest, "no multipart form found: "+err.Error())
+	}
+	files := form.File["file"]
+	for _, fileHeader := range files {
 		src, err := fileHeader.Open()
 		if err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, "cannot open uploaded file: "+err.Error())

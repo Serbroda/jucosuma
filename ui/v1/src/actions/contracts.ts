@@ -28,9 +28,13 @@ export const contractAction: ActionFunction = async ({request, params}) => {
     fd.append("meta", JSON.stringify(meta));
 
     // 4) Datei-Feld hinzufügen (input name="file")
-    const file = form.get("file");
-    if (file instanceof File) {
-        fd.append("file", file, file.name);
+    // Hol dir alle Dateien vom Input (nehmen wir 'file' als name)
+    const files = form.getAll("file"); // gibt ein Array aller Files zurück
+
+    for (const file of files) {
+        if (file instanceof File) {
+            fd.append("file", file, file.name); // Key bleibt gleich
+        }
     }
 
     // 5) URL & Methode ermitteln
