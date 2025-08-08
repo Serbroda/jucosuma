@@ -8,6 +8,7 @@ import (
 	"github.com/Serbroda/contracts/internal/db"
 	"github.com/Serbroda/contracts/internal/db/migrations"
 	sqlc "github.com/Serbroda/contracts/internal/db/sqlc/gen"
+	"github.com/Serbroda/contracts/internal/utils"
 	_ "github.com/glebarez/sqlite"
 )
 
@@ -18,9 +19,9 @@ type application struct {
 }
 
 func main() {
-	addr := flag.String("addr", ":8080", "http service address")
-	dbPath := flag.String("db-path", "contracts.db", "sqlite data source name")
-	uploadsDir := flag.String("uploads-dir", "./uploads", "uploads directory")
+	addr := flag.String("addr", utils.GetEnv("ADDR", ":8080"), "http service address")
+	dbPath := flag.String("db-path", utils.GetEnv("DB_PATH", "contracts.db"), "sqlite data source")
+	uploadsDir := flag.String("uploads-dir", utils.GetEnv("UPLOADS_DIR", "./uploads"), "uploads directory")
 	flag.Parse()
 
 	dbConn, err := db.OpenDB(dbPath)

@@ -37,12 +37,21 @@ RUN CGO_ENABLED=0 \
 
 FROM alpine:3.22 AS run
 
-RUN apk update
+ARG DEFAULT_ADDR=":8080"
+ARG DEFAULT_DB_PATH="contracts.db"
+ARG DEFAULT_UPLOADS_DIR="./uploads"
 
 WORKDIR /app
+COPY --from=build-go /build/bin/jucosuma-linux-amd64 ./jucosuma
 
-COPY --from=build-go /build/bin/jucosuma-linux-amd64 ./jucomo
+ENV ADDR=${DEFAULT_ADDR}
+ENV DB_PATH=${DEFAULT_DB_PATH}
+ENV UPLOADS_DIR=${DEFAULT_UPLOADS_DIR}
+
+# Entrypoint-Skript einfügen
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 8080
-
-CMD ["/app/jucomo"]
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD []

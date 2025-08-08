@@ -54,6 +54,24 @@ Jucosuma is heavily inspired by the excellent iOS app **“Contract”** by Bene
    http://localhost:8080
    ```
 
+### Docker Setup
+
+#### Build docker image
+
+```
+make docker-build
+```
+
+#### Start via docker
+
+```bash
+docker run --name jucosuma --rm \
+  -e ADDR=":9090" \
+  -p 9091:9090 \
+  -v /Users/dannyrottstegge/Workspace/contracts/bin:/app/bin \
+  jucosuma:latest \
+  --db-path /app/bin/bla.db
+```
 ---
 
 ## 🚀 Usage
