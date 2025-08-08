@@ -38,7 +38,7 @@ RUN CGO_ENABLED=0 \
 FROM alpine:3.22 AS run
 
 ARG DEFAULT_ADDR=":8080"
-ARG DEFAULT_DB_PATH="contracts.db"
+ARG DEFAULT_DB_PATH="./data/jucosuma.db"
 ARG DEFAULT_UPLOADS_DIR="./uploads"
 
 WORKDIR /app

@@ -65,12 +65,11 @@ make docker-build
 #### Start via docker
 
 ```bash
-docker run --name jucosuma --rm \
-  -e ADDR=":9090" \
-  -p 9091:9090 \
-  -v /Users/dannyrottstegge/Workspace/contracts/bin:/app/bin \
-  jucosuma:latest \
-  --db-path /app/bin/bla.db
+docker run --name jucosuma -d \
+  -p 8080:8080 \
+  -v /path/to/data:/app/data \
+  -v /path/to/uploads:/app/uploads \
+  jucosuma:latest
 ```
 ---
 

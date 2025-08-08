@@ -20,7 +20,7 @@ type application struct {
 
 func main() {
 	addr := flag.String("addr", utils.GetEnv("ADDR", ":8080"), "http service address")
-	dbPath := flag.String("db-path", utils.GetEnv("DB_PATH", "contracts.db"), "sqlite data source")
+	dbPath := flag.String("db-path", utils.GetEnv("DB_PATH", "jucosuma.db"), "sqlite data source")
 	uploadsDir := flag.String("uploads-dir", utils.GetEnv("UPLOADS_DIR", "./uploads"), "uploads directory")
 	flag.Parse()
 
