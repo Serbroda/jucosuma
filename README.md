@@ -1,12 +1,12 @@
-# Jucoma – Just a Contract Manager
+# Jucosuma – Just a Contract and Subscription Manager
 
-Jucosuma (**Ju**st a **Co**ntract and **Su**bscription **Ma**nager) is a lightweight web application for creating, editing, and managing contracts and subscriptions. With a Go backend API, HTMX dialogs for icon selection, and a responsive Tailwind CSS interface, Jucoma delivers a modern, dynamic workflow for contract and subscription management.
+Jucosuma (**Ju**st a **Co**ntract and **Su**bscription **Ma**nager) is a lightweight web application for creating, editing, and managing contracts and subscriptions. With a Go backend API, HTMX dialogs for icon selection, and a responsive Tailwind CSS interface, Jucosuma delivers a modern, dynamic workflow for contract and subscription management.
 
 ---
 
 ## 🎯 Motivation
 
-Jucosuma is heavily inspired by the excellent iOS app **“Contract”** by Benedikt Betz. While “Contract” offers a beautiful native experience on iOS, I wanted a self-hostable, browser-based solution that multiple household members can access and use without relying on proprietary app stores or individual devices. Jucoma brings the clean contract management concepts of the iOS app to the web, with collaboration in mind.
+Jucosuma is heavily inspired by the excellent iOS app **“Contract”** by Benedikt Betz. While “Contract” offers a beautiful native experience on iOS, I wanted a self-hostable, browser-based solution that multiple household members can access and use without relying on proprietary app stores or individual devices. Jucosuma brings the clean contract management concepts of the iOS app to the web, with collaboration in mind.
 
 ---
 
@@ -38,8 +38,8 @@ Jucosuma is heavily inspired by the excellent iOS app **“Contract”** by Bene
 
 1. Clone the repository  
    ```bash
-   git clone https://github.com/Serbroda/jucoma.git
-   cd jucoma
+   git clone https://github.com/Serbroda/jucosuma.git
+   cd jucosuma
    ```
 2. Install Go modules  
    ```bash
@@ -91,4 +91,4 @@ Please follow our [Code of Conduct](CODE_OF_CONDUCT.md) and commit conventions.
 
 ## 📄 License
 
-Jucoma is released under the **MIT License**. See [LICENSE](LICENSE) for details.
+Jucosuma is released under the **MIT License**. See [LICENSE](LICENSE) for details.

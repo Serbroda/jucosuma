@@ -148,7 +148,7 @@ export default function ContractPage() {
                                     href={`/uploads/${doc.Path}`}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="flex grow truncate items-center gap-2 text-sm/6 text-zinc-500 dark:text-zinc-400"
+                                    className="flex grow truncate items-center gap-2 text-sm/6 text-zinc-500 dark:text-zinc-400 pt-2"
                                 >
                                     <DocumentIcon className="h-5 w-5 shrink-0 fill-zinc-400 dark:fill-zinc-500"/>
                                     <span className="truncate">{doc.Title}</span>

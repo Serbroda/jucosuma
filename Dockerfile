@@ -32,7 +32,7 @@ COPY --from=build-ui /build/dist ./ui/v1/dist
 RUN CGO_ENABLED=0 \
     go build \
       -ldflags="-X main.Version=${APP_VERSION}" \
-      -o bin/jucoma-linux-amd64 \
+      -o bin/jucosuma-linux-amd64 \
       ./cmd/web
 
 FROM alpine:3.22 AS run
@@ -41,7 +41,7 @@ RUN apk update
 
 WORKDIR /app
 
-COPY --from=build-go /build/bin/jucoma-linux-amd64 ./jucomo
+COPY --from=build-go /build/bin/jucosuma-linux-amd64 ./jucomo
 
 EXPOSE 8080
 

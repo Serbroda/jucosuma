@@ -3,7 +3,7 @@ SHELL := /bin/sh
 # ------------------------------------------------------------
 # Project informations
 # ------------------------------------------------------------
-BINARY_NAME := jucoma
+BINARY_NAME := jucosuma
 VERSION := $(shell cat VERSION)
 
 # Paths
