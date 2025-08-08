@@ -18,8 +18,8 @@ import {useEffect, useState} from "react";
 
 const navItems = [
     {label: 'Contracts', url: '/'},
-    {label: 'Persons', url: '/persons'},
-    {label: 'Settings', url: '/settings'},
+   /* {label: 'Persons', url: '/persons'},
+    {label: 'Settings', url: '/settings'},*/
 ]
 
 function MainLayout() {
