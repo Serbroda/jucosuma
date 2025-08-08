@@ -29,6 +29,7 @@ const findAllContracts = `-- name: FindAllContracts :many
 SELECT id, name, company, contract_type, category, start_date, end_date, contract_number, customer_number, contract_holder_id, costs, billing_period, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at
 FROM contracts
 WHERE deleted_at IS NULL
+ORDER BY name ASC
 `
 
 func (q *Queries) FindAllContracts(ctx context.Context) ([]Contract, error) {

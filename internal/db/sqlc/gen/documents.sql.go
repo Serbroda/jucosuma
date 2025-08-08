@@ -53,6 +53,7 @@ SELECT id, contract_id, path, title, created_at, updated_at, deleted_at
 FROM documents
 WHERE contract_id = ?
     AND deleted_at IS NULL
+ORDER BY title ASC
 `
 
 func (q *Queries) FindDocumentsByContractId(ctx context.Context, contractID int64) ([]Document, error) {
