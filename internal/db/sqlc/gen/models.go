@@ -21,6 +21,10 @@ type Contract struct {
 	ContractHolderID *int64     `db:"contract_holder_id"`
 	Costs            *float64   `db:"costs"`
 	BillingPeriod    string     `db:"billing_period"`
+	ContactPerson    *string    `db:"contact_person"`
+	ContactAddress   *string    `db:"contact_address"`
+	ContactPhone     *string    `db:"contact_phone"`
+	ContactEmail     *string    `db:"contact_email"`
 	IconSource       *string    `db:"icon_source"`
 	Notes            *string    `db:"notes"`
 	CreatedAt        *time.Time `db:"created_at"`

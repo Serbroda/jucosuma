@@ -29,6 +29,10 @@ export const contractAction: ActionFunction = async ({request, params}) => {
         customer_number: form.get("customer_number") as string || undefined,
         costs: formatCurrency(form.get("costs")),
         billing_period: form.get("billing_period") as string,
+        contact_person: form.get("contact_person") as string,
+        contact_address: form.get("contact_address") as string,
+        contact_phone: form.get("contact_phone") as string,
+        contact_email: form.get("contact_email") as string,
         icon_source: form.get("icon_source") as string || undefined,
         notes: form.get("notes") as string || undefined,
     };

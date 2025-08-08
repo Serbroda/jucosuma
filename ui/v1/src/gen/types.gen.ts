@@ -21,6 +21,10 @@ export interface ContractDto {
   contract_holder_id?: number /* int64 */;
   costs?: number /* float64 */;
   billing_period: string;
+  contact_person?: string;
+  contact_address?: string;
+  contact_phone?: string;
+  contact_email?: string;
   icon_source?: string;
   notes?: string;
   created_at?: string /* RFC3339 */;
@@ -38,6 +42,10 @@ export interface CreateContractDto {
   customer_number?: string;
   costs?: number /* float64 */;
   billing_period: string;
+  contact_person?: string;
+  contact_address?: string;
+  contact_phone?: string;
+  contact_email?: string;
   icon_source?: string;
   notes?: string;
 }
@@ -52,6 +60,10 @@ export interface UpdateContractDto {
   customer_number?: string;
   costs?: number /* float64 */;
   billing_period: string;
+  contact_person?: string;
+  contact_address?: string;
+  contact_phone?: string;
+  contact_email?: string;
   icon_source?: string;
   notes?: string;
 }

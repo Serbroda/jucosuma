@@ -18,6 +18,7 @@ import type {ReactNode} from "react";
 import Tooltip from "../components/Tooltip.tsx";
 import dayjs from "../lib/dayjs";
 import {formatCurrency} from "../utils/number.utils.ts";
+import LineBreakParagraph from "../components/LineBreakParagraph.tsx";
 
 
 const HeaderDetails = ({icon, info}: { icon: ReactNode, info: string, tooltip?: string }) => {
@@ -131,12 +132,21 @@ export default function ContractPage() {
                     <DescriptionDetails className="capitalize">{data?.contract.billing_period}</DescriptionDetails>
                 </DescriptionList>
 
-                <Subheading className="mt-10">Other</Subheading>
+                <Subheading className="mt-10">Contact Information</Subheading>
                 <Divider className="mt-4"/>
                 <DescriptionList>
-                    <DescriptionTerm>Notes</DescriptionTerm>
-                    <DescriptionDetails>{data?.contract.notes}</DescriptionDetails>
+                    <DescriptionTerm>Contact Person</DescriptionTerm>
+                    <DescriptionDetails>{data?.contract.contact_person}</DescriptionDetails>
+                    <DescriptionTerm>Address</DescriptionTerm>
+                    <DescriptionDetails>
+                        <LineBreakParagraph text={data?.contract.contact_address}/>
+                    </DescriptionDetails>
+                    <DescriptionTerm>Phone</DescriptionTerm>
+                    <DescriptionDetails>{data?.contract.contact_phone}</DescriptionDetails>
+                    <DescriptionTerm>Email</DescriptionTerm>
+                    <DescriptionDetails>{data?.contract.contact_email}</DescriptionDetails>
                 </DescriptionList>
+
 
                 <Subheading className="mt-10">Documents</Subheading>
                 <Divider className="mt-4"/>
@@ -156,6 +166,15 @@ export default function ContractPage() {
                                 </a>
                             </div>
                         )}
+                    </DescriptionDetails>
+                </DescriptionList>
+
+                <Subheading className="mt-10">Other</Subheading>
+                <Divider className="mt-4"/>
+                <DescriptionList>
+                    <DescriptionTerm>Notes</DescriptionTerm>
+                    <DescriptionDetails>
+                        <LineBreakParagraph text={data?.contract.notes}/>
                     </DescriptionDetails>
                 </DescriptionList>
             </div>

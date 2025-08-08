@@ -44,6 +44,10 @@ type ContractDto struct {
 	ContractHolderID *int64        `json:"contract_holder_id"`
 	Costs            *float64      `json:"costs"`
 	BillingPeriod    string        `json:"billing_period"`
+	ContactPerson    *string       `json:"contact_person"`
+	ContactAddress   *string       `json:"contact_address"`
+	ContactPhone     *string       `json:"contact_phone"`
+	ContactEmail     *string       `json:"contact_email"`
 	IconSource       *string       `json:"icon_source"`
 	Notes            *string       `json:"notes"`
 	CreatedAt        *time.Time    `json:"created_at"`
@@ -62,6 +66,10 @@ type CreateContractDto struct {
 	CustomerNumber *string   `json:"customer_number"`
 	Costs          *float64  `json:"costs"`
 	BillingPeriod  string    `json:"billing_period"`
+	ContactPerson  *string   `json:"contact_person"`
+	ContactAddress *string   `json:"contact_address"`
+	ContactPhone   *string   `json:"contact_phone"`
+	ContactEmail   *string   `json:"contact_email"`
 	IconSource     *string   `json:"icon_source"`
 	Notes          *string   `json:"notes"`
 }
@@ -77,6 +85,10 @@ type UpdateContractDto struct {
 	CustomerNumber *string   `json:"customer_number"`
 	Costs          *float64  `json:"costs"`
 	BillingPeriod  string    `json:"billing_period"`
+	ContactPerson  *string   `json:"contact_person"`
+	ContactAddress *string   `json:"contact_address"`
+	ContactPhone   *string   `json:"contact_phone"`
+	ContactEmail   *string   `json:"contact_email"`
 	IconSource     *string   `json:"icon_source"`
 	Notes          *string   `json:"notes"`
 }

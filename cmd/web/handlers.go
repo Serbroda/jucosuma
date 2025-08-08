@@ -109,6 +109,10 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			CustomerNumber: payload.CustomerNumber,
 			Costs:          payload.Costs,
 			BillingPeriod:  payload.BillingPeriod,
+			ContactPerson:  payload.ContactPerson,
+			ContactAddress: payload.ContactAddress,
+			ContactPhone:   payload.ContactPhone,
+			ContactEmail:   payload.ContactEmail,
 			IconSource:     payload.IconSource,
 			Notes:          payload.Notes,
 		})
@@ -130,6 +134,10 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			CustomerNumber: payload.CustomerNumber,
 			Costs:          payload.Costs,
 			BillingPeriod:  payload.BillingPeriod,
+			ContactPerson:  payload.ContactPerson,
+			ContactAddress: payload.ContactAddress,
+			ContactPhone:   payload.ContactPhone,
+			ContactEmail:   payload.ContactEmail,
 			IconSource:     payload.IconSource,
 			Notes:          payload.Notes,
 		})

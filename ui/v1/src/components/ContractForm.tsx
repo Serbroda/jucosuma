@@ -149,11 +149,19 @@ export default function ContractForm({contract}: ContractFormProps) {
                         defaultValue={contract.contract_type ?? "contract"}
                     >
                         <RadioField>
-                            <Radio value="constract" defaultChecked={contract.contract_type === "contract"}/>
+                            <Radio
+                                value="contract"
+                                defaultChecked={contract.contract_type === "contract"}
+                                className="hover:cursor-pointer"
+                            />
                             <Label>Contract</Label>
                         </RadioField>
                         <RadioField>
-                            <Radio value="subscription" defaultChecked={contract.contract_type === "subscription"}/>
+                            <Radio
+                                value="subscription" 
+                                defaultChecked={contract.contract_type === "subscription"}
+                                className="hover:cursor-pointer"
+                            />
                             <Label>Subscription</Label>
                         </RadioField>
                     </RadioGroup>
@@ -161,7 +169,6 @@ export default function ContractForm({contract}: ContractFormProps) {
 
                 <Divider className="mt-6"/>
                 <Subheading>Details</Subheading>
-
                 <Field>
                     <Label>Start Date</Label>
                     <Input
@@ -206,7 +213,6 @@ export default function ContractForm({contract}: ContractFormProps) {
 
                 <Divider className="mt-6"/>
                 <Subheading>Costs</Subheading>
-
                 <Field>
                     <Label>Costs</Label>
                     <Input
@@ -233,8 +239,38 @@ export default function ContractForm({contract}: ContractFormProps) {
                 </Field>
 
                 <Divider className="mt-6"/>
-                <Subheading>Data</Subheading>
+                <Subheading>Contact Information</Subheading>
+                <Field>
+                    <Label>Contact Person</Label>
+                    <Input
+                        name="contact_person"
+                        defaultValue={contract.contact_person ?? ""}
+                    />
+                </Field>
+                <Field>
+                    <Label>Address</Label>
+                    <Textarea
+                        name="contact_address"
+                        defaultValue={contract.contact_address ?? ""}
+                    />
+                </Field>
+                <Field>
+                    <Label>Phone</Label>
+                    <Input
+                        name="contact_phone"
+                        defaultValue={contract.contact_phone ?? ""}
+                    />
+                </Field>
+                <Field>
+                    <Label>Email</Label>
+                    <Input
+                        name="contact_email"
+                        defaultValue={contract.contact_email ?? ""}
+                    />
+                </Field>
 
+                <Divider className="mt-6"/>
+                <Subheading>Data</Subheading>
                 <Field>
                     <Label>Documents</Label>
                     <Input
@@ -269,7 +305,6 @@ export default function ContractForm({contract}: ContractFormProps) {
 
                 <Divider className="mt-6"/>
                 <Subheading>Other</Subheading>
-
                 <Field>
                     <Label>Notes</Label>
                     <Textarea

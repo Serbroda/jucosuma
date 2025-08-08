@@ -12,6 +12,10 @@ INSERT INTO contracts (created_at,
                        contract_holder_id,
                        costs,
                        billing_period,
+                       contact_person,
+                       contact_address,
+                       contact_phone,
+                       contact_email,
                        icon_source,
                        notes)
 VALUES (CURRENT_TIMESTAMP,
@@ -27,6 +31,10 @@ VALUES (CURRENT_TIMESTAMP,
         sqlc.arg('contract_holder_id'),
         sqlc.arg('costs'),
         sqlc.arg('billing_period'),
+        sqlc.arg('contact_person'),
+        sqlc.arg('contact_address'),
+        sqlc.arg('contact_phone'),
+        sqlc.arg('contact_email'),
         sqlc.arg('icon_source'),
         sqlc.arg('notes')) RETURNING *
 ;
@@ -46,20 +54,24 @@ WHERE deleted_at IS NULL
 
 -- name: UpdateContractById :exec
 UPDATE contracts
-SET name = sqlc.arg('name'),
-    company = sqlc.arg('company'),
-    contract_type = sqlc.arg('contract_type'),
-    category = sqlc.arg('category'),
-    start_date = sqlc.arg('start_date'),
-    end_date = sqlc.arg('end_date'),
-    contract_number = sqlc.arg('contract_number'),
-    customer_number = sqlc.arg('customer_number'),
+SET name               = sqlc.arg('name'),
+    company            = sqlc.arg('company'),
+    contract_type      = sqlc.arg('contract_type'),
+    category           = sqlc.arg('category'),
+    start_date         = sqlc.arg('start_date'),
+    end_date           = sqlc.arg('end_date'),
+    contract_number    = sqlc.arg('contract_number'),
+    customer_number    = sqlc.arg('customer_number'),
     contract_holder_id = sqlc.arg('contract_holder_id'),
-    costs = sqlc.arg('costs'),
-    billing_period = sqlc.arg('billing_period'),
-    icon_source = sqlc.arg('icon_source'),
-    notes = sqlc.arg('notes'),
-    updated_at = CURRENT_TIMESTAMP
+    costs              = sqlc.arg('costs'),
+    billing_period     = sqlc.arg('billing_period'),
+    contact_person     = sqlc.arg('contact_person'),
+    contact_address    = sqlc.arg('contact_address'),
+    contact_phone      = sqlc.arg('contact_phone'),
+    contact_email      = sqlc.arg('contact_email'),
+    icon_source        = sqlc.arg('icon_source'),
+    notes              = sqlc.arg('notes'),
+    updated_at         = CURRENT_TIMESTAMP
 WHERE id = sqlc.arg('id')
   AND deleted_at IS NULL
 ;
