@@ -3,6 +3,16 @@ import type {ActionFunction} from "react-router";
 import type {ContractDto} from "../gen/types.gen";
 import {apiBasePath} from "../config.ts";
 
+const formatCurrency = (input: string | FormDataEntryValue | null): number | undefined => {
+    if (!input) {
+        return undefined;
+    }
+    const value = input.toString()
+        .replace(/[^0-9,.-]/g, "")
+        .replace(/,/g, ".");
+    return parseFloat(value);
+}
+
 export const contractAction: ActionFunction = async ({request, params}) => {
     // 1) alle FormData-Felder vom <Form encType="multipart/form-data"> abholen
     const form = await request.formData();
@@ -17,7 +27,7 @@ export const contractAction: ActionFunction = async ({request, params}) => {
         end_date: form.get("end_date") as string || undefined,
         contract_number: form.get("contract_number") as string || undefined,
         customer_number: form.get("customer_number") as string || undefined,
-        costs: parseFloat(form.get("costs") as string) || undefined,
+        costs: formatCurrency(form.get("costs")),
         billing_period: form.get("billing_period") as string,
         icon_source: form.get("icon_source") as string || undefined,
         notes: form.get("notes") as string || undefined,
