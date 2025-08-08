@@ -8,6 +8,7 @@ import {Avatar} from "../components/catalyst/avatar.tsx";
 import {Input, InputGroup} from "../components/catalyst/input.tsx";
 import {useState} from "react";
 import {startWithAnyIgnoreCase} from "../utils/string.utils.ts";
+import {formatCurrency} from "../utils/number.utils.ts";
 
 export default function HomePage() {
     const {contracts} = useLoaderData();
@@ -64,7 +65,7 @@ export default function HomePage() {
                                         </div>
                                     </div>
 
-                                    <Badge className="shrink-0">{contract.costs} €</Badge>
+                                    {contract.costs && <Badge className="shrink-0">{formatCurrency(contract.costs)}</Badge>}
                                     <ChevronRightIcon className={"h-5 w-5 shrink-0 text-zinc-950 dark:text-white"}/>
                                 </NavLink>
                             </li>

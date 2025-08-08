@@ -17,6 +17,7 @@ import image from "../assets/image.png";
 import type {ReactNode} from "react";
 import Tooltip from "../components/Tooltip.tsx";
 import dayjs from "../lib/dayjs";
+import {formatCurrency} from "../utils/number.utils.ts";
 
 
 const HeaderDetails = ({icon, info}: { icon: ReactNode, info: string, tooltip?: string }) => {
@@ -81,7 +82,7 @@ export default function ContractPage() {
                             <Tooltip text="Costs">
                                 <HeaderDetails
                                     icon={<BanknotesIcon className="size-4 fill-zinc-400 dark:fill-zinc-500"/>}
-                                    info={`${data?.contract.costs} €`}
+                                    info={formatCurrency(data?.contract.costs)}
                                 />
                             </Tooltip>
                         }
@@ -125,7 +126,7 @@ export default function ContractPage() {
                 <Divider className="mt-4"/>
                 <DescriptionList>
                     <DescriptionTerm>Costs</DescriptionTerm>
-                    <DescriptionDetails>{data?.contract.costs} €</DescriptionDetails>
+                    <DescriptionDetails>{formatCurrency(data?.contract.costs)}</DescriptionDetails>
                     <DescriptionTerm>Billing Period</DescriptionTerm>
                     <DescriptionDetails className="capitalize">{data?.contract.billing_period}</DescriptionDetails>
                 </DescriptionList>

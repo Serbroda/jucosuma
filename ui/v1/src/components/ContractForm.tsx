@@ -17,6 +17,7 @@ import dayjs from "../lib/dayjs";
 import ConfirmDialog from "./dialogs/ConfirmDialog.tsx";
 import ChooseIconDialog from "./dialogs/ChooseIconDialog.tsx";
 import {DocumentIcon, XMarkIcon} from "@heroicons/react/16/solid";
+import {formatDecimal} from "../utils/number.utils.ts";
 
 export interface ContractFormProps {
     contract: Partial<ContractDto>;
@@ -211,7 +212,7 @@ export default function ContractForm({contract}: ContractFormProps) {
                     <Input
                         type="text"
                         name="costs"
-                        defaultValue={contract.costs?.toString() ?? ""}
+                        defaultValue={formatDecimal(contract.costs) ?? ""}
                         pattern="^-?\d+(.\d{1,2})?$"
                     />
                 </Field>
