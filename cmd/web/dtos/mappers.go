@@ -1,6 +1,9 @@
 package dtos
 
-import sqlc "github.com/Serbroda/contracts/internal/db/sqlc/gen"
+import (
+	sqlc "github.com/Serbroda/contracts/internal/db/sqlc/gen"
+	"github.com/Serbroda/contracts/internal/utils"
+)
 
 func MapContractToContractDto(item sqlc.Contract) ContractDto {
 	return ContractDto{
@@ -21,4 +24,19 @@ func MapContractToContractDto(item sqlc.Contract) ContractDto {
 		CreatedAt:        item.CreatedAt,
 		UpdatedAt:        item.UpdatedAt,
 	}
+}
+
+func MapDocumentToDocumentDto(item sqlc.Document) DocumentDto {
+	return DocumentDto{
+		ID:         item.ID,
+		ContractID: item.ContractID,
+		Path:       item.Path,
+		Title:      item.Title,
+		CreatedAt:  item.CreatedAt,
+		UpdatedAt:  item.UpdatedAt,
+	}
+}
+
+func MapDocumentsToDocumentDtos(items []sqlc.Document) []DocumentDto {
+	return utils.MapSlice(items, MapDocumentToDocumentDto)
 }

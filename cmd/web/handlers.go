@@ -23,11 +23,11 @@ func (app *application) getContracts(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	json := utils.MapSlice(contracts, func(item sqlc.Contract) dtos.ContractDto {
+	contractDtos := utils.MapSlice(contracts, func(item sqlc.Contract) dtos.ContractDto {
 		return dtos.MapContractToContractDto(item)
 	})
 
-	return ctx.JSON(http.StatusOK, json)
+	return ctx.JSON(http.StatusOK, contractDtos)
 }
 
 func (app *application) getContractById(ctx echo.Context) error {
@@ -42,8 +42,14 @@ func (app *application) getContractById(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	json := dtos.MapContractToContractDto(contract)
-	return ctx.JSON(http.StatusOK, json)
+	contractDto := dtos.MapContractToContractDto(contract)
+	documents, err := app.queries.FindDocumentsByContractId(ctx.Request().Context(), contract.ID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	contractDto.Documents = dtos.MapDocumentsToDocumentDtos(documents)
+
+	return ctx.JSON(http.StatusOK, contractDto)
 }
 
 func (app *application) createContract(c echo.Context) error {
@@ -193,6 +199,19 @@ func (app *application) deleteContract(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	err = app.queries.DeleteContractSoft(ctx.Request().Context(), id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	return ctx.String(http.StatusOK, "successfully deleted")
+}
+
+func (app *application) deleteDocument(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	err = app.queries.DeleteDocumentSoft(ctx.Request().Context(), id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}

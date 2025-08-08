@@ -16,12 +16,14 @@ func (app *application) routes() *echo.Echo {
 	e.Use(middleware.BodyLimit("20M"))
 
 	ui.RegisterUi(e)
+	e.Static("/uploads", app.uploadsDir)
 
 	e.GET("/api/contracts", app.getContracts)
 	e.POST("/api/contracts", app.createContract)
 	e.GET("/api/contracts/:id", app.getContractById)
 	e.PUT("/api/contracts/:id", app.updateContract)
 	e.DELETE("/api/contracts/:id", app.deleteContract)
+	e.DELETE("/api/documents/:id", app.deleteDocument)
 	e.GET("/api/logos", app.searchLogos)
 
 	return e

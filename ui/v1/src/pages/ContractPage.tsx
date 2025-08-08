@@ -6,7 +6,8 @@ import {
     BanknotesIcon,
     CalendarIcon,
     DocumentIcon,
-    PencilIcon, UserIcon,
+    PencilIcon,
+    UserIcon,
 } from "@heroicons/react/16/solid";
 import {Button} from "../components/catalyst/button.tsx";
 import {DescriptionDetails, DescriptionList, DescriptionTerm} from "../components/catalyst/description-list.tsx";
@@ -134,6 +135,27 @@ export default function ContractPage() {
                 <DescriptionList>
                     <DescriptionTerm>Notes</DescriptionTerm>
                     <DescriptionDetails>{data?.contract.notes}</DescriptionDetails>
+                </DescriptionList>
+
+                <Subheading className="mt-10">Documents</Subheading>
+                <Divider className="mt-4"/>
+                <DescriptionList>
+                    <DescriptionTerm>Documents</DescriptionTerm>
+                    <DescriptionDetails>
+                        {data?.contract.documents && data?.contract.documents.map((doc) =>
+                            <div key={doc.ID} className="flex grow min-w-0">
+                                <a
+                                    href={`/uploads/${doc.Path}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex grow truncate items-center gap-2 text-sm/6 text-zinc-500 dark:text-zinc-400"
+                                >
+                                    <DocumentIcon className="h-5 w-5 shrink-0 fill-zinc-400 dark:fill-zinc-500"/>
+                                    <span className="truncate">{doc.Title}</span>
+                                </a>
+                            </div>
+                        )}
+                    </DescriptionDetails>
                 </DescriptionList>
             </div>
 

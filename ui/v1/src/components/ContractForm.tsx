@@ -16,6 +16,7 @@ import {Textarea} from "./catalyst/textarea.tsx";
 import dayjs from "../lib/dayjs";
 import ConfirmDialog from "./dialogs/ConfirmDialog.tsx";
 import ChooseIconDialog from "./dialogs/ChooseIconDialog.tsx";
+import {DocumentIcon, XMarkIcon} from "@heroicons/react/16/solid";
 
 export interface ContractFormProps {
     contract: Partial<ContractDto>;
@@ -48,6 +49,15 @@ export default function ContractForm({contract}: ContractFormProps) {
             navigation("/");
         }
     };
+
+    const deleteDocument = async (documentId: number) => {
+        const res = await fetch(`${apiBasePath}/documents/${documentId}`, {
+            method: "DELETE",
+        });
+        if (res.ok) {
+            navigation(`/contracts/${contract.id}/edit`);
+        }
+    }
 
     return (
         <>
@@ -243,6 +253,32 @@ export default function ContractForm({contract}: ContractFormProps) {
                         defaultValue={contract.notes ?? ""}
                     />
                 </Field>
+
+                {contract.documents && contract.documents?.length > 0 &&
+                    <Field>
+                        <Label>Documents</Label>
+                        {contract.documents && contract.documents.map((doc) =>
+                            <div key={doc.ID} className="flex grow min-w-0">
+                                <a
+                                    href={`/uploads/${doc.Path}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex truncate items-center gap-2 text-sm/6 text-zinc-500 dark:text-zinc-400"
+                                >
+                                    <DocumentIcon className="h-5 w-5 shrink-0 fill-zinc-400 dark:fill-zinc-500"/>
+                                    <span className="truncate">{doc.Title}</span>
+                                </a>
+                                <div className="grow"></div>
+                                <Button
+                                    className="my-1 ml-1 lg:size-6 hover:cursor-pointer"
+                                    onClick={() => deleteDocument(doc.ID)}
+                                >
+                                    <XMarkIcon/>
+                                </Button>
+                            </div>
+                        )}
+                    </Field>
+                }
 
                 <div className="flex mt-6 gap-4 lg:gap-2 flex-wrap">
                     <Button

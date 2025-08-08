@@ -25,6 +25,7 @@ export interface ContractDto {
   notes?: string;
   created_at?: string /* RFC3339 */;
   updated_at?: string /* RFC3339 */;
+  documents: DocumentDto[];
 }
 export interface CreateContractDto {
   name: string;
@@ -53,4 +54,12 @@ export interface UpdateContractDto {
   billing_period: string;
   icon_source?: string;
   notes?: string;
+}
+export interface DocumentDto {
+  ID: number /* int64 */;
+  ContractID: number /* int64 */;
+  Path: string;
+  Title?: string;
+  CreatedAt?: string /* RFC3339 */;
+  UpdatedAt?: string /* RFC3339 */;
 }

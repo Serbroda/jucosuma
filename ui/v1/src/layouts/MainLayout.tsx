@@ -42,7 +42,7 @@ function MainLayout() {
                                         src={logo}
                                         square
                                         className="w-10 h-10 pr-2 outline-0 dark:invert"/>
-                                    <NavbarLabel>Jacumbo</NavbarLabel>
+                                    <NavbarLabel>Jucosuma</NavbarLabel>
                                 </NavLink>
                             </NavbarItem>
                         </NavbarSection>
@@ -72,7 +72,7 @@ function MainLayout() {
                                         src={logo}
                                         square
                                         className="w-10 h-10 pr-2 outline-0 dark:invert"/>
-                                    <NavbarLabel>Jacumbo</NavbarLabel>
+                                    <NavbarLabel>Jucosuma</NavbarLabel>
                                 </NavLink>
                             </SidebarItem>
                         </SidebarHeader>

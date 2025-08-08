@@ -32,22 +32,23 @@ type LogoDto struct {
 }
 
 type ContractDto struct {
-	ID               int64      `json:"id"`
-	Name             string     `json:"name"`
-	Company          *string    `json:"company"`
-	ContractType     string     `json:"contract_type"`
-	Category         string     `json:"category"`
-	StartDate        DateOnly   `json:"start_date"`
-	EndDate          *DateOnly  `json:"end_date"`
-	ContractNumber   *string    `json:"contract_number"`
-	CustomerNumber   *string    `json:"customer_number"`
-	ContractHolderID *int64     `json:"contract_holder_id"`
-	Costs            *float64   `json:"costs"`
-	BillingPeriod    string     `json:"billing_period"`
-	IconSource       *string    `json:"icon_source"`
-	Notes            *string    `json:"notes"`
-	CreatedAt        *time.Time `json:"created_at"`
-	UpdatedAt        *time.Time `json:"updated_at"`
+	ID               int64         `json:"id"`
+	Name             string        `json:"name"`
+	Company          *string       `json:"company"`
+	ContractType     string        `json:"contract_type"`
+	Category         string        `json:"category"`
+	StartDate        DateOnly      `json:"start_date"`
+	EndDate          *DateOnly     `json:"end_date"`
+	ContractNumber   *string       `json:"contract_number"`
+	CustomerNumber   *string       `json:"customer_number"`
+	ContractHolderID *int64        `json:"contract_holder_id"`
+	Costs            *float64      `json:"costs"`
+	BillingPeriod    string        `json:"billing_period"`
+	IconSource       *string       `json:"icon_source"`
+	Notes            *string       `json:"notes"`
+	CreatedAt        *time.Time    `json:"created_at"`
+	UpdatedAt        *time.Time    `json:"updated_at"`
+	Documents        []DocumentDto `json:"documents"`
 }
 
 type CreateContractDto struct {
@@ -78,4 +79,13 @@ type UpdateContractDto struct {
 	BillingPeriod  string    `json:"billing_period"`
 	IconSource     *string   `json:"icon_source"`
 	Notes          *string   `json:"notes"`
+}
+
+type DocumentDto struct {
+	ID         int64      `db:"id"`
+	ContractID int64      `db:"contract_id"`
+	Path       string     `db:"path"`
+	Title      *string    `db:"title"`
+	CreatedAt  *time.Time `db:"created_at"`
+	UpdatedAt  *time.Time `db:"updated_at"`
 }

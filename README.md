@@ -1,12 +1,12 @@
 # Jucoma – Just a Contract Manager
 
-Jucoma (Just a Contract Manager) is a lightweight web application for creating, editing, and managing contracts and subscriptions. With a Go backend API, HTMX dialogs for icon selection, and a responsive Tailwind CSS interface, Jucoma delivers a modern, dynamic workflow for contract and subscription management.
+Jucosuma (**Ju**st a **Co**ntract and **Su**bscription **Ma**nager) is a lightweight web application for creating, editing, and managing contracts and subscriptions. With a Go backend API, HTMX dialogs for icon selection, and a responsive Tailwind CSS interface, Jucoma delivers a modern, dynamic workflow for contract and subscription management.
 
 ---
 
 ## 🎯 Motivation
 
-Jucoma is heavily inspired by the excellent iOS app **“Contract”** by Benedikt Betz. While “Contract” offers a beautiful native experience on iOS, I wanted a self-hostable, browser-based solution that multiple household members can access and use without relying on proprietary app stores or individual devices. Jucoma brings the clean contract management concepts of the iOS app to the web, with collaboration in mind.
+Jucosuma is heavily inspired by the excellent iOS app **“Contract”** by Benedikt Betz. While “Contract” offers a beautiful native experience on iOS, I wanted a self-hostable, browser-based solution that multiple household members can access and use without relying on proprietary app stores or individual devices. Jucoma brings the clean contract management concepts of the iOS app to the web, with collaboration in mind.
 
 ---
 
