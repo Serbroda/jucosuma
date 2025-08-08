@@ -146,11 +146,11 @@ export default function ContractForm({contract}: ContractFormProps) {
                     <Label>Type</Label>
                     <RadioGroup
                         name="contract_type"
-                        defaultValue={contract.contract_type ?? "insurance"}
+                        defaultValue={contract.contract_type ?? "contract"}
                     >
                         <RadioField>
-                            <Radio value="insurance" defaultChecked={contract.contract_type === "insurance"}/>
-                            <Label>Insurance</Label>
+                            <Radio value="constract" defaultChecked={contract.contract_type === "contract"}/>
+                            <Label>Contract</Label>
                         </RadioField>
                         <RadioField>
                             <Radio value="subscription" defaultChecked={contract.contract_type === "subscription"}/>

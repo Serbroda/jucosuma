@@ -5,7 +5,7 @@ CREATE TABLE contracts
     id                 INTEGER PRIMARY KEY AUTOINCREMENT,
     name               TEXT NOT NULL,
     company            TEXT,
-    contract_type      TEXT NOT NULL DEFAULT 'INSURANCE',
+    contract_type      TEXT NOT NULL DEFAULT 'CONTRACT',
     category           TEXT NOT NULL DEFAULT 'OTHER',
     start_date         DATE NOT NULL DEFAULT CURRENT_DATE,
     end_date           DATE,
