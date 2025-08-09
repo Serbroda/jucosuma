@@ -79,3 +79,27 @@ clean:
 	rm -rf ./bin/
 	rm -rf ./ui/v1/node_modules/
 	rm -rf ./ui/v1/dist/
+
+bump-major:
+	@set -e; \
+	newVersion=$$(./semver.sh bump major $(VERSION)); \
+	echo $$newVersion > VERSION; \
+	cd ./ui/v1; \
+	npm version --no-git-tag-version $$newVersion; \
+	echo "Bumped version to $$newVersion"
+
+bump-minor:
+	@set -e; \
+	newVersion=$$(./semver.sh bump minor $(VERSION)); \
+	echo $$newVersion > VERSION; \
+	cd ./ui/v1; \
+	npm version --no-git-tag-version $$newVersion; \
+	echo "Bumped version to $$newVersion"
+
+bump-patch:
+	@set -e; \
+	newVersion=$$(./semver.sh bump patch $(VERSION)); \
+	echo $$newVersion > VERSION; \
+	cd ./ui/v1; \
+	npm version --no-git-tag-version $$newVersion; \
+	echo "Bumped version to $$newVersion"
