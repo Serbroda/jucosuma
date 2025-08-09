@@ -1,5 +1,8 @@
 name: CI & Release
 
+permissions:
+  contents: write
+
 on:
   push:
     branches:
@@ -82,6 +85,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
           name: v${{ env.VERSION }}
           body: |
             Automated release for version v${{ env.VERSION }}.
