@@ -2,11 +2,12 @@ name: CI
 
 on:
   push:
-    branches:
-      - '**'
+    branches: ['**']
   pull_request:
-    branches:
-      - '**'
+    branches: ['**']
+
+permissions:
+  contents: write  # nötig, damit der Release-Job Releases anlegen darf
 
 env:
   GO_VERSION: "1.24.x"
@@ -19,9 +20,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Read version
-        run: |
-          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+        run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
       - uses: actions/setup-go@v5
         with:
@@ -38,7 +39,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Run generate-go build-ui
+      - name: Generate & build UI
         run: make generate-go build-ui
 
       - name: Run tests
@@ -47,6 +48,69 @@ jobs:
       - name: Build platforms
         run: make build-server
 
-      - name: Run binary to check start
+      - name: Smoke check (linux amd64)
+        run: ./bin/jucosuma-v${{ env.VERSION }}-linux-amd64 --version
+
+      - name: Package release artifacts (zip + checksums)
         run: |
-          ./bin/jucosuma-v${{ env.VERSION }}-linux-amd64 --version
+          mkdir -p release
+          zip -j "release/jucosuma-v${{ env.VERSION }}-binaries.zip" ./bin/*
+          (cd release && sha256sum * > SHA256SUMS.txt)
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: jucosuma-${{ env.VERSION }}
+          path: release/*
+
+  release:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version
+        run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+
+      - name: Download artifacts from build
+        uses: actions/download-artifact@v4
+        with:
+          name: jucosuma-${{ env.VERSION }}
+          path: release
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ env.VERSION }}
+          release_name: v${{ env.VERSION }}
+          body: |
+            Automated release for version v${{ env.VERSION }}.
+            Includes zipped multiplatform binaries and checksums.
+          draft: false
+          prerelease: false
+
+      - name: Upload ZIP asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release/jucosuma-v${{ env.VERSION }}-binaries.zip
+          asset_name: jucosuma-v${{ env.VERSION }}-binaries.zip
+          asset_content_type: application/zip
+
+      - name: Upload checksums
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release/SHA256SUMS.txt
+          asset_name: SHA256SUMS.txt
+          asset_content_type: text/plain
