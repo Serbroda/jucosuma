@@ -13,9 +13,9 @@ WEB_MAIN_DIR := ./cmd/web
 # ------------------------------------------------------------
 # Default targets
 # ------------------------------------------------------------
-.PHONY: all build generate-go build-ui build-server clean test
+.PHONY: build generate-go build-ui build-server clean test
 
-all: clean generate-go build-ui build-server
+build: clean generate-go build-ui build-server
 
 build-server:
 	@echo "==> Building web Go binaries for platforms..."
