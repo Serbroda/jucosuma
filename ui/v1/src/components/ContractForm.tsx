@@ -284,6 +284,7 @@ export default function ContractForm({contract}: ContractFormProps) {
                         type="file"
                         name="file"
                         multiple
+                        accept=".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
                     />
                 </Field>
 
