@@ -12,6 +12,7 @@ import {href, NavLink, Outlet} from "react-router";
 import {Avatar} from "../components/catalyst/avatar.tsx";
 
 import logo from '../assets/logo.svg'
+import githubLogo from '../assets/github.svg'
 import {Switch} from "../components/catalyst/switch.tsx";
 import {usePreferences} from "../stores/usePreferences.ts";
 import {useEffect, useState} from "react";
@@ -65,7 +66,17 @@ function MainLayout() {
                             ))}
                         </NavbarSection>
                         <NavbarSpacer/>
-                        <NavbarSection>
+                        <NavbarSection className="gap-x-6">
+                            <a href="https://github.com/Serbroda/jucosuma"
+                               target="_blank"
+                               className="hidden lg:block"
+                            >
+                                <img
+                                    src={githubLogo}
+                                    alt="Github"
+                                    className="size-5 dark:invert"
+                                />
+                            </a>
                             <Switch checked={darkMode} onChange={(val) => {
                                 setTheme(val ? "dark" : "light")
                                 setDarkMode(val)
