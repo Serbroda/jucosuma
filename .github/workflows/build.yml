@@ -38,11 +38,14 @@ jobs:
         with:
           node-version: 20
 
+      - name: Run generate-go build-ui
+        run: make generate-go build-ui
+
       - name: Run tests
         run: make test
 
       - name: Build platforms
-        run: make build
+        run: make build-server
 
       - name: Run binary to check start
         run: |
