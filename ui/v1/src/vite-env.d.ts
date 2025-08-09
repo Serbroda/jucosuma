@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+declare const __APP_VERSION__: string;
 
 interface ViteTypeOptions {
     // By adding this line, you can make the type of ImportMetaEnv strict

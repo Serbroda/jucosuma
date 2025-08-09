@@ -18,8 +18,8 @@ import {useEffect, useState} from "react";
 
 const navItems = [
     {label: 'Contracts', url: '/'},
-   /* {label: 'Persons', url: '/persons'},
-    {label: 'Settings', url: '/settings'},*/
+    /* {label: 'Persons', url: '/persons'},
+     {label: 'Settings', url: '/settings'},*/
 ]
 
 function MainLayout() {
@@ -37,12 +37,17 @@ function MainLayout() {
                     <Navbar>
                         <NavbarSection className="max-lg:hidden">
                             <NavbarItem>
-                                <NavLink to="/">
+                                <NavLink to="/" className="flex">
                                     <Avatar
                                         src={logo}
                                         square
                                         className="w-10 h-10 pr-2 outline-0 dark:invert"/>
-                                    <NavbarLabel>Jucosuma</NavbarLabel>
+                                        <NavbarLabel className="flex flex-col">
+                                            <b className="text-lg">Jucosuma</b>
+                                            <small className="text-2xs text-zinc-500 dark:text-zinc-400">
+                                                <pre>v{__APP_VERSION__}</pre>
+                                            </small>
+                                        </NavbarLabel>
                                 </NavLink>
                             </NavbarItem>
                         </NavbarSection>
@@ -67,12 +72,17 @@ function MainLayout() {
                     <Sidebar>
                         <SidebarHeader>
                             <SidebarItem>
-                                <NavLink to="/">
+                                <NavLink to="/" className="flex">
                                     <Avatar
                                         src={logo}
                                         square
                                         className="w-10 h-10 pr-2 outline-0 dark:invert"/>
-                                    <NavbarLabel>Jucosuma</NavbarLabel>
+                                    <NavbarLabel className="flex flex-col">
+                                        <b className="text-lg">Jucosuma</b>
+                                        <small className="text-2xs text-zinc-500 dark:text-zinc-400">
+                                            <pre>v{__APP_VERSION__}</pre>
+                                        </small>
+                                    </NavbarLabel>
                                 </NavLink>
                             </SidebarItem>
                         </SidebarHeader>
