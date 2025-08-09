@@ -13,9 +13,10 @@ import {Avatar} from "../components/catalyst/avatar.tsx";
 
 import logo from '../assets/logo.svg'
 import githubLogo from '../assets/github.svg'
-import {Switch} from "../components/catalyst/switch.tsx";
 import {usePreferences} from "../stores/usePreferences.ts";
 import {useEffect, useState} from "react";
+import Swap from "../components/Swap.tsx";
+import {MoonIcon, SunIcon} from "@heroicons/react/16/solid";
 
 const navItems = [
     {label: 'Contracts', url: '/'},
@@ -69,7 +70,7 @@ function MainLayout() {
                         <NavbarSection className="gap-x-6">
                             <a href="https://github.com/Serbroda/jucosuma"
                                target="_blank"
-                               className="hidden lg:block"
+                               className="hidden lg:block hover:opacity-75"
                             >
                                 <img
                                     src={githubLogo}
@@ -77,10 +78,16 @@ function MainLayout() {
                                     className="size-5 dark:invert"
                                 />
                             </a>
-                            <Switch checked={darkMode} onChange={(val) => {
-                                setTheme(val ? "dark" : "light")
-                                setDarkMode(val)
-                            }}/>
+                            <Swap
+                                isActive={darkMode}
+                                activeNode={<SunIcon className="size-5 hover:opacity-75"/>}
+                                inactiveNode={<MoonIcon className="size-5 hover:opacity-75"/>}
+                                onChange={(val) => {
+                                    setTheme(val ? "dark" : "light")
+                                    setDarkMode(val)
+                                }}
+                                className="hover:cursor-pointer transition duration-300 ease-in-out"
+                            />
                         </NavbarSection>
                     </Navbar>
                 }
