@@ -37,26 +37,45 @@ build-ui:
 		npm run build
 
 build-docker:
+	@set -e; \
+	major=$$(./semver.sh get major $(VERSION)); \
+	minor=$$(./semver.sh get minor $(VERSION)); \
+	echo "Building $(BINARY_NAME) docker image v$(VERSION) (major=$$major minor=$$minor)"; \
 	docker build \
-	  --build-arg VERSION=$(cat VERSION) \
-	  -t ${BINARY_NAME}:latest .
+	  --build-arg VERSION=$(VERSION) \
+	  -t $(BINARY_NAME):$$major \
+	  -t $(BINARY_NAME):$$major.$$minor \
+	  -t $(BINARY_NAME):$(VERSION) \
+	  -t $(BINARY_NAME):latest \
+	  .
 
 build-podman:
+	@set -e; \
+	major=$$(./semver.sh get major $(VERSION)); \
+	minor=$$(./semver.sh get minor $(VERSION)); \
+	echo "Building $(BINARY_NAME) podman image v$(VERSION) (major=$$major minor=$$minor)"; \
 	podman build \
-	  --build-arg VERSION=$(cat VERSION) \
-	  -t ${BINARY_NAME}:latest .
+	  --build-arg VERSION=$(VERSION) \
+	  -t $(BINARY_NAME):$$major \
+	  -t $(BINARY_NAME):$$major.$$minor \
+	  -t $(BINARY_NAME):$(VERSION) \
+	  -t $(BINARY_NAME):latest \
+	  .
 
 generate-go:
 	@echo "==> Generating Go code..."
 	go generate ./...
 	@echo "==> Generation done."
 
+test:
+	@echo "==> Running tests..."
+	go test ./... -v
+
+# ------------------------------------------------------------
+# Helpers
+# ------------------------------------------------------------
 clean:
 	@echo "==> Cleaning up..."
 	rm -rf ./bin/
 	rm -rf ./ui/v1/node_modules/
 	rm -rf ./ui/v1/dist/
-
-test:
-	@echo "==> Running tests..."
-	go test ./... -v
