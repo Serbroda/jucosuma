@@ -1,15 +1,14 @@
 name: CI & Release
 
-permissions:
-  contents: write
-
 on:
   push:
-    branches:
-      - '**'
+    branches: ['**']             # build auf allen Branches
+    tags: ['v*.*.*', 'v*.*.*-*'] # zusätzlich: Tag-Push triggert auch (für Release)
   pull_request:
-    branches:
-      - '**'
+    branches: ['**']             # build bei PRs
+
+permissions:
+  contents: write                # nötig für Releases
 
 env:
   GO_VERSION: "1.24.x"
@@ -23,8 +22,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Read version
-        run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+      # VERSION laden (aus Datei). Bei Tag-Run optional Konsistenz prüfen.
+      - name: Read version from file
+        run: |
+          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${GITHUB_REF_NAME#v}"
+            if [ "$TAG" != "$VERSION" ]; then
+              echo "::warning:: Tag (v$TAG) != VERSION-Datei ($VERSION)."
+            fi
+          fi
 
       - uses: actions/setup-go@v5
         with:
@@ -41,7 +48,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Run generate-go build-ui
+      - name: Generate & build UI
         run: make generate-go build-ui
 
       - name: Run tests
@@ -50,21 +57,20 @@ jobs:
       - name: Build platforms
         run: make build-server
 
-      - name: Prepare release artifacts
+      - name: Prepare release artifacts (binaries + checksums)
         run: |
           mkdir -p release
           cp bin/* release/
-          cd release
-          sha256sum * > checksums.txt
+          (cd release && sha256sum * > checksums.txt)
 
-      - name: Upload release artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: jucosuma-${{ env.VERSION }}
           path: release/*
 
   release:
-    if: github.ref == 'refs/heads/main'
+    if: startsWith(github.ref, 'refs/tags/')
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -72,7 +78,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Read version
+      - name: Read version from file
         run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
       - name: Download artifacts from build
@@ -81,14 +87,13 @@ jobs:
           name: jucosuma-${{ env.VERSION }}
           path: release
 
-      - name: Create GitHub Release
+      - name: Create GitHub Release (tag-driven)
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ env.VERSION }}
-          target_commitish: ${{ github.sha }}
-          name: v${{ env.VERSION }}
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
           body: |
-            Automated release for version v${{ env.VERSION }}.
+            Automated release for ${{ github.ref_name }}.
             Includes:
             - All compiled binaries
             - SHA256 checksums
