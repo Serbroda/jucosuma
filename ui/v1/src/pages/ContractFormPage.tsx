@@ -3,6 +3,7 @@ import {Heading} from "../components/catalyst/heading.tsx";
 import {Divider} from "../components/catalyst/divider.tsx";
 import type {ContractDto} from "../gen/types.gen.ts";
 import ContractForm from "../components/ContractForm.tsx";
+import {useEffect} from "react";
 
 export interface ContractPageProps {
     mode?: 'add' | 'edit';
@@ -19,6 +20,10 @@ export default function ContractFormPage({mode}: ContractPageProps) {
 
     const actionData = useActionData() as ActionData | undefined;
     const defaults: Partial<ContractDto> = actionData?.values ?? contract;
+
+    useEffect(()=>{
+        window.scrollTo(0, 0);
+    },[])
 
     return (
         <div>

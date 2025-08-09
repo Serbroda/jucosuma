@@ -14,7 +14,7 @@ import {DescriptionDetails, DescriptionList, DescriptionTerm} from "../component
 import {Avatar} from "../components/catalyst/avatar.tsx";
 import {classNames} from "../utils/dom.utils.ts";
 import image from "../assets/image.png";
-import type {ReactNode} from "react";
+import {type ReactNode, useEffect} from "react";
 import Tooltip from "../components/Tooltip.tsx";
 import dayjs from "../lib/dayjs";
 import {formatCurrency} from "../utils/number.utils.ts";
@@ -34,6 +34,10 @@ const HeaderDetails = ({icon, info}: { icon: ReactNode, info: string, tooltip?: 
 
 export default function ContractPage() {
     const data = useLoaderData() as { contract: ContractDto } | undefined;
+
+    useEffect(()=>{
+        window.scrollTo(0, 0);
+    },[])
 
     return (
         <>

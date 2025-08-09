@@ -6,7 +6,7 @@ import {classNames} from "../utils/dom.utils.ts";
 import image from "../assets/image.png";
 import {Avatar} from "../components/catalyst/avatar.tsx";
 import {Input, InputGroup} from "../components/catalyst/input.tsx";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {startWithAnyIgnoreCase} from "../utils/string.utils.ts";
 import {formatCurrency} from "../utils/number.utils.ts";
 import {billingPeriodShorthand} from "../utils/data.utils.ts";
@@ -14,6 +14,10 @@ import {billingPeriodShorthand} from "../utils/data.utils.ts";
 export default function HomePage() {
     const {contracts} = useLoaderData();
     const [search, setSearch] = useState('')
+
+    useEffect(()=>{
+        window.scrollTo(0, 0);
+    },[])
 
     return (
         <>
