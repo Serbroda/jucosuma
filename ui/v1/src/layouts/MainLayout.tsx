@@ -36,20 +36,25 @@ function MainLayout() {
                 navbar={
                     <Navbar>
                         <NavbarSection className="max-lg:hidden">
-                            <NavbarItem>
-                                <NavLink to="/" className="flex">
-                                    <Avatar
-                                        src={logo}
-                                        square
-                                        className="w-10 h-10 pr-2 outline-0 dark:invert"/>
-                                        <NavbarLabel className="flex flex-col">
-                                            <b className="text-lg">Jucosuma</b>
-                                            <small className="text-2xs text-zinc-500 dark:text-zinc-400">
-                                                <pre>v{__APP_VERSION__}</pre>
-                                            </small>
-                                        </NavbarLabel>
-                                </NavLink>
-                            </NavbarItem>
+                            <div className="flex gap-x-2 m-2">
+                                <Avatar
+                                    src={logo}
+                                    square
+                                    className="!size-10 pr-2 outline-0 dark:invert"
+                                />
+
+                                <div className="flex flex-col">
+                                    <NavLink to="/" className="text-lg font-bold">Jucosuma</NavLink>
+                                    <a href="https://github.com/Serbroda/jucosuma/releases"
+                                       target="_blank"
+                                       className="text-2xs text-zinc-500 dark:text-zinc-400 hover:underline"
+                                    >
+                                        <small>
+                                            <pre>v{__APP_VERSION__}</pre>
+                                        </small>
+                                    </a>
+                                </div>
+                            </div>
                         </NavbarSection>
                         <NavbarDivider className="max-lg:hidden"/>
                         <NavbarSection className="max-lg:hidden">
