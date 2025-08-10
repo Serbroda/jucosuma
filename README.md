@@ -1,12 +1,21 @@
 # Jucosuma – Just a Contract and Subscription Manager
 
-Jucosuma (**Ju**st a **Co**ntract and **Su**bscription **Ma**nager) is a lightweight web application for creating, editing, and managing contracts and subscriptions. With a Go backend API, HTMX dialogs for icon selection, and a responsive Tailwind CSS interface, Jucosuma delivers a modern, dynamic workflow for contract and subscription management.
+Jucosuma (**Ju**st a **Co**ntract and **Su**bscription **Ma**nager) is a lightweight web application for creating, editing, and managing contracts and subscriptions.  
+With a Go backend API, a modern **ReactJS** frontend styled with **Tailwind CSS**, Jucosuma delivers a fast and responsive workflow for contract and subscription management.
 
 ---
 
 ## 🎯 Motivation
 
-Jucosuma is heavily inspired by the excellent iOS app **“Contract”** by Benedikt Betz. While “Contract” offers a beautiful native experience on iOS, I wanted a self-hostable, browser-based solution that multiple household members can access and use without relying on proprietary app stores or individual devices. Jucosuma brings the clean contract management concepts of the iOS app to the web, with collaboration in mind.
+Jucosuma is heavily inspired by the excellent iOS app **“Contract”** by Benedikt Betz. While “Contract” offers a beautiful native experience on iOS, I wanted a self-hostable, browser-based solution that multiple household members can access and use without relying on proprietary app stores or individual devices.  
+Jucosuma brings the clean contract management concepts of the iOS app to the web, with collaboration in mind.
+
+---
+
+## 🥋 The Sumo Story – Why a Sumo Wrestler Logo?
+
+The name **Jucosuma** is an abbreviation of its functionality – but it also *sounds a lot like* **Yokozuna**, the highest rank in professional sumo wrestling.  
+This coincidence inspired the idea for the logo: a sumo wrestler sitting cross-legged, holding a contract. It's a playful nod to the name similarity and gives the app a unique, recognizable mascot.
 
 ---
 
@@ -17,13 +26,11 @@ Jucosuma is heavily inspired by the excellent iOS app **“Contract”** by Bene
 - **Subscription Tracking**  
   – Monitor durations, costs, and statuses  
 - **Icon Selection**  
-  – Dynamic logo search via HTMX dialog  
-- **Reactive UI**  
-  – Partial renders without full page reloads  
-- **Go + HTMX**  
-  – Lightweight backend with minimal JavaScript  
-- **Tailwind CSS**  
-  – Fast, responsive design  
+  – Choose contract icons directly in the UI  
+- **Fast & Responsive UI**  
+  – Built with ReactJS and Tailwind CSS  
+- **Go Backend API**  
+  – Lightweight, efficient, self-hostable  
 
 ---
 
@@ -32,7 +39,7 @@ Jucosuma is heavily inspired by the excellent iOS app **“Contract”** by Bene
 ### Prerequisites
 
 - Go 1.20+  
-- Node.js 16+ & npm (for Tailwind build)  
+- Node.js 18+ & npm (for React build)  
 
 ### Local Setup
 
@@ -45,11 +52,18 @@ Jucosuma is heavily inspired by the excellent iOS app **“Contract”** by Bene
    ```bash
    go mod tidy
    ```
-3. Start the application  
+3. Install frontend dependencies and build  
+   ```bash
+   cd ui/v1
+   npm install
+   npm run build
+   cd ../..
+   ```
+4. Start the application  
    ```bash
    go run cmd/web/main.go
    ```
-4. Open in your browser  
+5. Open in your browser  
    ```
    http://localhost:8080
    ```
@@ -58,7 +72,7 @@ Jucosuma is heavily inspired by the excellent iOS app **“Contract”** by Bene
 
 #### Build docker image
 
-```
+```bash
 make docker-build
 ```
 
@@ -71,26 +85,27 @@ docker run --name jucosuma -d \
   -v /path/to/uploads:/app/uploads \
   jucosuma:latest
 ```
+
 ---
 
 ## 🚀 Usage
 
 - **Create New Contracts:**  
-  Click “Add Contract”, fill in the required fields, and choose an icon via the search dialog.  
+  Click “Add Contract”, fill in the required fields, and choose an icon.  
 - **Edit Existing Contracts:**  
-  Click “Edit” next to an entry, update fields, and save with “Save”.  
-- **Icon Search:**  
-  Type a keyword in the dialog, HTMX loads icons after a debounce, and click to select.
+  Click “Edit” next to an entry, update fields, and save.  
+- **Track Subscriptions:**  
+  Manage payment cycles, costs, and renewal dates.
 
 ---
 
 ## ⚙️ Configuration
 
-| Variable | Description                       | Example        |
-|----------|-----------------------------------|----------------|
-| `DSN`    | SQLite Database connection string | `contracts.db` |
-| `ADDR`   | HTTP server address               | `:8080`        |
-
+| Variable     | Description                       | Example        |
+|--------------|-----------------------------------|----------------|
+| `DSN`        | SQLite Database connection string | `contracts.db` |
+| `ADDR`       | HTTP server address               | `:8080`        |
+| `UPLOADS_DIR`| Upload directory for files        | `./uploads`    |
 
 ---
 

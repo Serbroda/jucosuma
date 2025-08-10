@@ -27,7 +27,7 @@ export default function ContractFormPage({mode}: ContractPageProps) {
 
     return (
         <div>
-            <Heading>{mode == 'add' ? 'Add ' : ''}Contract</Heading>
+            <Heading>{mode == 'add' ? 'Add ' : 'Edit '}Contract</Heading>
             <Divider className="my-10 mt-6"/>
 
             <ContractForm
