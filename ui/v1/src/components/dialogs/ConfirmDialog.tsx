@@ -9,7 +9,7 @@ export interface ConfirmDialogProps {
     submitLabel?: string;
     cancelLabel?: string;
     onClose: () => void;
-    onSubmit: () => void;
+    onSubmit: () => Promise<void>;
 }
 
 const ConfirmDialog: FC<ConfirmDialogProps> = ({

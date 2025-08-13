@@ -4,7 +4,7 @@ import {
     BillingPeriodMonthly,
     BillingPeriodQuarterly, BillingPeriodSemiannual,
     BillingPeriodWeekly,
-    type ContractDto
+    type ContractDto, type DocumentDto
 } from "../gen/types.gen.ts";
 import {Avatar} from "./catalyst/avatar.tsx";
 import {Field, Label} from "./catalyst/fieldset.tsx";
@@ -21,9 +21,9 @@ import {classNames} from "../utils/dom.utils.ts";
 import image from "../assets/image.png";
 import {Textarea} from "./catalyst/textarea.tsx";
 import dayjs from "../lib/dayjs";
-import ConfirmDialog from "./dialogs/ConfirmDialog.tsx";
+import ConfirmDialog, {type ConfirmDialogProps} from "./dialogs/ConfirmDialog.tsx";
 import ChooseIconDialog from "./dialogs/ChooseIconDialog.tsx";
-import {DocumentIcon, XMarkIcon} from "@heroicons/react/16/solid";
+import {CheckIcon, DocumentIcon, PencilIcon, XMarkIcon} from "@heroicons/react/16/solid";
 import {formatDecimal} from "../utils/number.utils.ts";
 
 export interface ContractFormProps {
@@ -47,7 +47,42 @@ const categories = [
 export default function ContractForm({contract}: ContractFormProps) {
     const navigation = useNavigate();
     const [isChooseIconOpen, setChooseIconOpen] = useState(false);
-    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [confirmDialogProps, setConfirmDialogProps] = useState<ConfirmDialogProps>({
+        title: "",
+        isOpen: false,
+        message: "",
+        onClose(): void {
+            closeConfirmDialog();
+        },
+        onSubmit(): Promise<void> {
+            return Promise.resolve(undefined);
+        },
+    });
+
+    const [editDocId, setEditDocId] = useState<number | null>(null);
+    const [editTitle, setEditTitle] = useState("");
+
+    const startEdit = (doc: DocumentDto) => {
+        setEditDocId(doc.id);
+        setEditTitle(doc.title || doc.path);
+    };
+
+    const saveEdit = async (documentId: number) => {
+        const res = await fetch(`${apiBasePath}/documents/${documentId}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                title: editTitle,
+            })
+        });
+
+        if (res.ok) {
+            setEditDocId(null);
+            navigation(`/contracts/${contract.id}/edit`);
+        }
+    };
 
     const deleteContract = async () => {
         const res = await fetch(`${apiBasePath}/contracts/${contract.id}`, {
@@ -67,6 +102,14 @@ export default function ContractForm({contract}: ContractFormProps) {
         }
     }
 
+    const openConfirmDialog = (props: Partial<ConfirmDialogProps>) => {
+        setConfirmDialogProps({...confirmDialogProps, ...props, isOpen: true});
+    }
+
+    const closeConfirmDialog = () => {
+        setConfirmDialogProps({...confirmDialogProps, isOpen: false});
+    }
+
     return (
         <>
             <ChooseIconDialog
@@ -79,14 +122,15 @@ export default function ContractForm({contract}: ContractFormProps) {
             />
 
             <ConfirmDialog
-                isOpen={isDeleteOpen}
-                title="Delete Contract"
-                message="Do you really want to delete this contract?"
-                onClose={() => setIsDeleteOpen(false)}
-                submitLabel="Delete"
+                isOpen={confirmDialogProps.isOpen}
+                title={confirmDialogProps.title}
+                message={confirmDialogProps.message}
+                onClose={confirmDialogProps.onClose}
+                submitLabel={confirmDialogProps.submitLabel}
+                cancelLabel={confirmDialogProps.cancelLabel}
                 onSubmit={async () => {
-                    await deleteContract();
-                    setIsDeleteOpen(false);
+                    confirmDialogProps.onSubmit?.()
+                        .finally(() => setConfirmDialogProps({...confirmDialogProps, isOpen: false}));
                 }}
             />
 
@@ -289,26 +333,69 @@ export default function ContractForm({contract}: ContractFormProps) {
                 </Field>
 
                 <div>
-                    {contract.documents && contract.documents.map((doc) =>
-                        <div key={doc.ID} className="flex grow min-w-0">
-                            <a
-                                href={`/uploads/${doc.Path}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="flex truncate items-center gap-2 text-sm/6 text-zinc-500 dark:text-zinc-400"
-                            >
-                                <DocumentIcon className="h-5 w-5 shrink-0 fill-zinc-400 dark:fill-zinc-500"/>
-                                <span className="truncate">{doc.Title}</span>
-                            </a>
-                            <div className="grow"></div>
-                            <Button
-                                className="my-1 ml-1 lg:size-6 hover:cursor-pointer"
-                                onClick={() => deleteDocument(doc.ID)}
-                            >
-                                <XMarkIcon/>
-                            </Button>
-                        </div>
-                    )}
+                    {contract.documents &&
+                        contract.documents.map((doc) => (
+                            <div key={doc.id} className="flex grow min-w-0 items-center">
+                                {editDocId === doc.id ? (
+                                    <Input
+                                        type="text"
+                                        value={editTitle}
+                                        onChange={(e) => setEditTitle(e.target.value)}
+                                        className="flex truncate border rounded px-1 text-black"
+                                        autoFocus
+                                        onBlur={() => saveEdit(doc.id)}
+                                    />
+                                ) : (
+                                    <a
+                                        href={`/uploads/${doc.path}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex items-center gap-2 text-sm/6 text-zinc-500 dark:text-zinc-400 truncate"
+                                    >
+                                        <DocumentIcon className="h-5 w-5 shrink-0 fill-zinc-400 dark:fill-zinc-500"/>
+                                        <span className="truncate">{doc.title}</span>
+                                    </a>
+                                )}
+
+                                <div className="grow"></div>
+
+                                {editDocId === doc.id ? (
+                                    <Button
+                                        className="my-1 ml-1 lg:size-6 hover:cursor-pointer"
+                                        onClick={() =>
+                                            saveEdit(doc.id)
+                                        }
+                                    >
+                                        <CheckIcon/>
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        className="my-1 ml-1 lg:size-6 hover:cursor-pointer"
+                                        onClick={() =>
+                                            startEdit(doc)
+                                        }
+                                    >
+                                        <PencilIcon/>
+                                    </Button>
+                                )}
+
+                                <Button
+                                    className="my-1 ml-1 lg:size-6 hover:cursor-pointer"
+                                    onClick={() =>
+                                        openConfirmDialog({
+                                            title: "Delete Document",
+                                            message:
+                                                "Are you sure you want to delete this document?",
+                                            submitLabel: "Delete",
+                                            cancelLabel: "Cancel",
+                                            onSubmit: deleteDocument.bind(null, doc.id),
+                                        })
+                                    }
+                                >
+                                    <XMarkIcon/>
+                                </Button>
+                            </div>
+                        ))}
                 </div>
 
                 <Divider className="mt-6"/>
@@ -325,7 +412,13 @@ export default function ContractForm({contract}: ContractFormProps) {
                     <Button
                         type="button"
                         color="red"
-                        onClick={() => setIsDeleteOpen(true)}
+                        onClick={() => openConfirmDialog({
+                            title: "Delete Contract",
+                            message: "Are you sure you want to delete this contract?",
+                            submitLabel: "Delete",
+                            cancelLabel: "Cancel",
+                            onSubmit: deleteContract.bind(null),
+                        })}
                         className="w-full lg:w-auto hover:cursor-pointer"
                     >
                         Delete
@@ -345,5 +438,6 @@ export default function ContractForm({contract}: ContractFormProps) {
                 </div>
             </Form>
         </>
-    );
+    )
+        ;
 }

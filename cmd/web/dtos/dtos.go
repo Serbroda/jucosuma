@@ -105,10 +105,14 @@ type UpdateContractDto struct {
 }
 
 type DocumentDto struct {
-	ID         int64      `db:"id"`
-	ContractID int64      `db:"contract_id"`
-	Path       string     `db:"path"`
-	Title      *string    `db:"title"`
-	CreatedAt  *time.Time `db:"created_at"`
-	UpdatedAt  *time.Time `db:"updated_at"`
+	ID         int64      `json:"id"`
+	ContractID int64      `json:"contract_id"`
+	Path       string     `json:"path"`
+	Title      *string    `json:"title"`
+	CreatedAt  *time.Time `json:"created_at"`
+	UpdatedAt  *time.Time `json:"updated_at"`
+}
+
+type UpdateDocumentDto struct {
+	Title string `json:"title"`
 }
