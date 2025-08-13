@@ -75,13 +75,13 @@ export interface UpdateContractDto {
   notes?: string;
 }
 export interface DocumentDto {
-  ID: number /* int64 */;
-  ContractID: number /* int64 */;
-  Path: string;
-  Title?: string;
-  CreatedAt?: string /* RFC3339 */;
-  UpdatedAt?: string /* RFC3339 */;
+  id: number /* int64 */;
+  contract_id: number /* int64 */;
+  path: string;
+  title?: string;
+  created_at?: string /* RFC3339 */;
+  updated_at?: string /* RFC3339 */;
 }
 export interface UpdateDocumentDto {
-  Title: string;
+  title: string;
 }

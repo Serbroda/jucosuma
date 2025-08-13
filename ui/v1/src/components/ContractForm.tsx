@@ -63,8 +63,8 @@ export default function ContractForm({contract}: ContractFormProps) {
     const [editTitle, setEditTitle] = useState("");
 
     const startEdit = (doc: DocumentDto) => {
-        setEditDocId(doc.ID);
-        setEditTitle(doc.Title || doc.Path);
+        setEditDocId(doc.id);
+        setEditTitle(doc.title || doc.path);
     };
 
     const saveEdit = async (documentId: number) => {
@@ -335,35 +335,35 @@ export default function ContractForm({contract}: ContractFormProps) {
                 <div>
                     {contract.documents &&
                         contract.documents.map((doc) => (
-                            <div key={doc.ID} className="flex grow min-w-0 items-center">
-                                {editDocId === doc.ID ? (
+                            <div key={doc.id} className="flex grow min-w-0 items-center">
+                                {editDocId === doc.id ? (
                                     <Input
                                         type="text"
                                         value={editTitle}
                                         onChange={(e) => setEditTitle(e.target.value)}
                                         className="flex truncate border rounded px-1 text-black"
                                         autoFocus
-                                        onBlur={() => saveEdit(doc.ID)}
+                                        onBlur={() => saveEdit(doc.id)}
                                     />
                                 ) : (
                                     <a
-                                        href={`/uploads/${doc.Path}`}
+                                        href={`/uploads/${doc.path}`}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="flex items-center gap-2 text-sm/6 text-zinc-500 dark:text-zinc-400 truncate"
                                     >
                                         <DocumentIcon className="h-5 w-5 shrink-0 fill-zinc-400 dark:fill-zinc-500"/>
-                                        <span className="truncate">{doc.Title}</span>
+                                        <span className="truncate">{doc.title}</span>
                                     </a>
                                 )}
 
                                 <div className="grow"></div>
 
-                                {editDocId === doc.ID ? (
+                                {editDocId === doc.id ? (
                                     <Button
                                         className="my-1 ml-1 lg:size-6 hover:cursor-pointer"
                                         onClick={() =>
-                                            saveEdit(doc.ID)
+                                            saveEdit(doc.id)
                                         }
                                     >
                                         <CheckIcon/>
@@ -388,7 +388,7 @@ export default function ContractForm({contract}: ContractFormProps) {
                                                 "Are you sure you want to delete this document?",
                                             submitLabel: "Delete",
                                             cancelLabel: "Cancel",
-                                            onSubmit: deleteDocument.bind(null, doc.ID),
+                                            onSubmit: deleteDocument.bind(null, doc.id),
                                         })
                                     }
                                 >
