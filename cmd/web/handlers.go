@@ -226,6 +226,33 @@ func (app *application) deleteDocument(ctx echo.Context) error {
 	return ctx.String(http.StatusOK, "successfully deleted")
 }
 
+func (app *application) updateDocument(ctx echo.Context) error {
+	idParam := ctx.Param("id")
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	var payload dtos.UpdateDocumentDto
+	if err := BindAndValidate(ctx, &payload); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	doc, err := app.queries.FindDocumentById(ctx.Request().Context(), id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	err = app.queries.UpdateDocumentById(ctx.Request().Context(), sqlc.UpdateDocumentByIdParams{
+		ID:    doc.ID,
+		Title: &payload.Title,
+	})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return ctx.String(http.StatusOK, "successfully deleted")
+}
+
 func (app *application) searchLogos(ctx echo.Context) error {
 	term := ctx.QueryParam("term")
 	if term == "" {

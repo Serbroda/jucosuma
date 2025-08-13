@@ -21,9 +21,9 @@ import {classNames} from "../utils/dom.utils.ts";
 import image from "../assets/image.png";
 import {Textarea} from "./catalyst/textarea.tsx";
 import dayjs from "../lib/dayjs";
-import ConfirmDialog from "./dialogs/ConfirmDialog.tsx";
+import ConfirmDialog, {type ConfirmDialogProps} from "./dialogs/ConfirmDialog.tsx";
 import ChooseIconDialog from "./dialogs/ChooseIconDialog.tsx";
-import {DocumentIcon, XMarkIcon} from "@heroicons/react/16/solid";
+import {DocumentIcon, PencilIcon, XMarkIcon} from "@heroicons/react/16/solid";
 import {formatDecimal} from "../utils/number.utils.ts";
 
 export interface ContractFormProps {
@@ -47,7 +47,17 @@ const categories = [
 export default function ContractForm({contract}: ContractFormProps) {
     const navigation = useNavigate();
     const [isChooseIconOpen, setChooseIconOpen] = useState(false);
-    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [confirmDialogProps, setConfirmDialogProps] = useState<ConfirmDialogProps>({
+        title: "",
+        isOpen: false,
+        message: "",
+        onClose(): void {
+            closeConfirmDialog();
+        },
+        onSubmit(): Promise<void> {
+            return Promise.resolve(undefined);
+        },
+    });
 
     const deleteContract = async () => {
         const res = await fetch(`${apiBasePath}/contracts/${contract.id}`, {
@@ -67,6 +77,14 @@ export default function ContractForm({contract}: ContractFormProps) {
         }
     }
 
+    const openConfirmDialog = (props: Partial<ConfirmDialogProps>) => {
+        setConfirmDialogProps({...confirmDialogProps, ...props, isOpen: true});
+    }
+
+    const closeConfirmDialog = () => {
+        setConfirmDialogProps({...confirmDialogProps, isOpen: false});
+    }
+
     return (
         <>
             <ChooseIconDialog
@@ -79,14 +97,15 @@ export default function ContractForm({contract}: ContractFormProps) {
             />
 
             <ConfirmDialog
-                isOpen={isDeleteOpen}
-                title="Delete Contract"
-                message="Do you really want to delete this contract?"
-                onClose={() => setIsDeleteOpen(false)}
-                submitLabel="Delete"
+                isOpen={confirmDialogProps.isOpen}
+                title={confirmDialogProps.title}
+                message={confirmDialogProps.message}
+                onClose={confirmDialogProps.onClose}
+                submitLabel={confirmDialogProps.submitLabel}
+                cancelLabel={confirmDialogProps.cancelLabel}
                 onSubmit={async () => {
-                    await deleteContract();
-                    setIsDeleteOpen(false);
+                    confirmDialogProps.onSubmit?.()
+                        .finally(() => setConfirmDialogProps({...confirmDialogProps, isOpen: false}));
                 }}
             />
 
@@ -303,7 +322,18 @@ export default function ContractForm({contract}: ContractFormProps) {
                             <div className="grow"></div>
                             <Button
                                 className="my-1 ml-1 lg:size-6 hover:cursor-pointer"
-                                onClick={() => deleteDocument(doc.ID)}
+                            >
+                                <PencilIcon/>
+                            </Button>
+                            <Button
+                                className="my-1 ml-1 lg:size-6 hover:cursor-pointer"
+                                onClick={() => openConfirmDialog({
+                                    title: "Delete Document",
+                                    message: "Are you sure you want to delete this document?",
+                                    submitLabel: "Delete",
+                                    cancelLabel: "Cancel",
+                                    onSubmit: deleteDocument.bind(null, doc.ID),
+                                })}
                             >
                                 <XMarkIcon/>
                             </Button>
@@ -325,7 +355,13 @@ export default function ContractForm({contract}: ContractFormProps) {
                     <Button
                         type="button"
                         color="red"
-                        onClick={() => setIsDeleteOpen(true)}
+                        onClick={() => openConfirmDialog({
+                            title: "Delete Contract",
+                            message: "Are you sure you want to delete this contract?",
+                            submitLabel: "Delete",
+                            cancelLabel: "Cancel",
+                            onSubmit: deleteContract.bind(null),
+                        })}
                         className="w-full lg:w-auto hover:cursor-pointer"
                     >
                         Delete

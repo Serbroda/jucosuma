@@ -82,3 +82,6 @@ export interface DocumentDto {
   CreatedAt?: string /* RFC3339 */;
   UpdatedAt?: string /* RFC3339 */;
 }
+export interface UpdateDocumentDto {
+  Title: string;
+}
