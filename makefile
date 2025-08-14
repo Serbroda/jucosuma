@@ -13,7 +13,7 @@ WEB_MAIN_DIR := ./cmd/web
 # ------------------------------------------------------------
 # Default targets
 # ------------------------------------------------------------
-.PHONY: build generate-go build-ui build-server clean test
+.PHONY: build generate-go build-ui build-server clean test bump-major bump-minor bump-patch release release-major release-minor release-patch
 
 build: clean generate-go build-ui build-server
 
@@ -80,26 +80,55 @@ clean:
 	rm -rf ./ui/v1/node_modules/
 	rm -rf ./ui/v1/dist/
 
+REMOTE ?= origin
+
 bump-major:
-	@set -e; \
-	newVersion=$$(./semver.sh bump major $(VERSION)); \
-	echo $$newVersion > VERSION; \
-	cd ./ui/v1; \
-	npm version --no-git-tag-version $$newVersion; \
-	echo "Bumped version to $$newVersion"
+	@set -euo pipefail; \
+	old="$$(cat VERSION)"; \
+	new="$$(./semver.sh bump major "$$old")"; \
+	tmp="$$(mktemp)"; printf '%s\n' "$$new" > "$$tmp"; mv "$$tmp" VERSION; \
+	( cd ./ui/v1 && npm version --no-git-tag-version "$$new" >/dev/null ); \
+	echo "Bumped MAJOR: $$old → $$new"
 
 bump-minor:
-	@set -e; \
-	newVersion=$$(./semver.sh bump minor $(VERSION)); \
-	echo $$newVersion > VERSION; \
-	cd ./ui/v1; \
-	npm version --no-git-tag-version $$newVersion; \
-	echo "Bumped version to $$newVersion"
+	@set -euo pipefail; \
+	old="$$(cat VERSION)"; \
+	new="$$(./semver.sh bump minor "$$old")"; \
+	tmp="$$(mktemp)"; printf '%s\n' "$$new" > "$$tmp"; mv "$$tmp" VERSION; \
+	( cd ./ui/v1 && npm version --no-git-tag-version "$$new" >/dev/null ); \
+	echo "Bumped MINOR: $$old → $$new"
 
 bump-patch:
-	@set -e; \
-	newVersion=$$(./semver.sh bump patch $(VERSION)); \
-	echo $$newVersion > VERSION; \
-	cd ./ui/v1; \
-	npm version --no-git-tag-version $$newVersion; \
-	echo "Bumped version to $$newVersion"
+	@set -euo pipefail; \
+	old="$$(cat VERSION)"; \
+	new="$$(./semver.sh bump patch "$$old")"; \
+	tmp="$$(mktemp)"; printf '%s\n' "$$new" > "$$tmp"; mv "$$tmp" VERSION; \
+	( cd ./ui/v1 && npm version --no-git-tag-version "$$new" >/dev/null ); \
+	echo "Bumped PATCH: $$old → $$new"
+
+release:
+	@set -euo pipefail; \
+	vers="$$(cat VERSION)"; \
+	# Stage files (package-lock.json may not exist)
+	git add VERSION ./ui/v1/package.json 2>/dev/null || true; \
+	test -f ./ui/v1/package-lock.json && git add ./ui/v1/package-lock.json || true; \
+	# Commit only if there are staged changes
+	if git diff --cached --quiet; then \
+	  echo "No changes to commit for v$$vers (already up-to-date)"; \
+	else \
+	  git commit -m "chore(release): v$$vers"; \
+	fi; \
+	# Tag if not existing
+	if git rev-parse -q --verify "refs/tags/v$$vers" >/dev/null; then \
+	  echo "Tag v$$vers already exists. Skipping tag creation."; \
+	else \
+	  git tag -a "v$$vers" -m "v$$vers"; \
+	fi; \
+	# Push commit and tag
+	git push $(REMOTE) HEAD; \
+	git push $(REMOTE) "v$$vers"; \
+	echo "Released v$$vers"
+
+release-major: bump-major release
+release-minor: bump-minor release
+release-patch: bump-patch release
