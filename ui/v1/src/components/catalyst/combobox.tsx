@@ -14,6 +14,7 @@ export function Combobox<T>({
   autoFocus,
   'aria-label': ariaLabel,
   children,
+    onInputChange,
   ...props
 }: {
   options: T[]
@@ -23,7 +24,8 @@ export function Combobox<T>({
   placeholder?: string
   autoFocus?: boolean
   'aria-label'?: string
-  children: (value: NonNullable<T>) => React.ReactElement
+  children: (value: NonNullable<T>) => React.ReactElement,
+    onInputChange?: (event: React.ChangeEvent<HTMLInputElement>) => void
 } & Omit<Headless.ComboboxProps<T, false>, 'as' | 'multiple' | 'children'> & { anchor?: 'top' | 'bottom' }) {
   const [query, setQuery] = useState('')
 
@@ -58,8 +60,14 @@ export function Combobox<T>({
           autoFocus={autoFocus}
           data-slot="control"
           aria-label={ariaLabel}
+          name={props.name}
           displayValue={(option: T) => displayValue(option) ?? ''}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => {
+              if (onInputChange) {
+                  onInputChange(event)
+              }
+              setQuery(event.target.value)
+          }}
           placeholder={placeholder}
           className={clsx([
             className,

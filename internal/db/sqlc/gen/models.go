@@ -9,27 +9,27 @@ import (
 )
 
 type Contract struct {
-	ID               int64      `db:"id"`
-	Name             string     `db:"name"`
-	Company          *string    `db:"company"`
-	ContractType     string     `db:"contract_type"`
-	Category         string     `db:"category"`
-	StartDate        time.Time  `db:"start_date"`
-	EndDate          *time.Time `db:"end_date"`
-	ContractNumber   *string    `db:"contract_number"`
-	CustomerNumber   *string    `db:"customer_number"`
-	ContractHolderID *int64     `db:"contract_holder_id"`
-	Costs            *float64   `db:"costs"`
-	BillingPeriod    string     `db:"billing_period"`
-	ContactPerson    *string    `db:"contact_person"`
-	ContactAddress   *string    `db:"contact_address"`
-	ContactPhone     *string    `db:"contact_phone"`
-	ContactEmail     *string    `db:"contact_email"`
-	IconSource       *string    `db:"icon_source"`
-	Notes            *string    `db:"notes"`
-	CreatedAt        *time.Time `db:"created_at"`
-	UpdatedAt        *time.Time `db:"updated_at"`
-	DeletedAt        *time.Time `db:"deleted_at"`
+	ID             int64      `db:"id"`
+	Name           string     `db:"name"`
+	Company        *string    `db:"company"`
+	ContractType   string     `db:"contract_type"`
+	Category       string     `db:"category"`
+	StartDate      time.Time  `db:"start_date"`
+	EndDate        *time.Time `db:"end_date"`
+	ContractNumber *string    `db:"contract_number"`
+	CustomerNumber *string    `db:"customer_number"`
+	ContractHolder *string    `db:"contract_holder"`
+	Costs          *float64   `db:"costs"`
+	BillingPeriod  string     `db:"billing_period"`
+	ContactPerson  *string    `db:"contact_person"`
+	ContactAddress *string    `db:"contact_address"`
+	ContactPhone   *string    `db:"contact_phone"`
+	ContactEmail   *string    `db:"contact_email"`
+	IconSource     *string    `db:"icon_source"`
+	Notes          *string    `db:"notes"`
+	CreatedAt      *time.Time `db:"created_at"`
+	UpdatedAt      *time.Time `db:"updated_at"`
+	DeletedAt      *time.Time `db:"deleted_at"`
 }
 
 type Document struct {
@@ -40,22 +40,4 @@ type Document struct {
 	CreatedAt  *time.Time `db:"created_at"`
 	UpdatedAt  *time.Time `db:"updated_at"`
 	DeletedAt  *time.Time `db:"deleted_at"`
-}
-
-type Link struct {
-	ID         int64      `db:"id"`
-	ContractID int64      `db:"contract_id"`
-	Url        string     `db:"url"`
-	Title      *string    `db:"title"`
-	CreatedAt  *time.Time `db:"created_at"`
-	UpdatedAt  *time.Time `db:"updated_at"`
-	DeletedAt  *time.Time `db:"deleted_at"`
-}
-
-type User struct {
-	ID        int64      `db:"id"`
-	Name      string     `db:"name"`
-	CreatedAt *time.Time `db:"created_at"`
-	UpdatedAt *time.Time `db:"updated_at"`
-	DeletedAt *time.Time `db:"deleted_at"`
 }

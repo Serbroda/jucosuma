@@ -26,7 +26,7 @@ func (q *Queries) DeleteContractSoft(ctx context.Context, id int64) error {
 const findAllContracts = `-- name: FindAllContracts :many
 ;
 
-SELECT id, name, company, contract_type, category, start_date, end_date, contract_number, customer_number, contract_holder_id, costs, billing_period, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at
+SELECT id, name, company, contract_type, category, start_date, end_date, contract_number, customer_number, contract_holder, costs, billing_period, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at
 FROM contracts
 WHERE deleted_at IS NULL
 ORDER BY name ASC
@@ -51,7 +51,7 @@ func (q *Queries) FindAllContracts(ctx context.Context) ([]Contract, error) {
 			&i.EndDate,
 			&i.ContractNumber,
 			&i.CustomerNumber,
-			&i.ContractHolderID,
+			&i.ContractHolder,
 			&i.Costs,
 			&i.BillingPeriod,
 			&i.ContactPerson,
@@ -80,7 +80,7 @@ func (q *Queries) FindAllContracts(ctx context.Context) ([]Contract, error) {
 const findContractById = `-- name: FindContractById :one
 ;
 
-SELECT id, name, company, contract_type, category, start_date, end_date, contract_number, customer_number, contract_holder_id, costs, billing_period, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at
+SELECT id, name, company, contract_type, category, start_date, end_date, contract_number, customer_number, contract_holder, costs, billing_period, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at
 FROM contracts
 WHERE id = ?
   AND deleted_at IS NULL LIMIT 1
@@ -99,7 +99,7 @@ func (q *Queries) FindContractById(ctx context.Context, id int64) (Contract, err
 		&i.EndDate,
 		&i.ContractNumber,
 		&i.CustomerNumber,
-		&i.ContractHolderID,
+		&i.ContractHolder,
 		&i.Costs,
 		&i.BillingPeriod,
 		&i.ContactPerson,
@@ -115,6 +115,39 @@ func (q *Queries) FindContractById(ctx context.Context, id int64) (Contract, err
 	return i, err
 }
 
+const findContractHolders = `-- name: FindContractHolders :many
+;
+
+SELECT DISTINCT contract_holder
+FROM contracts
+WHERE deleted_at IS NULL
+  AND contract_holder IS NOT NULL
+ORDER BY contract_holder ASC
+`
+
+func (q *Queries) FindContractHolders(ctx context.Context) ([]*string, error) {
+	rows, err := q.db.QueryContext(ctx, findContractHolders)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*string
+	for rows.Next() {
+		var contract_holder *string
+		if err := rows.Scan(&contract_holder); err != nil {
+			return nil, err
+		}
+		items = append(items, contract_holder)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertContract = `-- name: InsertContract :one
 INSERT INTO contracts (created_at,
                        updated_at,
@@ -126,7 +159,7 @@ INSERT INTO contracts (created_at,
                        end_date,
                        contract_number,
                        customer_number,
-                       contract_holder_id,
+                       contract_holder,
                        costs,
                        billing_period,
                        contact_person,
@@ -153,27 +186,27 @@ VALUES (CURRENT_TIMESTAMP,
         ?14,
         ?15,
         ?16,
-        ?17) RETURNING id, name, company, contract_type, category, start_date, end_date, contract_number, customer_number, contract_holder_id, costs, billing_period, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at
+        ?17) RETURNING id, name, company, contract_type, category, start_date, end_date, contract_number, customer_number, contract_holder, costs, billing_period, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at
 `
 
 type InsertContractParams struct {
-	Name             string     `db:"name"`
-	Company          *string    `db:"company"`
-	ContractType     string     `db:"contract_type"`
-	Category         string     `db:"category"`
-	StartDate        time.Time  `db:"start_date"`
-	EndDate          *time.Time `db:"end_date"`
-	ContractNumber   *string    `db:"contract_number"`
-	CustomerNumber   *string    `db:"customer_number"`
-	ContractHolderID *int64     `db:"contract_holder_id"`
-	Costs            *float64   `db:"costs"`
-	BillingPeriod    string     `db:"billing_period"`
-	ContactPerson    *string    `db:"contact_person"`
-	ContactAddress   *string    `db:"contact_address"`
-	ContactPhone     *string    `db:"contact_phone"`
-	ContactEmail     *string    `db:"contact_email"`
-	IconSource       *string    `db:"icon_source"`
-	Notes            *string    `db:"notes"`
+	Name           string     `db:"name"`
+	Company        *string    `db:"company"`
+	ContractType   string     `db:"contract_type"`
+	Category       string     `db:"category"`
+	StartDate      time.Time  `db:"start_date"`
+	EndDate        *time.Time `db:"end_date"`
+	ContractNumber *string    `db:"contract_number"`
+	CustomerNumber *string    `db:"customer_number"`
+	ContractHolder *string    `db:"contract_holder"`
+	Costs          *float64   `db:"costs"`
+	BillingPeriod  string     `db:"billing_period"`
+	ContactPerson  *string    `db:"contact_person"`
+	ContactAddress *string    `db:"contact_address"`
+	ContactPhone   *string    `db:"contact_phone"`
+	ContactEmail   *string    `db:"contact_email"`
+	IconSource     *string    `db:"icon_source"`
+	Notes          *string    `db:"notes"`
 }
 
 func (q *Queries) InsertContract(ctx context.Context, arg InsertContractParams) (Contract, error) {
@@ -186,7 +219,7 @@ func (q *Queries) InsertContract(ctx context.Context, arg InsertContractParams) 
 		arg.EndDate,
 		arg.ContractNumber,
 		arg.CustomerNumber,
-		arg.ContractHolderID,
+		arg.ContractHolder,
 		arg.Costs,
 		arg.BillingPeriod,
 		arg.ContactPerson,
@@ -207,7 +240,7 @@ func (q *Queries) InsertContract(ctx context.Context, arg InsertContractParams) 
 		&i.EndDate,
 		&i.ContractNumber,
 		&i.CustomerNumber,
-		&i.ContractHolderID,
+		&i.ContractHolder,
 		&i.Costs,
 		&i.BillingPeriod,
 		&i.ContactPerson,
@@ -227,47 +260,47 @@ const updateContractById = `-- name: UpdateContractById :exec
 ;
 
 UPDATE contracts
-SET name               = ?1,
-    company            = ?2,
-    contract_type      = ?3,
-    category           = ?4,
-    start_date         = ?5,
-    end_date           = ?6,
-    contract_number    = ?7,
-    customer_number    = ?8,
-    contract_holder_id = ?9,
-    costs              = ?10,
-    billing_period     = ?11,
-    contact_person     = ?12,
-    contact_address    = ?13,
-    contact_phone      = ?14,
-    contact_email      = ?15,
-    icon_source        = ?16,
-    notes              = ?17,
-    updated_at         = CURRENT_TIMESTAMP
+SET name            = ?1,
+    company         = ?2,
+    contract_type   = ?3,
+    category        = ?4,
+    start_date      = ?5,
+    end_date        = ?6,
+    contract_number = ?7,
+    customer_number = ?8,
+    contract_holder = ?9,
+    costs           = ?10,
+    billing_period  = ?11,
+    contact_person  = ?12,
+    contact_address = ?13,
+    contact_phone   = ?14,
+    contact_email   = ?15,
+    icon_source     = ?16,
+    notes           = ?17,
+    updated_at      = CURRENT_TIMESTAMP
 WHERE id = ?18
   AND deleted_at IS NULL
 `
 
 type UpdateContractByIdParams struct {
-	Name             string     `db:"name"`
-	Company          *string    `db:"company"`
-	ContractType     string     `db:"contract_type"`
-	Category         string     `db:"category"`
-	StartDate        time.Time  `db:"start_date"`
-	EndDate          *time.Time `db:"end_date"`
-	ContractNumber   *string    `db:"contract_number"`
-	CustomerNumber   *string    `db:"customer_number"`
-	ContractHolderID *int64     `db:"contract_holder_id"`
-	Costs            *float64   `db:"costs"`
-	BillingPeriod    string     `db:"billing_period"`
-	ContactPerson    *string    `db:"contact_person"`
-	ContactAddress   *string    `db:"contact_address"`
-	ContactPhone     *string    `db:"contact_phone"`
-	ContactEmail     *string    `db:"contact_email"`
-	IconSource       *string    `db:"icon_source"`
-	Notes            *string    `db:"notes"`
-	ID               int64      `db:"id"`
+	Name           string     `db:"name"`
+	Company        *string    `db:"company"`
+	ContractType   string     `db:"contract_type"`
+	Category       string     `db:"category"`
+	StartDate      time.Time  `db:"start_date"`
+	EndDate        *time.Time `db:"end_date"`
+	ContractNumber *string    `db:"contract_number"`
+	CustomerNumber *string    `db:"customer_number"`
+	ContractHolder *string    `db:"contract_holder"`
+	Costs          *float64   `db:"costs"`
+	BillingPeriod  string     `db:"billing_period"`
+	ContactPerson  *string    `db:"contact_person"`
+	ContactAddress *string    `db:"contact_address"`
+	ContactPhone   *string    `db:"contact_phone"`
+	ContactEmail   *string    `db:"contact_email"`
+	IconSource     *string    `db:"icon_source"`
+	Notes          *string    `db:"notes"`
+	ID             int64      `db:"id"`
 }
 
 func (q *Queries) UpdateContractById(ctx context.Context, arg UpdateContractByIdParams) error {
@@ -280,7 +313,7 @@ func (q *Queries) UpdateContractById(ctx context.Context, arg UpdateContractById
 		arg.EndDate,
 		arg.ContractNumber,
 		arg.CustomerNumber,
-		arg.ContractHolderID,
+		arg.ContractHolder,
 		arg.Costs,
 		arg.BillingPeriod,
 		arg.ContactPerson,

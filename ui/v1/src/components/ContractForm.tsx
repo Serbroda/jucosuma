@@ -4,7 +4,7 @@ import {
     BillingPeriodMonthly,
     BillingPeriodQuarterly, BillingPeriodSemiannual,
     BillingPeriodWeekly,
-    type ContractDto, type DocumentDto
+    type ContractDto, type ContractHolderDto, type DocumentDto
 } from "../gen/types.gen.ts";
 import {Avatar} from "./catalyst/avatar.tsx";
 import {Field, Label} from "./catalyst/fieldset.tsx";
@@ -25,9 +25,11 @@ import ConfirmDialog, {type ConfirmDialogProps} from "./dialogs/ConfirmDialog.ts
 import ChooseIconDialog from "./dialogs/ChooseIconDialog.tsx";
 import {CheckIcon, DocumentIcon, PencilIcon, XMarkIcon} from "@heroicons/react/16/solid";
 import {formatDecimal} from "../utils/number.utils.ts";
+import {Combobox, ComboboxLabel, ComboboxOption} from "./catalyst/combobox.tsx";
 
 export interface ContractFormProps {
     contract: Partial<ContractDto>;
+    holders: ContractHolderDto[];
 }
 
 const categories = [
@@ -44,7 +46,7 @@ const categories = [
     {name: "Utilities"},
 ];
 
-export default function ContractForm({contract}: ContractFormProps) {
+export default function ContractForm({contract, holders}: ContractFormProps) {
     const navigation = useNavigate();
     const [isChooseIconOpen, setChooseIconOpen] = useState(false);
     const [confirmDialogProps, setConfirmDialogProps] = useState<ConfirmDialogProps>({
@@ -58,6 +60,11 @@ export default function ContractForm({contract}: ContractFormProps) {
             return Promise.resolve(undefined);
         },
     });
+    const [holdersWithInput, setHoldersWithInput] = useState<ContractHolderDto[]>(holders);
+
+    const handleHolderChange = (value: string) => {
+        setHoldersWithInput( [...holders, {name: value}])
+    }
 
     const [editDocId, setEditDocId] = useState<number | null>(null);
     const [editTitle, setEditTitle] = useState("");
@@ -261,6 +268,25 @@ export default function ContractForm({contract}: ContractFormProps) {
                         defaultValue={contract.customer_number ?? ""}
                     />
                 </Field>
+
+                <Field>
+                    <Label>Contract Holder</Label>
+                    {holders && <Combobox
+                        name="contract_holder"
+                        options={holdersWithInput}
+                        onInputChange={(e) => {
+                            handleHolderChange(e.target.value)
+                        }}
+                        displayValue={(user) => user?.name}
+                        defaultValue={{name: contract.contract_holder || ''}}>
+                        {(user) => (
+                            <ComboboxOption value={user}>
+                                <ComboboxLabel>{user.name}</ComboboxLabel>
+                            </ComboboxOption>
+                        )}
+                    </Combobox>}
+                </Field>
+
 
                 <Divider className="mt-6"/>
                 <Subheading>Costs</Subheading>

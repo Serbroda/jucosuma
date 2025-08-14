@@ -25,7 +25,8 @@ func (app *application) routes() *echo.Echo {
 	e.DELETE("/api/contracts/:id", app.deleteContract)
 	e.PUT("/api/documents/:id", app.updateDocument)
 	e.DELETE("/api/documents/:id", app.deleteDocument)
-	e.GET("/api/logos", app.searchLogos)
+	e.GET("/api/contract_holders", app.getContractHolders)
+	e.GET("/api/search_logos", app.searchLogos)
 
 	return e
 }

@@ -27,6 +27,7 @@ export const contractAction: ActionFunction = async ({request, params}) => {
         end_date: form.get("end_date") as string || undefined,
         contract_number: form.get("contract_number") as string || undefined,
         customer_number: form.get("customer_number") as string || undefined,
+        contract_holder: form.get("contract_holder") as string || undefined,
         costs: formatCurrency(form.get("costs")),
         billing_period: form.get("billing_period") as string,
         contact_person: form.get("contact_person") as string,

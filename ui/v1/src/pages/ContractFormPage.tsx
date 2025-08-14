@@ -1,7 +1,7 @@
 import {useActionData, useLoaderData} from "react-router";
 import {Heading} from "../components/catalyst/heading.tsx";
 import {Divider} from "../components/catalyst/divider.tsx";
-import type {ContractDto} from "../gen/types.gen.ts";
+import type {ContractDto, ContractHolderDto} from "../gen/types.gen.ts";
 import ContractForm from "../components/ContractForm.tsx";
 import {useEffect} from "react";
 
@@ -10,20 +10,21 @@ export interface ContractPageProps {
 }
 
 type ActionData = {
-    errors?: Record<string,string>;
+    errors?: Record<string, string>;
     values?: Partial<ContractDto>;
 };
 
 export default function ContractFormPage({mode}: ContractPageProps) {
-    const data = useLoaderData() as { contract?: ContractDto } | undefined;
+    const data = useLoaderData() as { contract?: ContractDto, holders?: ContractHolderDto[] } | undefined;
     const contract: ContractDto = data?.contract ?? ({} as ContractDto);
+    const holders: ContractHolderDto[] = data?.holders ?? [];
 
     const actionData = useActionData() as ActionData | undefined;
     const defaults: Partial<ContractDto> = actionData?.values ?? contract;
 
-    useEffect(()=>{
+    useEffect(() => {
         window.scrollTo(0, 0);
-    },[])
+    }, [])
 
     return (
         <div>
@@ -31,7 +32,8 @@ export default function ContractFormPage({mode}: ContractPageProps) {
             <Divider className="my-10 mt-6"/>
 
             <ContractForm
-                contract={defaults}/>
+                contract={defaults}
+                holders={holders}/>
         </div>
     )
 }
