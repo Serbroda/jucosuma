@@ -7,26 +7,26 @@ import (
 
 func MapContractToContractDto(item sqlc.Contract) ContractDto {
 	return ContractDto{
-		ID:               item.ID,
-		Name:             item.Name,
-		Company:          item.Company,
-		ContractType:     item.ContractType,
-		Category:         item.Category,
-		StartDate:        DateOnly(item.StartDate),
-		EndDate:          (*DateOnly)(item.EndDate),
-		ContractNumber:   item.ContractNumber,
-		CustomerNumber:   item.CustomerNumber,
-		ContractHolderID: nil,
-		Costs:            item.Costs,
-		BillingPeriod:    item.BillingPeriod,
-		ContactPerson:    item.ContactPerson,
-		ContactAddress:   item.ContactAddress,
-		ContactPhone:     item.ContactPhone,
-		ContactEmail:     item.ContactEmail,
-		IconSource:       item.IconSource,
-		Notes:            item.Notes,
-		CreatedAt:        item.CreatedAt,
-		UpdatedAt:        item.UpdatedAt,
+		ID:             item.ID,
+		Name:           item.Name,
+		Company:        item.Company,
+		ContractType:   item.ContractType,
+		Category:       item.Category,
+		StartDate:      DateOnly(item.StartDate),
+		EndDate:        (*DateOnly)(item.EndDate),
+		ContractNumber: item.ContractNumber,
+		CustomerNumber: item.CustomerNumber,
+		ContractHolder: item.ContractHolder,
+		Costs:          item.Costs,
+		BillingPeriod:  item.BillingPeriod,
+		ContactPerson:  item.ContactPerson,
+		ContactAddress: item.ContactAddress,
+		ContactPhone:   item.ContactPhone,
+		ContactEmail:   item.ContactEmail,
+		IconSource:     item.IconSource,
+		Notes:          item.Notes,
+		CreatedAt:      item.CreatedAt,
+		UpdatedAt:      item.UpdatedAt,
 	}
 }
 
@@ -43,4 +43,10 @@ func MapDocumentToDocumentDto(item sqlc.Document) DocumentDto {
 
 func MapDocumentsToDocumentDtos(items []sqlc.Document) []DocumentDto {
 	return utils.MapSlice(items, MapDocumentToDocumentDto)
+}
+
+func MapContractHolderToContractHolderDto(item *string) ContractHolderDto {
+	return ContractHolderDto{
+		Name: *item,
+	}
 }

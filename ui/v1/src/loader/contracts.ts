@@ -14,7 +14,7 @@ async function contractsLoader() {
 }
 
 async function contractLoader({params}: { params: any }) {
-    const res = await fetch(`${apiBasePath}/contracts/${params.id}`);
+    let res = await fetch(`${apiBasePath}/contracts/${params.id}`);
     if (!res.ok) {
         throw new Response(res.statusText, {status: res.status});
     }
@@ -23,7 +23,18 @@ async function contractLoader({params}: { params: any }) {
     if (!contract) {
         throw new Response("Not Found", {status: 404});
     }
-    return {contract: contract};
+
+    res = await fetch(`${apiBasePath}/contract_holders`);
+    if (!res.ok) {
+        throw new Response(res.statusText, {status: res.status});
+    }
+
+    const holders = await res.json();
+    if (!holders) {
+        throw new Response("Not Found", {status: 404});
+    }
+
+    return {contract: contract, holders: holders};
 }
 
 export {contractsLoader, contractLoader};

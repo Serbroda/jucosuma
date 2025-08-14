@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Serbroda/contracts/cmd/web/dtos"
@@ -98,6 +99,7 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 	// 2) DB-Operation: Insert oder Update
 	var contract *sqlc.Contract
 	if id == nil {
+		contractHolder := strings.Trim(*payload.ContractHolder, " ")
 		inserted, err := qtx.InsertContract(ctx, sqlc.InsertContractParams{
 			Name:           payload.Name,
 			Company:        payload.Company,
@@ -107,6 +109,7 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			EndDate:        (*time.Time)(payload.EndDate),
 			ContractNumber: payload.ContractNumber,
 			CustomerNumber: payload.CustomerNumber,
+			ContractHolder: &contractHolder,
 			Costs:          payload.Costs,
 			BillingPeriod:  payload.BillingPeriod,
 			ContactPerson:  payload.ContactPerson,
@@ -122,6 +125,7 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 		contract = &inserted
 	} else {
 		// UpdateContractById liefert keinen Contract zurück, daher nachladen
+		contractHolder := strings.Trim(*payload.ContractHolder, " ")
 		err := qtx.UpdateContractById(ctx, sqlc.UpdateContractByIdParams{
 			ID:             *id,
 			Name:           payload.Name,
@@ -132,6 +136,7 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			EndDate:        (*time.Time)(payload.EndDate),
 			ContractNumber: payload.ContractNumber,
 			CustomerNumber: payload.CustomerNumber,
+			ContractHolder: &contractHolder,
 			Costs:          payload.Costs,
 			BillingPeriod:  payload.BillingPeriod,
 			ContactPerson:  payload.ContactPerson,
@@ -251,6 +256,15 @@ func (app *application) updateDocument(ctx echo.Context) error {
 	}
 
 	return ctx.String(http.StatusOK, "successfully deleted")
+}
+
+func (app *application) getContractHolders(ctx echo.Context) error {
+	entities, err := app.queries.FindContractHolders(ctx.Request().Context())
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	res := utils.MapSlice(entities, dtos.MapContractHolderToContractHolderDto)
+	return ctx.JSON(http.StatusOK, res)
 }
 
 func (app *application) searchLogos(ctx echo.Context) error {

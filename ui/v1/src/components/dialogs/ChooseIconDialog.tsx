@@ -29,7 +29,7 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({
             return;
         }
         const timer = setTimeout(() => {
-            fetch(`${apiBasePath}/logos?term=${encodeURIComponent(term)}`)
+            fetch(`${apiBasePath}/search_logos?term=${encodeURIComponent(term)}`)
                 .then((res) => res.json())
                 .then((data) => setIcons(data))
                 .catch(console.error);

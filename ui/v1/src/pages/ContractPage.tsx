@@ -118,6 +118,8 @@ export default function ContractPage() {
                     <DescriptionDetails>{data?.contract.contract_number}</DescriptionDetails>
                     <DescriptionTerm>Customer Number</DescriptionTerm>
                     <DescriptionDetails>{data?.contract.customer_number}</DescriptionDetails>
+                    <DescriptionTerm>Contract Holder</DescriptionTerm>
+                    <DescriptionDetails>{data?.contract.contract_holder}</DescriptionDetails>
                 </DescriptionList>
 
                 <Subheading className="mt-10">Costs</Subheading>

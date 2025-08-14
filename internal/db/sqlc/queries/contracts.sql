@@ -9,7 +9,7 @@ INSERT INTO contracts (created_at,
                        end_date,
                        contract_number,
                        customer_number,
-                       contract_holder_id,
+                       contract_holder,
                        costs,
                        billing_period,
                        contact_person,
@@ -28,7 +28,7 @@ VALUES (CURRENT_TIMESTAMP,
         sqlc.arg('end_date'),
         sqlc.arg('contract_number'),
         sqlc.arg('customer_number'),
-        sqlc.arg('contract_holder_id'),
+        sqlc.arg('contract_holder'),
         sqlc.arg('costs'),
         sqlc.arg('billing_period'),
         sqlc.arg('contact_person'),
@@ -55,24 +55,24 @@ ORDER BY name ASC
 
 -- name: UpdateContractById :exec
 UPDATE contracts
-SET name               = sqlc.arg('name'),
-    company            = sqlc.arg('company'),
-    contract_type      = sqlc.arg('contract_type'),
-    category           = sqlc.arg('category'),
-    start_date         = sqlc.arg('start_date'),
-    end_date           = sqlc.arg('end_date'),
-    contract_number    = sqlc.arg('contract_number'),
-    customer_number    = sqlc.arg('customer_number'),
-    contract_holder_id = sqlc.arg('contract_holder_id'),
-    costs              = sqlc.arg('costs'),
-    billing_period     = sqlc.arg('billing_period'),
-    contact_person     = sqlc.arg('contact_person'),
-    contact_address    = sqlc.arg('contact_address'),
-    contact_phone      = sqlc.arg('contact_phone'),
-    contact_email      = sqlc.arg('contact_email'),
-    icon_source        = sqlc.arg('icon_source'),
-    notes              = sqlc.arg('notes'),
-    updated_at         = CURRENT_TIMESTAMP
+SET name            = sqlc.arg('name'),
+    company         = sqlc.arg('company'),
+    contract_type   = sqlc.arg('contract_type'),
+    category        = sqlc.arg('category'),
+    start_date      = sqlc.arg('start_date'),
+    end_date        = sqlc.arg('end_date'),
+    contract_number = sqlc.arg('contract_number'),
+    customer_number = sqlc.arg('customer_number'),
+    contract_holder = sqlc.arg('contract_holder'),
+    costs           = sqlc.arg('costs'),
+    billing_period  = sqlc.arg('billing_period'),
+    contact_person  = sqlc.arg('contact_person'),
+    contact_address = sqlc.arg('contact_address'),
+    contact_phone   = sqlc.arg('contact_phone'),
+    contact_email   = sqlc.arg('contact_email'),
+    icon_source     = sqlc.arg('icon_source'),
+    notes           = sqlc.arg('notes'),
+    updated_at      = CURRENT_TIMESTAMP
 WHERE id = sqlc.arg('id')
   AND deleted_at IS NULL
 ;
@@ -81,4 +81,12 @@ WHERE id = sqlc.arg('id')
 UPDATE contracts
 SET deleted_at = CURRENT_TIMESTAMP
 WHERE id = ?
+;
+
+-- name: FindContractHolders :many
+SELECT DISTINCT contract_holder
+FROM contracts
+WHERE deleted_at IS NULL
+  AND contract_holder IS NOT NULL
+ORDER BY contract_holder ASC
 ;

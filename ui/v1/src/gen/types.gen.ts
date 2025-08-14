@@ -25,7 +25,7 @@ export interface ContractDto {
   end_date?: DateOnly;
   contract_number?: string;
   customer_number?: string;
-  contract_holder_id?: number /* int64 */;
+  contract_holder?: string;
   costs?: number /* float64 */;
   billing_period: string;
   contact_person?: string;
@@ -47,6 +47,7 @@ export interface CreateContractDto {
   end_date?: DateOnly;
   contract_number?: string;
   customer_number?: string;
+  contract_holder?: string;
   costs?: number /* float64 */;
   billing_period: string;
   contact_person?: string;
@@ -65,6 +66,7 @@ export interface UpdateContractDto {
   end_date?: DateOnly;
   contract_number?: string;
   customer_number?: string;
+  contract_holder?: string;
   costs?: number /* float64 */;
   billing_period: string;
   contact_person?: string;
@@ -84,4 +86,7 @@ export interface DocumentDto {
 }
 export interface UpdateDocumentDto {
   title: string;
+}
+export interface ContractHolderDto {
+  name: string;
 }
