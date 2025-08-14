@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/Serbroda/contracts/cmd/web/dtos"
@@ -99,7 +98,6 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 	// 2) DB-Operation: Insert oder Update
 	var contract *sqlc.Contract
 	if id == nil {
-		contractHolder := strings.Trim(*payload.ContractHolder, " ")
 		inserted, err := qtx.InsertContract(ctx, sqlc.InsertContractParams{
 			Name:           payload.Name,
 			Company:        payload.Company,
@@ -109,7 +107,7 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			EndDate:        (*time.Time)(payload.EndDate),
 			ContractNumber: payload.ContractNumber,
 			CustomerNumber: payload.CustomerNumber,
-			ContractHolder: &contractHolder,
+			ContractHolder: utils.TrimToNil(payload.ContractHolder),
 			Costs:          payload.Costs,
 			BillingPeriod:  payload.BillingPeriod,
 			ContactPerson:  payload.ContactPerson,
@@ -125,7 +123,6 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 		contract = &inserted
 	} else {
 		// UpdateContractById liefert keinen Contract zurück, daher nachladen
-		contractHolder := strings.Trim(*payload.ContractHolder, " ")
 		err := qtx.UpdateContractById(ctx, sqlc.UpdateContractByIdParams{
 			ID:             *id,
 			Name:           payload.Name,
@@ -136,7 +133,7 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			EndDate:        (*time.Time)(payload.EndDate),
 			ContractNumber: payload.ContractNumber,
 			CustomerNumber: payload.CustomerNumber,
-			ContractHolder: &contractHolder,
+			ContractHolder: utils.TrimToNil(payload.ContractHolder),
 			Costs:          payload.Costs,
 			BillingPeriod:  payload.BillingPeriod,
 			ContactPerson:  payload.ContactPerson,
