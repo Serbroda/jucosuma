@@ -1,40 +1,37 @@
 import {apiBasePath} from "../config.ts";
 
-async function contractsLoader() {
-    const res = await fetch(`${apiBasePath}/contracts`);
+async function fetchJSON(url: string) {
+    const res = await fetch(url);
     if (!res.ok) {
         throw new Response(res.statusText, {status: res.status});
     }
+    return await res.json();
+}
 
-    const contracts = await res.json();
-    if (!contracts) {
+async function contractHoldersLoader() {
+    const res = await fetchJSON(`${apiBasePath}/contract_holders`);
+    if (!res) {
         throw new Response("Not Found", {status: 404});
     }
-    return {contracts: contracts};
+    return {holders: res};
+}
+
+async function contractsLoader() {
+    const res = await fetchJSON(`${apiBasePath}/contracts`);
+    if (!res) {
+        throw new Response("Not Found", {status: 404});
+    }
+    return {contracts: res};
 }
 
 async function contractLoader({params}: { params: any }) {
-    let res = await fetch(`${apiBasePath}/contracts/${params.id}`);
-    if (!res.ok) {
-        throw new Response(res.statusText, {status: res.status});
-    }
-
-    const contract = await res.json();
+    const contract = await fetchJSON(`${apiBasePath}/contracts/${params.id}`);
     if (!contract) {
         throw new Response("Not Found", {status: 404});
     }
 
-    res = await fetch(`${apiBasePath}/contract_holders`);
-    if (!res.ok) {
-        throw new Response(res.statusText, {status: res.status});
-    }
-
-    const holders = await res.json();
-    if (!holders) {
-        throw new Response("Not Found", {status: 404});
-    }
-
-    return {contract: contract, holders: holders};
+    const contractHolders = await contractHoldersLoader();
+    return {contract: contract, holders: contractHolders.holders};
 }
 
-export {contractsLoader, contractLoader};
+export {contractsLoader, contractLoader, contractHoldersLoader};
