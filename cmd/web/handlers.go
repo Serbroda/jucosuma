@@ -170,10 +170,11 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 		ext := filepath.Ext(fileHeader.Filename)
 		docName := fmt.Sprintf("%s%s", docId, ext)
 
-		if err := os.MkdirAll(app.uploadsDir, 0o755); err != nil {
+		documentsDir := filepath.Join(app.uploadsDir, "documents")
+		if err := os.MkdirAll(documentsDir, 0o755); err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, "cannot create upload dir: "+err.Error())
 		}
-		dstPath := filepath.Join(app.uploadsDir, docName)
+		dstPath := filepath.Join(documentsDir, docName)
 		dst, err := os.Create(dstPath)
 		if err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, "cannot create file: "+err.Error())
