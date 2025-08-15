@@ -123,6 +123,7 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
                 isOpen={isChooseIconOpen}
                 onClose={() => setChooseIconOpen(false)}
                 onSubmit={(iconSource) => {
+                    console.log(iconSource);
                     contract.icon_source = iconSource;
                     setChooseIconOpen(false);
                 }}

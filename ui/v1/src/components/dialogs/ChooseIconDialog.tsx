@@ -47,7 +47,7 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
         const timer = setTimeout(() => {
             fetch(`${apiBasePath}/search_logos?term=${encodeURIComponent(term)}`)
                 .then((res) => res.json())
-                .then((data) =>  {
+                .then((data) => {
                     setIcons(data)
                 })
                 .catch(console.error);
@@ -96,7 +96,7 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
                             </InputGroup>
                         </Field>
                         <div className="flex flex-wrap gap-2 mt-4 hover:cursor-pointer">
-                            {icons && icons.length > 0 && icons.map((icon, idx) => (
+                            {icons?.length > 0 && icons.map((icon, idx) => (
                                 <Avatar
                                     key={idx}
                                     src={icon.logo}
@@ -107,7 +107,7 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
                                     )}
                                     onClick={() =>
                                         setSelectedIcon((prev: any) =>
-                                            prev.logo === icon.logo ? {} : icon
+                                            prev == icon.logo ? '' : icon.logo
                                         )
                                     }
                                 />
