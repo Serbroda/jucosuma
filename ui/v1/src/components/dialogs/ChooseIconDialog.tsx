@@ -57,17 +57,17 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
         <Dialog open={isOpen} onClose={onClose}>
             <TabGroup defaultIndex={0}>
 
-                <TabList className="flex gap-2">
+                <TabList className="flex gap-1 dark:bg-zinc-800 rounded-lg p-1 transition-all">
                     {tabs.map((t, idx) => {
                         return (
                             <Tab key={idx} as={Fragment}>
                                 {({selected}) => (
                                     <button
                                         className={classNames(
-                                            "flex-1 px-3 py-2 text-sm font-bold rounded outline-none hover:cursor-pointer text-zinc-600 dark:text-zinc-300",
+                                            "flex-1 px-3 py-2 text-sm font-bold rounded-lg outline-none hover:cursor-pointer text-zinc-600 dark:text-zinc-300",
                                             selected
-                                                ? "bg-zinc-100 dark:bg-zinc-700 font-medium"
-                                                : "hover:bg-zinc-100 dark:hover:bg-zinc-700 "
+                                                ? "bg-zinc-100 dark:bg-zinc-900"
+                                                : "hover:bg-zinc-100 dark:hover:dark:bg-zinc-900"
                                         )}
                                     >
                                         {t.label}
@@ -78,7 +78,7 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
                     })}
                 </TabList>
 
-                <TabPanel className="focus:outline-none">
+                <TabPanel className="focus:outline-none mt-4">
                     <DialogTitle>Search Icon</DialogTitle>
                     <DialogBody>
                         <Field>
@@ -126,8 +126,8 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
                     </DialogActions>
                 </TabPanel>
 
-                <TabPanels className="mt-4">
-                    <TabPanel className="focus:outline-none">
+                <TabPanels>
+                    <TabPanel className="focus:outline-none mt-4">
                         <DialogTitle>Upload Icon</DialogTitle>
                         <DialogBody>
                             <Field>
