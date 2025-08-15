@@ -155,7 +155,7 @@ export default function ContractPage() {
                         {data?.contract.documents && data?.contract.documents.map((doc) =>
                             <div key={doc.id} className="flex grow min-w-0">
                                 <a
-                                    href={`/uploads/${doc.path}`}
+                                    href={`/uploads/documents/${doc.path}`}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="flex grow truncate items-center gap-2 text-sm/6 text-zinc-500 dark:text-zinc-400 pt-2"
