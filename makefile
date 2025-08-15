@@ -1,4 +1,4 @@
-SHELL := /bin/sh
+SHELL := /bin/bash
 
 # ------------------------------------------------------------
 # Project informations
@@ -87,24 +87,24 @@ release-minor: bump-minor release
 release-patch: bump-patch release
 
 bump-major:
-	@set -euo pipefail; \
-	old="$$(cat VERSION)"; \
+	@set -e; \
+	old="$$(tr -d '\r\n' < VERSION)"; \
 	new="$$(./semver.sh bump major "$$old")"; \
 	tmp="$$(mktemp)"; printf '%s\n' "$$new" > "$$tmp"; mv "$$tmp" VERSION; \
 	( cd ./ui/v1 && npm version --no-git-tag-version "$$new" >/dev/null ); \
 	echo "Bumped MAJOR: $$old → $$new"
 
 bump-minor:
-	@set -euo pipefail; \
-	old="$$(cat VERSION)"; \
+	@set -e; \
+	old="$$(tr -d '\r\n' < VERSION)""; \
 	new="$$(./semver.sh bump minor "$$old")"; \
 	tmp="$$(mktemp)"; printf '%s\n' "$$new" > "$$tmp"; mv "$$tmp" VERSION; \
 	( cd ./ui/v1 && npm version --no-git-tag-version "$$new" >/dev/null ); \
 	echo "Bumped MINOR: $$old → $$new"
 
 bump-patch:
-	@set -euo pipefail; \
-	old="$$(cat VERSION)"; \
+	@set -e; \
+	old="$$(tr -d '\r\n' < VERSION)"; \
 	new="$$(./semver.sh bump patch "$$old")"; \
 	tmp="$$(mktemp)"; printf '%s\n' "$$new" > "$$tmp"; mv "$$tmp" VERSION; \
 	( cd ./ui/v1 && npm version --no-git-tag-version "$$new" >/dev/null ); \
@@ -112,23 +112,20 @@ bump-patch:
 
 release:
 	@set -euo pipefail; \
-	vers="$$(cat VERSION)"; \
-	# Stage files (package-lock.json may not exist)
-	git add VERSION ./ui/v1/package.json 2>/dev/null || true; \
-	test -f ./ui/v1/package-lock.json && git add ./ui/v1/package-lock.json || true; \
-	# Commit only if there are staged changes
+    vers="$$(tr -d '\r\n' < VERSION)"; \
+	git add VERSION || true; \
+	git add ./ui/v1/package.json || true; \
+	git add ./ui/v1/package-lock.json || true; \
 	if git diff --cached --quiet; then \
 	  echo "No changes to commit for v$$vers (already up-to-date)"; \
 	else \
 	  git commit -m "chore(release): v$$vers"; \
 	fi; \
-	# Tag if not existing
 	if git rev-parse -q --verify "refs/tags/v$$vers" >/dev/null; then \
 	  echo "Tag v$$vers already exists. Skipping tag creation."; \
 	else \
 	  git tag -a "v$$vers" -m "v$$vers"; \
 	fi; \
-	# Push commit and tag
 	git push $(REMOTE) HEAD; \
 	git push $(REMOTE) "v$$vers"; \
 	echo "Released v$$vers"
