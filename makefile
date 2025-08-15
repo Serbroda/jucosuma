@@ -87,7 +87,7 @@ release-minor: bump-minor release
 release-patch: bump-patch release
 
 bump-major:
-	@set -e; \
+	@set -euo pipefail; \
 	old="$$(tr -d '\r\n' < VERSION)"; \
 	new="$$(./semver.sh bump major "$$old")"; \
 	tmp="$$(mktemp)"; printf '%s\n' "$$new" > "$$tmp"; mv "$$tmp" VERSION; \
@@ -95,15 +95,15 @@ bump-major:
 	echo "Bumped MAJOR: $$old → $$new"
 
 bump-minor:
-	@set -e; \
-	old="$$(tr -d '\r\n' < VERSION)""; \
+	@set -euo pipefail; \
+	old="$$(tr -d '\r\n' < VERSION)"; \
 	new="$$(./semver.sh bump minor "$$old")"; \
 	tmp="$$(mktemp)"; printf '%s\n' "$$new" > "$$tmp"; mv "$$tmp" VERSION; \
 	( cd ./ui/v1 && npm version --no-git-tag-version "$$new" >/dev/null ); \
 	echo "Bumped MINOR: $$old → $$new"
 
 bump-patch:
-	@set -e; \
+	@set -euo pipefail; \
 	old="$$(tr -d '\r\n' < VERSION)"; \
 	new="$$(./semver.sh bump patch "$$old")"; \
 	tmp="$$(mktemp)"; printf '%s\n' "$$new" > "$$tmp"; mv "$$tmp" VERSION; \
@@ -112,10 +112,10 @@ bump-patch:
 
 release:
 	@set -euo pipefail; \
-    vers="$$(tr -d '\r\n' < VERSION)"; \
-	git add VERSION || true; \
-	git add ./ui/v1/package.json || true; \
-	git add ./ui/v1/package-lock.json || true; \
+	vers="$$(tr -d '\r\n' < VERSION)"; \
+	git add VERSION 2>/dev/null || true; \
+	git add ./ui/v1/package.json 2>/dev/null || true; \
+	[[ -f ./ui/v1/package-lock.json ]] && git add ./ui/v1/package-lock.json || true; \
 	if git diff --cached --quiet; then \
 	  echo "No changes to commit for v$$vers (already up-to-date)"; \
 	else \
