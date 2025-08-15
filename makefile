@@ -82,6 +82,10 @@ clean:
 
 REMOTE ?= origin
 
+release-major: bump-major release
+release-minor: bump-minor release
+release-patch: bump-patch release
+
 bump-major:
 	@set -euo pipefail; \
 	old="$$(cat VERSION)"; \
@@ -128,7 +132,3 @@ release:
 	git push $(REMOTE) HEAD; \
 	git push $(REMOTE) "v$$vers"; \
 	echo "Released v$$vers"
-
-release-major: bump-major release
-release-minor: bump-minor release
-release-patch: bump-patch release
