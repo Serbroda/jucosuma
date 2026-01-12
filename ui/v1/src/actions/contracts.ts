@@ -1,6 +1,6 @@
 // src/actions/contractAction.ts
 import type {ActionFunction} from "react-router";
-import type {ContractDto} from "../gen/types.gen";
+import type {AgreementDto} from "../gen/types.gen";
 import {apiBasePath} from "../config.ts";
 
 const formatCurrency = (input: string | FormDataEntryValue | null): number | undefined => {
@@ -13,15 +13,14 @@ const formatCurrency = (input: string | FormDataEntryValue | null): number | und
     return parseFloat(value);
 }
 
-export const contractAction: ActionFunction = async ({request, params}) => {
+export const agreementAction: ActionFunction = async ({request, params}) => {
     // 1) alle FormData-Felder vom <Form encType="multipart/form-data"> abholen
     const form = await request.formData();
 
     // 2) Meta-Objekt bauen
-    const meta: Partial<ContractDto> = {
+    const meta: Partial<AgreementDto> = {
         name: form.get("name") as string,
         company: form.get("company") as string || undefined,
-        contract_type: form.get("contract_type") as string,
         category: form.get("category") as string,
         start_date: form.get("start_date") as string,
         end_date: form.get("end_date") as string || undefined,
@@ -56,8 +55,8 @@ export const contractAction: ActionFunction = async ({request, params}) => {
     const id = params.id;
     const method = id ? "PUT" : "POST";
     const url = id
-        ? `${apiBasePath}/contracts/${id}`
-        : `${apiBasePath}/contracts`;
+        ? `${apiBasePath}/agreements/${id}`
+        : `${apiBasePath}/agreements`;
 
     // 6) An den Go-Server senden
     const res = await fetch(url, {
@@ -79,6 +78,6 @@ export const contractAction: ActionFunction = async ({request, params}) => {
     // Auf Erfolg weiterleiten
     return new Response(null, {
         status: 303,
-        headers: {Location: id ? `/contracts/${id}` : `/contracts/${c.id}`},
+        headers: {Location: id ? `/agreements/${id}` : `/agreements/${c.id}`},
     });
 };

@@ -9,17 +9,18 @@ export interface LogoDto {
   logo: string;
 }
 export type BillingPeriod = string;
+export const BillingPeriodNone: BillingPeriod = "none";
+export const BillingPeriodOneTime: BillingPeriod = "one_time";
 export const BillingPeriodWeekly: BillingPeriod = "weekly";
 export const BillingPeriodMonthly: BillingPeriod = "monthly";
 export const BillingPeriodQuarterly: BillingPeriod = "quarterly";
 export const BillingPeriodSemiannual: BillingPeriod = "semiannually";
 export const BillingPeriodAnnually: BillingPeriod = "annually";
 export const BillingPeriodEveryTwoYears: BillingPeriod = "every_two_years";
-export interface ContractDto {
+export interface AgreementDto {
   id: number /* int64 */;
   name: string;
   company?: string;
-  contract_type: string;
   category: string;
   start_date: DateOnly;
   end_date?: DateOnly;
@@ -38,10 +39,9 @@ export interface ContractDto {
   updated_at?: string /* RFC3339 */;
   documents: DocumentDto[];
 }
-export interface CreateContractDto {
+export interface CreateAgreementDto {
   name: string;
   company?: string;
-  contract_type: string;
   category: string;
   start_date: DateOnly;
   end_date?: DateOnly;
@@ -57,10 +57,9 @@ export interface CreateContractDto {
   icon_source?: string;
   notes?: string;
 }
-export interface UpdateContractDto {
+export interface UpdateAgreementDto {
   name: string;
   company?: string;
-  contract_type: string;
   category: string;
   start_date: DateOnly;
   end_date?: DateOnly;
@@ -78,7 +77,7 @@ export interface UpdateContractDto {
 }
 export interface DocumentDto {
   id: number /* int64 */;
-  contract_id: number /* int64 */;
+  agreement_id: number /* int64 */;
   path: string;
   title?: string;
   created_at?: string /* RFC3339 */;
@@ -87,6 +86,6 @@ export interface DocumentDto {
 export interface UpdateDocumentDto {
   title: string;
 }
-export interface ContractHolderDto {
+export interface AgreementHolderDto {
   name: string;
 }

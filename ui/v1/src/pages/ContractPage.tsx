@@ -1,7 +1,7 @@
 import {useLoaderData} from "react-router";
 import {Heading, Subheading} from "../components/catalyst/heading.tsx";
 import {Divider} from "../components/catalyst/divider.tsx";
-import type {ContractDto} from "../gen/types.gen.ts";
+import type {AgreementDto} from "../gen/types.gen.ts";
 import {
     BanknotesIcon,
     CalendarIcon,
@@ -33,7 +33,7 @@ const HeaderDetails = ({icon, info}: { icon: ReactNode, info: string, tooltip?: 
 }
 
 export default function ContractPage() {
-    const data = useLoaderData() as { contract: ContractDto } | undefined;
+    const data = useLoaderData() as { contract: AgreementDto } | undefined;
 
     useEffect(()=>{
         window.scrollTo(0, 0);
@@ -87,7 +87,7 @@ export default function ContractPage() {
                     </div>
 
                     <div className="flex gap-4">
-                        <Button className="hover:cursor-pointer" to={`/contracts/${data?.contract.id}/edit`}>
+                        <Button className="hover:cursor-pointer" to={`/agreements/${data?.contract.id}/edit`}>
                             <PencilIcon/>
                             <span className="hidden lg:block">Edit Contract</span>
                         </Button>
@@ -103,8 +103,6 @@ export default function ContractPage() {
                     <DescriptionDetails>{data?.contract.company}</DescriptionDetails>
                     <DescriptionTerm>Category</DescriptionTerm>
                     <DescriptionDetails>{data?.contract.category}</DescriptionDetails>
-                    <DescriptionTerm>Type</DescriptionTerm>
-                    <DescriptionDetails className="capitalize">{data?.contract.contract_type}</DescriptionDetails>
                 </DescriptionList>
 
                 <Subheading className="mt-10">Details</Subheading>
@@ -179,7 +177,7 @@ export default function ContractPage() {
             </div>
 
             <div className="flex gap-4 lg:hidden mt-6 w-full">
-                <Button className="hover:cursor-pointer w-full" to={`/contracts/${data?.contract.id}/edit`}>
+                <Button className="hover:cursor-pointer w-full" to={`/agreements/${data?.contract.id}/edit`}>
                     <PencilIcon/>
                     <span>Edit Contract</span>
                 </Button>

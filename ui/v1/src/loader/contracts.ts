@@ -9,7 +9,7 @@ async function fetchJSON(url: string) {
 }
 
 async function contractHoldersLoader() {
-    const res = await fetchJSON(`${apiBasePath}/contract_holders`);
+    const res = await fetchJSON(`${apiBasePath}/agreement_holders`);
     if (!res) {
         throw new Response("Not Found", {status: 404});
     }
@@ -17,7 +17,7 @@ async function contractHoldersLoader() {
 }
 
 async function contractsLoader() {
-    const res = await fetchJSON(`${apiBasePath}/contracts`);
+    const res = await fetchJSON(`${apiBasePath}/agreements`);
     if (!res) {
         throw new Response("Not Found", {status: 404});
     }
@@ -25,7 +25,7 @@ async function contractsLoader() {
 }
 
 async function contractLoader({params}: { params: any }) {
-    const contract = await fetchJSON(`${apiBasePath}/contracts/${params.id}`);
+    const contract = await fetchJSON(`${apiBasePath}/agreements/${params.id}`);
     if (!contract) {
         throw new Response("Not Found", {status: 404});
     }

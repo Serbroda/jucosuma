@@ -18,14 +18,14 @@ func (app *application) routes() *echo.Echo {
 	ui.RegisterUi(e)
 	e.Static("/uploads", app.uploadsDir)
 
-	e.GET("/api/contracts", app.getContracts)
-	e.POST("/api/contracts", app.createContract)
-	e.GET("/api/contracts/:id", app.getContractById)
-	e.PUT("/api/contracts/:id", app.updateContract)
-	e.DELETE("/api/contracts/:id", app.deleteContract)
+	e.GET("/api/agreements", app.getAgreements)
+	e.POST("/api/agreements", app.createAgreement)
+	e.GET("/api/agreements/:id", app.getAgreementById)
+	e.PUT("/api/agreements/:id", app.updateAgreement)
+	e.DELETE("/api/agreements/:id", app.deleteAgreement)
 	e.PUT("/api/documents/:id", app.updateDocument)
 	e.DELETE("/api/documents/:id", app.deleteDocument)
-	e.GET("/api/contract_holders", app.getContractHolders)
+	e.GET("/api/agreement_holders", app.getAgreementHolders)
 	e.GET("/api/search_logos", app.searchLogos)
 
 	return e

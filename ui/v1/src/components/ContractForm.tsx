@@ -4,13 +4,12 @@ import {
     BillingPeriodMonthly,
     BillingPeriodQuarterly, BillingPeriodSemiannual,
     BillingPeriodWeekly,
-    type ContractDto, type ContractHolderDto, type DocumentDto
+    type AgreementDto, type AgreementHolderDto, type DocumentDto
 } from "../gen/types.gen.ts";
 import {Avatar} from "./catalyst/avatar.tsx";
 import {Field, Label} from "./catalyst/fieldset.tsx";
 import {Input} from "./catalyst/input.tsx";
 import {Select} from "./catalyst/select.tsx";
-import {Radio, RadioField, RadioGroup} from "./catalyst/radio.tsx";
 import {Divider} from "./catalyst/divider.tsx";
 import {Subheading} from "./catalyst/heading.tsx";
 import {Button} from "./catalyst/button.tsx";
@@ -28,8 +27,8 @@ import {formatDecimal} from "../utils/number.utils.ts";
 import {Combobox, ComboboxLabel, ComboboxOption} from "./catalyst/combobox.tsx";
 
 export interface ContractFormProps {
-    contract: Partial<ContractDto>;
-    holders: ContractHolderDto[];
+    contract: Partial<AgreementDto>;
+    holders: AgreementHolderDto[];
 }
 
 const categories = [
@@ -60,7 +59,7 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
             return Promise.resolve(undefined);
         },
     });
-    const [holdersWithInput, setHoldersWithInput] = useState<ContractHolderDto[]>(holders);
+    const [holdersWithInput, setHoldersWithInput] = useState<AgreementHolderDto[]>(holders);
 
     const handleHolderChange = (value: string) => {
         setHoldersWithInput( [...holders, {name: value}])
@@ -87,12 +86,12 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
 
         if (res.ok) {
             setEditDocId(null);
-            navigation(`/contracts/${contract.id}/edit`);
+            navigation(`/agreements/${contract.id}/edit`);
         }
     };
 
     const deleteContract = async () => {
-        const res = await fetch(`${apiBasePath}/contracts/${contract.id}`, {
+        const res = await fetch(`${apiBasePath}/agreements/${contract.id}`, {
             method: "DELETE",
         });
         if (res.ok) {
@@ -105,7 +104,7 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
             method: "DELETE",
         });
         if (res.ok) {
-            navigation(`/contracts/${contract.id}/edit`);
+            navigation(`/agreements/${contract.id}/edit`);
         }
     }
 
@@ -199,31 +198,6 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
                             </option>
                         ))}
                     </Select>
-                </Field>
-
-                <Field>
-                    <Label>Type</Label>
-                    <RadioGroup
-                        name="contract_type"
-                        defaultValue={contract.contract_type ?? "contract"}
-                    >
-                        <RadioField>
-                            <Radio
-                                value="contract"
-                                defaultChecked={contract.contract_type === "contract"}
-                                className="hover:cursor-pointer"
-                            />
-                            <Label>Contract</Label>
-                        </RadioField>
-                        <RadioField>
-                            <Radio
-                                value="subscription"
-                                defaultChecked={contract.contract_type === "subscription"}
-                                className="hover:cursor-pointer"
-                            />
-                            <Label>Subscription</Label>
-                        </RadioField>
-                    </RadioGroup>
                 </Field>
 
                 <Divider className="mt-6"/>

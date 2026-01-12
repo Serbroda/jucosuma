@@ -19,7 +19,7 @@ import Swap from "../components/Swap.tsx";
 import {MoonIcon, SunIcon} from "@heroicons/react/16/solid";
 
 const navItems = [
-    {label: 'Contracts', url: '/'},
+    {label: 'Agreements', url: '/'},
     /* {label: 'Persons', url: '/persons'},
      {label: 'Settings', url: '/settings'},*/
 ]

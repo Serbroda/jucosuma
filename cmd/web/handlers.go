@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Serbroda/contracts/cmd/web/dtos"
@@ -17,27 +18,27 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func (app *application) getContracts(ctx echo.Context) error {
-	contracts, err := app.queries.FindAllContracts(ctx.Request().Context())
+func (app *application) getAgreements(ctx echo.Context) error {
+	contracts, err := app.queries.FindAllAgreements(ctx.Request().Context())
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	contractDtos := utils.MapSlice(contracts, func(item sqlc.Contract) dtos.ContractDto {
+	contractDtos := utils.MapSlice(contracts, func(item sqlc.Agreement) dtos.AgreementDto {
 		return dtos.MapContractToContractDto(item)
 	})
 
 	return ctx.JSON(http.StatusOK, contractDtos)
 }
 
-func (app *application) getContractById(ctx echo.Context) error {
+func (app *application) getAgreementById(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	contract, err := app.queries.FindContractById(ctx.Request().Context(), id)
+	contract, err := app.queries.FindAgreementById(ctx.Request().Context(), id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -52,7 +53,7 @@ func (app *application) getContractById(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, contractDto)
 }
 
-func (app *application) createContract(c echo.Context) error {
+func (app *application) createAgreement(c echo.Context) error {
 	contract, err := app.upsertContract(c, nil)
 	if err != nil {
 		return err
@@ -60,7 +61,7 @@ func (app *application) createContract(c echo.Context) error {
 	return c.JSON(http.StatusOK, dtos.MapContractToContractDto(*contract))
 }
 
-func (app *application) updateContract(c echo.Context) error {
+func (app *application) updateAgreement(c echo.Context) error {
 	idParam := c.Param("id")
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
@@ -75,13 +76,13 @@ func (app *application) updateContract(c echo.Context) error {
 
 // upsertContract übernimmt sowohl Insert als auch Update,
 // plus optionales Abspeichern eines Uploads und zugehöriger Dokument-Daten.
-func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contract, error) {
+func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Agreement, error) {
 	// 1) Meta-JSON auslesen
 	metaStr := c.FormValue("meta")
 	if metaStr == "" {
 		return nil, echo.NewHTTPError(http.StatusBadRequest, "missing meta field")
 	}
-	var payload dtos.CreateContractDto
+	var payload dtos.CreateAgreementDto
 	if err := json.Unmarshal([]byte(metaStr), &payload); err != nil {
 		return nil, echo.NewHTTPError(http.StatusBadRequest, "invalid meta JSON: "+err.Error())
 	}
@@ -96,12 +97,11 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 	qtx := app.queries.WithTx(tx)
 
 	// 2) DB-Operation: Insert oder Update
-	var contract *sqlc.Contract
+	var contract *sqlc.Agreement
 	if id == nil {
-		inserted, err := qtx.InsertContract(ctx, sqlc.InsertContractParams{
+		inserted, err := qtx.InsertAgreement(ctx, sqlc.InsertAgreementParams{
 			Name:           payload.Name,
 			Company:        payload.Company,
-			ContractType:   payload.ContractType,
 			Category:       payload.Category,
 			StartDate:      time.Time(payload.StartDate),
 			EndDate:        (*time.Time)(payload.EndDate),
@@ -109,7 +109,7 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			CustomerNumber: payload.CustomerNumber,
 			ContractHolder: utils.TrimToNil(payload.ContractHolder),
 			Costs:          payload.Costs,
-			BillingPeriod:  payload.BillingPeriod,
+			BillingPeriod:  strings.ToUpper(payload.BillingPeriod),
 			ContactPerson:  payload.ContactPerson,
 			ContactAddress: payload.ContactAddress,
 			ContactPhone:   payload.ContactPhone,
@@ -123,11 +123,10 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 		contract = &inserted
 	} else {
 		// UpdateContractById liefert keinen Contract zurück, daher nachladen
-		err := qtx.UpdateContractById(ctx, sqlc.UpdateContractByIdParams{
+		err := qtx.UpdateAgreementById(ctx, sqlc.UpdateAgreementByIdParams{
 			ID:             *id,
 			Name:           payload.Name,
 			Company:        payload.Company,
-			ContractType:   payload.ContractType,
 			Category:       payload.Category,
 			StartDate:      time.Time(payload.StartDate),
 			EndDate:        (*time.Time)(payload.EndDate),
@@ -135,7 +134,7 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			CustomerNumber: payload.CustomerNumber,
 			ContractHolder: utils.TrimToNil(payload.ContractHolder),
 			Costs:          payload.Costs,
-			BillingPeriod:  payload.BillingPeriod,
+			BillingPeriod:  strings.ToUpper(payload.BillingPeriod),
 			ContactPerson:  payload.ContactPerson,
 			ContactAddress: payload.ContactAddress,
 			ContactPhone:   payload.ContactPhone,
@@ -146,7 +145,7 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 		if err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
-		updated, err := qtx.FindContractById(ctx, *id)
+		updated, err := qtx.FindAgreementById(ctx, *id)
 		if err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
@@ -203,13 +202,13 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 	return contract, nil
 }
 
-func (app *application) deleteContract(ctx echo.Context) error {
+func (app *application) deleteAgreement(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-	err = app.queries.DeleteContractSoft(ctx.Request().Context(), id)
+	err = app.queries.DeleteAgreementSoft(ctx.Request().Context(), id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -256,8 +255,8 @@ func (app *application) updateDocument(ctx echo.Context) error {
 	return ctx.String(http.StatusOK, "successfully deleted")
 }
 
-func (app *application) getContractHolders(ctx echo.Context) error {
-	entities, err := app.queries.FindContractHolders(ctx.Request().Context())
+func (app *application) getAgreementHolders(ctx echo.Context) error {
+	entities, err := app.queries.FindAgreementHolders(ctx.Request().Context())
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}

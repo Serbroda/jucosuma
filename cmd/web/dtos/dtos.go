@@ -34,6 +34,8 @@ type LogoDto struct {
 type BillingPeriod string
 
 const (
+	BillingPeriodNone          BillingPeriod = "none"
+	BillingPeriodOneTime       BillingPeriod = "one_time"
 	BillingPeriodWeekly        BillingPeriod = "weekly"
 	BillingPeriodMonthly       BillingPeriod = "monthly"
 	BillingPeriodQuarterly     BillingPeriod = "quarterly"
@@ -42,11 +44,10 @@ const (
 	BillingPeriodEveryTwoYears BillingPeriod = "every_two_years"
 )
 
-type ContractDto struct {
+type AgreementDto struct {
 	ID             int64         `json:"id"`
 	Name           string        `json:"name"`
 	Company        *string       `json:"company"`
-	ContractType   string        `json:"contract_type"`
 	Category       string        `json:"category"`
 	StartDate      DateOnly      `json:"start_date"`
 	EndDate        *DateOnly     `json:"end_date"`
@@ -66,10 +67,9 @@ type ContractDto struct {
 	Documents      []DocumentDto `json:"documents"`
 }
 
-type CreateContractDto struct {
+type CreateAgreementDto struct {
 	Name           string    `json:"name" validate:"required,min=1,max=256"`
 	Company        *string   `json:"company"`
-	ContractType   string    `json:"contract_type" validate:"required,min=1,max=256"`
 	Category       string    `json:"category"`
 	StartDate      DateOnly  `json:"start_date"`
 	EndDate        *DateOnly `json:"end_date"`
@@ -86,10 +86,9 @@ type CreateContractDto struct {
 	Notes          *string   `json:"notes"`
 }
 
-type UpdateContractDto struct {
+type UpdateAgreementDto struct {
 	Name           string    `json:"name" validate:"required,min=1,max=256"`
 	Company        *string   `json:"company"`
-	ContractType   string    `json:"contract_type" validate:"required,min=1,max=256"`
 	Category       string    `json:"category"`
 	StartDate      DateOnly  `json:"start_date"`
 	EndDate        *DateOnly `json:"end_date"`
@@ -107,18 +106,18 @@ type UpdateContractDto struct {
 }
 
 type DocumentDto struct {
-	ID         int64      `json:"id"`
-	ContractID int64      `json:"contract_id"`
-	Path       string     `json:"path"`
-	Title      *string    `json:"title"`
-	CreatedAt  *time.Time `json:"created_at"`
-	UpdatedAt  *time.Time `json:"updated_at"`
+	ID          int64      `json:"id"`
+	AgreementId int64      `json:"agreement_id"`
+	Path        string     `json:"path"`
+	Title       *string    `json:"title"`
+	CreatedAt   *time.Time `json:"created_at"`
+	UpdatedAt   *time.Time `json:"updated_at"`
 }
 
 type UpdateDocumentDto struct {
 	Title string `json:"title"`
 }
 
-type ContractHolderDto struct {
+type AgreementHolderDto struct {
 	Name string `json:"name"`
 }

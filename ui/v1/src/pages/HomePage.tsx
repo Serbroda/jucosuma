@@ -37,7 +37,7 @@ export default function HomePage() {
                             />
                         </InputGroup>
                     </div>
-                    <Button className="self-end hover:cursor-pointer" to="/contracts/add">
+                    <Button className="self-end hover:cursor-pointer" to="/agreements/add">
                         <PlusIcon/>
                         <span className="hidden lg:block">Add Contract</span>
                     </Button>
@@ -52,7 +52,7 @@ export default function HomePage() {
                                 key={contract.id}
                                 className="">
                                 <NavLink
-                                    to={"/contracts/" + contract.id}
+                                    to={"/agreements/" + contract.id}
                                     className="p-2 flex gap-2 items-center border-b border-zinc-200 dark:border-zinc-800 hover:cursor-pointer hover:bg-zinc-950/5 dark:hover:bg-white/5">
 
                                     <Avatar
