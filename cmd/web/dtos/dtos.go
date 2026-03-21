@@ -44,29 +44,39 @@ const (
 	BillingPeriodEveryTwoYears BillingPeriod = "every_two_years"
 )
 
+type ContractStatus string
+
+const (
+	ContractStatusActive    ContractStatus = "active"
+	ContractStatusCancelled ContractStatus = "cancelled"
+	ContractStatusExpired   ContractStatus = "expired"
+)
+
 type ContractDto struct {
-	ID              int64         `json:"id"`
-	Name            string        `json:"name"`
-	Company         *string       `json:"company"`
-	Category        string        `json:"category"`
-	StartDate       DateOnly      `json:"start_date"`
-	EndDate         *DateOnly     `json:"end_date"`
-	ContractNumber  *string       `json:"contract_number"`
-	CustomerNumber  *string       `json:"customer_number"`
-	ContractHolder  *string       `json:"contract_holder"`
-	BillingPeriod   string        `json:"billing_period"`
-	Costs           *float64      `json:"costs"`
-	Currency        *string       `json:"currency"`
-	NextBillingDate *DateOnly     `json:"next_billing_date"`
-	ContactPerson   *string       `json:"contact_person"`
-	ContactAddress  *string       `json:"contact_address"`
-	ContactPhone    *string       `json:"contact_phone"`
-	ContactEmail    *string       `json:"contact_email"`
-	IconSource      *string       `json:"icon_source"`
-	Notes           *string       `json:"notes"`
-	CreatedAt       *time.Time    `json:"created_at"`
-	UpdatedAt       *time.Time    `json:"updated_at"`
-	Documents       []DocumentDto `json:"documents"`
+	ID              int64          `json:"id"`
+	Name            string         `json:"name"`
+	Company         *string        `json:"company"`
+	Category        string         `json:"category"`
+	StartDate       DateOnly       `json:"start_date"`
+	EndDate         *DateOnly      `json:"end_date"`
+	ContractNumber  *string        `json:"contract_number"`
+	CustomerNumber  *string        `json:"customer_number"`
+	ContractHolder  *string        `json:"contract_holder"`
+	BillingPeriod   string         `json:"billing_period"`
+	Costs           *float64       `json:"costs"`
+	Currency        *string        `json:"currency"`
+	NextBillingDate *DateOnly      `json:"next_billing_date"`
+	Status          ContractStatus `json:"status"`
+	MonthlyCosts    *float64       `json:"monthly_costs"`
+	ContactPerson   *string        `json:"contact_person"`
+	ContactAddress  *string        `json:"contact_address"`
+	ContactPhone    *string        `json:"contact_phone"`
+	ContactEmail    *string        `json:"contact_email"`
+	IconSource      *string        `json:"icon_source"`
+	Notes           *string        `json:"notes"`
+	CreatedAt       *time.Time     `json:"created_at"`
+	UpdatedAt       *time.Time     `json:"updated_at"`
+	Documents       []DocumentDto  `json:"documents"`
 }
 
 type CreateContractDto struct {

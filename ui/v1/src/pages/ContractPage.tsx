@@ -9,6 +9,7 @@ import {
     PencilIcon,
     UserIcon,
 } from "@heroicons/react/16/solid";
+import {Badge} from "../components/catalyst/badge.tsx";
 import {Button} from "../components/catalyst/button.tsx";
 import {DescriptionDetails, DescriptionList, DescriptionTerm} from "../components/catalyst/description-list.tsx";
 import {Avatar} from "../components/catalyst/avatar.tsx";
@@ -48,6 +49,11 @@ export default function ContractPage() {
                         className={classNames("w-10 h-10", data?.contract?.icon_source ? '' : 'dark:invert')}
                         src={data?.contract.icon_source || image}/>
                     <Heading className="truncate">{data?.contract.name}</Heading>
+                    {data?.contract.status && (
+                        <Badge color={data.contract.status === 'active' ? 'green' : data.contract.status === 'cancelled' ? 'yellow' : 'zinc'}>
+                            {data.contract.status}
+                        </Badge>
+                    )}
                 </div>
 
                 <div className="isolate mt-2.5 hidden lg:flex flex-wrap justify-between gap-x-6 gap-y-4">
@@ -129,6 +135,8 @@ export default function ContractPage() {
                     <DescriptionDetails>{formatCurrency(data?.contract.costs, data?.contract.currency)}</DescriptionDetails>
                     <DescriptionTerm>Currency</DescriptionTerm>
                     <DescriptionDetails>{data?.contract.currency}</DescriptionDetails>
+                    <DescriptionTerm>Monthly Costs</DescriptionTerm>
+                    <DescriptionDetails>{formatCurrency(data?.contract.monthly_costs, data?.contract.currency)}</DescriptionDetails>
                     <DescriptionTerm>Next Billing Date</DescriptionTerm>
                     <DescriptionDetails>{data?.contract.next_billing_date ? dayjs(data?.contract.next_billing_date).format('DD.MM.YYYY') : ''}</DescriptionDetails>
                 </DescriptionList>

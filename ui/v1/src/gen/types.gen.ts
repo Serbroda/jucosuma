@@ -17,6 +17,10 @@ export const BillingPeriodQuarterly: BillingPeriod = "quarterly";
 export const BillingPeriodSemiannual: BillingPeriod = "semiannually";
 export const BillingPeriodAnnually: BillingPeriod = "annually";
 export const BillingPeriodEveryTwoYears: BillingPeriod = "every_two_years";
+export type ContractStatus = string;
+export const ContractStatusActive: ContractStatus = "active";
+export const ContractStatusCancelled: ContractStatus = "cancelled";
+export const ContractStatusExpired: ContractStatus = "expired";
 export interface ContractDto {
   id: number /* int64 */;
   name: string;
@@ -31,6 +35,8 @@ export interface ContractDto {
   costs?: number /* float64 */;
   currency?: string;
   next_billing_date?: DateOnly;
+  status: ContractStatus;
+  monthly_costs?: number /* float64 */;
   contact_person?: string;
   contact_address?: string;
   contact_phone?: string;

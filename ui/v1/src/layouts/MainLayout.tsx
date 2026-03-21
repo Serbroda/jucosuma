@@ -20,8 +20,7 @@ import {MoonIcon, SunIcon} from "@heroicons/react/16/solid";
 
 const navItems = [
     {label: 'Contracts', url: '/'},
-    /* {label: 'Persons', url: '/persons'},
-     {label: 'Settings', url: '/settings'},*/
+    {label: 'Settings', url: '/settings'},
 ]
 
 function MainLayout() {

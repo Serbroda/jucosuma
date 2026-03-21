@@ -206,6 +206,79 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 	return contract, nil
 }
 
+func (app *application) exportContractsCSV(ctx echo.Context) error {
+	contracts, err := app.queries.FindAllContracts(ctx.Request().Context())
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	ctx.Response().Header().Set("Content-Type", "text/csv")
+	ctx.Response().Header().Set("Content-Disposition", "attachment; filename=contracts.csv")
+
+	writer := ctx.Response().Writer
+	// BOM for Excel UTF-8 compatibility
+	writer.Write([]byte{0xEF, 0xBB, 0xBF})
+	writer.Write([]byte("Name;Company;Category;Status;Start Date;End Date;Billing Period;Costs;Currency;Monthly Costs;Next Billing Date;Contract Number;Customer Number;Contract Holder;Contact Person;Contact Email;Contact Phone;Notes\n"))
+
+	for _, c := range contracts {
+		dto := dtos.MapContractToContractDto(c)
+		writer.Write([]byte(fmt.Sprintf("%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s\n",
+			csvEscape(dto.Name),
+			csvEscapePtr(dto.Company),
+			csvEscape(dto.Category),
+			csvEscape(string(dto.Status)),
+			formatDateOnly(dto.StartDate),
+			formatDateOnlyPtr(dto.EndDate),
+			csvEscape(dto.BillingPeriod),
+			formatFloat(dto.Costs),
+			csvEscapePtr(dto.Currency),
+			formatFloat(dto.MonthlyCosts),
+			formatDateOnlyPtr(dto.NextBillingDate),
+			csvEscapePtr(dto.ContractNumber),
+			csvEscapePtr(dto.CustomerNumber),
+			csvEscapePtr(dto.ContractHolder),
+			csvEscapePtr(dto.ContactPerson),
+			csvEscapePtr(dto.ContactEmail),
+			csvEscapePtr(dto.ContactPhone),
+			csvEscapePtr(dto.Notes),
+		)))
+	}
+
+	return nil
+}
+
+func csvEscape(s string) string {
+	if strings.ContainsAny(s, ";,\"\n") {
+		return `"` + strings.ReplaceAll(s, `"`, `""`) + `"`
+	}
+	return s
+}
+
+func csvEscapePtr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return csvEscape(*s)
+}
+
+func formatDateOnly(d dtos.DateOnly) string {
+	return time.Time(d).Format("2006-01-02")
+}
+
+func formatDateOnlyPtr(d *dtos.DateOnly) string {
+	if d == nil {
+		return ""
+	}
+	return time.Time(*d).Format("2006-01-02")
+}
+
+func formatFloat(f *float64) string {
+	if f == nil {
+		return ""
+	}
+	return fmt.Sprintf("%.2f", *f)
+}
+
 func (app *application) deleteContract(ctx echo.Context) error {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseInt(idParam, 10, 64)

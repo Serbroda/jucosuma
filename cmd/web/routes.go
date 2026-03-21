@@ -19,6 +19,7 @@ func (app *application) routes() *echo.Echo {
 	e.Static("/uploads", app.uploadsDir)
 
 	e.GET("/api/contracts", app.getContracts)
+	e.GET("/api/contracts/export.csv", app.exportContractsCSV)
 	e.POST("/api/contracts", app.createContract)
 	e.GET("/api/contracts/:id", app.getContractById)
 	e.PUT("/api/contracts/:id", app.updateContract)
