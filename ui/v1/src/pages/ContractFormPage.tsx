@@ -10,7 +10,7 @@ export interface ContractPageProps {
 }
 
 type ActionData = {
-    errors?: Record<string, string>;
+    error?: string;
     values?: Partial<ContractDto>;
 };
 
@@ -34,7 +34,8 @@ export default function ContractFormPage({mode}: ContractPageProps) {
             <ContractForm
                 contract={defaults}
                 holders={holders}
-                mode={mode}/>
+                mode={mode}
+                error={actionData?.error}/>
         </div>
     )
 }

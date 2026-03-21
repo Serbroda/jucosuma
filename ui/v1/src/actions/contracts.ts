@@ -68,11 +68,15 @@ export const contractAction: ActionFunction = async ({request, params}) => {
     });
 
     if (!res.ok) {
-        // Fehler zurückgeben, damit react-router dich zum errorElement routet
-        return new Response(await res.text(), {
-            status: res.status,
-            headers: {"Content-Type": "application/json"},
-        });
+        const errorText = await res.text();
+        let message = "An error occurred while saving.";
+        try {
+            const parsed = JSON.parse(errorText);
+            message = parsed.message || message;
+        } catch {
+            if (errorText) message = errorText;
+        }
+        return {error: message, values: meta};
     }
 
     const c = await res.json()

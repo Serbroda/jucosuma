@@ -13,8 +13,9 @@ import {Select} from "./catalyst/select.tsx";
 import {Divider} from "./catalyst/divider.tsx";
 import {Subheading} from "./catalyst/heading.tsx";
 import {Button} from "./catalyst/button.tsx";
-import {Form, useNavigate} from "react-router";
-import {useState} from "react";
+import {Form, useNavigate, useNavigation} from "react-router";
+import {useEffect, useRef, useState} from "react";
+import {ErrorMessage} from "./catalyst/fieldset.tsx";
 import {apiBasePath} from "../config.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import image from "../assets/image.png";
@@ -30,6 +31,7 @@ export interface ContractFormProps {
     contract: Partial<ContractDto>;
     holders: ContractHolderDto[];
     mode?: 'add' | 'edit';
+    error?: string;
 }
 
 const categories = [
@@ -46,9 +48,20 @@ const categories = [
     {name: "Utilities"},
 ];
 
-export default function ContractForm({contract, holders, mode = 'add'}: ContractFormProps) {
+export default function ContractForm({contract, holders, mode = 'add', error}: ContractFormProps) {
     const navigation = useNavigate();
+    const {state} = useNavigation();
     const isEdit = mode === 'edit';
+    const [nameError, setNameError] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
+    const isBusy = state === 'submitting' || isDeleting;
+    const errorRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (error && errorRef.current) {
+            errorRef.current.scrollIntoView({behavior: 'smooth', block: 'center'});
+        }
+    }, [error]);
     const [isChooseIconOpen, setChooseIconOpen] = useState(false);
     const [confirmDialogProps, setConfirmDialogProps] = useState<ConfirmDialogProps>({
         title: "",
@@ -98,20 +111,30 @@ export default function ContractForm({contract, holders, mode = 'add'}: Contract
     };
 
     const deleteContract = async () => {
-        const res = await fetch(`${apiBasePath}/contracts/${contract.id}`, {
-            method: "DELETE",
-        });
-        if (res.ok) {
-            navigation("/");
+        setIsDeleting(true);
+        try {
+            const res = await fetch(`${apiBasePath}/contracts/${contract.id}`, {
+                method: "DELETE",
+            });
+            if (res.ok) {
+                navigation("/");
+            }
+        } finally {
+            setIsDeleting(false);
         }
     };
 
     const deleteDocument = async (documentId: number) => {
-        const res = await fetch(`${apiBasePath}/documents/${documentId}`, {
-            method: "DELETE",
-        });
-        if (res.ok) {
-            navigation(`/contracts/${contract.id}/edit`);
+        setIsDeleting(true);
+        try {
+            const res = await fetch(`${apiBasePath}/documents/${documentId}`, {
+                method: "DELETE",
+            });
+            if (res.ok) {
+                navigation(`/contracts/${contract.id}/edit`);
+            }
+        } finally {
+            setIsDeleting(false);
         }
     }
 
@@ -152,7 +175,23 @@ export default function ContractForm({contract, holders, mode = 'add'}: Contract
                 method="post"
                 encType="multipart/form-data"
                 className="grid grid-cols-1 gap-4"
+                onSubmit={(e) => {
+                    setNameError('');
+                    const formData = new FormData(e.currentTarget);
+                    const name = (formData.get('name') as string)?.trim();
+                    if (!name) {
+                        e.preventDefault();
+                        setNameError('Name is required.');
+                        return;
+                    }
+                }}
             >
+                {error && (
+                    <div ref={errorRef} className="rounded-lg border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-3 text-sm text-red-700 dark:text-red-400">
+                        {error}
+                    </div>
+                )}
+
                 <div className="justify-self-center">
                     <Button
                         plain
@@ -181,7 +220,10 @@ export default function ContractForm({contract, holders, mode = 'add'}: Contract
                         name="name"
                         placeholder="Enter contract name"
                         defaultValue={contract.name ?? ""}
+                        invalid={!!nameError}
+                        onChange={() => nameError && setNameError('')}
                     />
+                    {nameError && <ErrorMessage>{nameError}</ErrorMessage>}
                 </Field>
 
                 <Field>
@@ -461,12 +503,17 @@ export default function ContractForm({contract, holders, mode = 'add'}: Contract
 
                 {/* Actions */}
                 <div className="flex mt-6 gap-4 lg:gap-2 flex-wrap">
-                    <Button type="submit" className="w-full lg:w-auto hover:cursor-pointer">
-                        Save
+                    <Button
+                        type="submit"
+                        disabled={isBusy}
+                        className="w-full lg:w-auto hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {state === 'submitting' ? 'Saving...' : 'Save'}
                     </Button>
                     <Button
                         type="button"
                         outline
+                        disabled={isBusy}
                         onClick={() => navigation(isEdit ? `/contracts/${contract.id}` : "/")}
                         className="w-full lg:w-auto hover:cursor-pointer"
                     >
@@ -477,6 +524,7 @@ export default function ContractForm({contract, holders, mode = 'add'}: Contract
                         <Button
                             type="button"
                             color="red"
+                            disabled={isBusy}
                             onClick={() => openConfirmDialog({
                                 title: "Delete Contract",
                                 message: "Are you sure you want to delete this contract?",

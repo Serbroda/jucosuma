@@ -332,6 +332,29 @@ export default function HomePage() {
                 <span className="text-xs text-zinc-400 dark:text-zinc-500">
                     {filteredContracts.length} {filteredContracts.length === 1 ? 'contract' : 'contracts'}
                 </span>
+
+                {/* Mobile sort */}
+                <div className="lg:hidden">
+                    <select
+                        value={`${sortKey}:${sortDir}`}
+                        onChange={(e) => {
+                            const [key, dir] = e.target.value.split(':') as [SortKey, SortDir];
+                            setSortKey(key);
+                            setSortDir(dir);
+                        }}
+                        className="text-xs bg-transparent text-zinc-500 dark:text-zinc-400 border-none pr-6 py-0 focus:ring-0"
+                    >
+                        <option value="name:asc">Name A-Z</option>
+                        <option value="name:desc">Name Z-A</option>
+                        <option value="costs:desc">Costs high-low</option>
+                        <option value="costs:asc">Costs low-high</option>
+                        <option value="next_billing_date:asc">Billing soonest</option>
+                        <option value="next_billing_date:desc">Billing latest</option>
+                        <option value="status:asc">Status</option>
+                    </select>
+                </div>
+
+                {/* Desktop sort */}
                 <div className="hidden lg:flex items-center gap-0.5">
                     <SortButton field="name" label="Name"/>
                     <SortButton field="costs" label="Costs"/>
