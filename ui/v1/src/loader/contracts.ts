@@ -17,11 +17,14 @@ async function contractHoldersLoader() {
 }
 
 async function contractsLoader() {
-    const res = await fetchJSON(`${apiBasePath}/contracts`);
-    if (!res) {
+    const [contracts, {holders}] = await Promise.all([
+        fetchJSON(`${apiBasePath}/contracts`),
+        contractHoldersLoader(),
+    ]);
+    if (!contracts) {
         throw new Response("Not Found", {status: 404});
     }
-    return {contracts: res};
+    return {contracts, holders};
 }
 
 async function contractLoader({params}: { params: any }) {

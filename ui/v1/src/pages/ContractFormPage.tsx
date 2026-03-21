@@ -33,7 +33,8 @@ export default function ContractFormPage({mode}: ContractPageProps) {
 
             <ContractForm
                 contract={defaults}
-                holders={holders}/>
+                holders={holders}
+                mode={mode}/>
         </div>
     )
 }
