@@ -17,6 +17,7 @@ import {Form, useNavigate, useNavigation} from "react-router";
 import {useEffect, useRef, useState} from "react";
 import {ErrorMessage} from "./catalyst/fieldset.tsx";
 import {apiBasePath} from "../config.ts";
+import {apiFetch} from "../lib/fetch.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import image from "../assets/image.png";
 import {Textarea} from "./catalyst/textarea.tsx";
@@ -94,7 +95,7 @@ export default function ContractForm({contract, holders, mode = 'add', error}: C
     };
 
     const saveEdit = async (documentId: number) => {
-        const res = await fetch(`${apiBasePath}/documents/${documentId}`, {
+        const res = await apiFetch(`${apiBasePath}/documents/${documentId}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
@@ -113,7 +114,7 @@ export default function ContractForm({contract, holders, mode = 'add', error}: C
     const deleteContract = async () => {
         setIsDeleting(true);
         try {
-            const res = await fetch(`${apiBasePath}/contracts/${contract.id}`, {
+            const res = await apiFetch(`${apiBasePath}/contracts/${contract.id}`, {
                 method: "DELETE",
             });
             if (res.ok) {
@@ -127,7 +128,7 @@ export default function ContractForm({contract, holders, mode = 'add', error}: C
     const deleteDocument = async (documentId: number) => {
         setIsDeleting(true);
         try {
-            const res = await fetch(`${apiBasePath}/documents/${documentId}`, {
+            const res = await apiFetch(`${apiBasePath}/documents/${documentId}`, {
                 method: "DELETE",
             });
             if (res.ok) {

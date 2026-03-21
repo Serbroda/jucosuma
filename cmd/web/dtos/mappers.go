@@ -143,3 +143,14 @@ func MapContractHolderToContractHolderDto(item *string) ContractHolderDto {
 		Name: *item,
 	}
 }
+
+func MapUserToUserDto(u sqlc.User) UserDto {
+	return UserDto{
+		ID:                 u.ID,
+		Username:           u.Username,
+		Role:               u.Role,
+		MustChangePassword: u.MustChangePassword == 1,
+		CreatedAt:          u.CreatedAt,
+		UpdatedAt:          u.UpdatedAt,
+	}
+}

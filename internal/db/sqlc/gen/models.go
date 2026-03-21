@@ -42,3 +42,20 @@ type Document struct {
 	UpdatedAt  *time.Time `db:"updated_at"`
 	DeletedAt  *time.Time `db:"deleted_at"`
 }
+
+type Session struct {
+	ID        string     `db:"id"`
+	UserID    int64      `db:"user_id"`
+	ExpiresAt time.Time  `db:"expires_at"`
+	CreatedAt *time.Time `db:"created_at"`
+}
+
+type User struct {
+	ID                 int64      `db:"id"`
+	Username           string     `db:"username"`
+	Password           string     `db:"password" json:"-"`
+	Role               string     `db:"role"`
+	MustChangePassword int64      `db:"must_change_password"`
+	CreatedAt          *time.Time `db:"created_at"`
+	UpdatedAt          *time.Time `db:"updated_at"`
+}

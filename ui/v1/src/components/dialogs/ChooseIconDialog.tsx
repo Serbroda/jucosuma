@@ -1,5 +1,6 @@
 import {type FC, useEffect, useState, Fragment} from "react";
 import {apiBasePath} from "../../config";
+import {apiFetch} from "../../lib/fetch";
 import {Button} from "../catalyst/button";
 import {Avatar} from "../catalyst/avatar";
 import {classNames} from "../../utils/dom.utils";
@@ -45,7 +46,7 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
             return;
         }
         const timer = setTimeout(() => {
-            fetch(`${apiBasePath}/search_logos?term=${encodeURIComponent(term)}`)
+            apiFetch(`${apiBasePath}/search_logos?term=${encodeURIComponent(term)}`)
                 .then((res) => res.json())
                 .then((data) => {
                     setIcons(data)

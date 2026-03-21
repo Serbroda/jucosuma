@@ -137,3 +137,37 @@ type UpdateDocumentDto struct {
 type ContractHolderDto struct {
 	Name string `json:"name"`
 }
+
+type LoginDto struct {
+	Username string `json:"username" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
+type ChangePasswordDto struct {
+	CurrentPassword string `json:"current_password" validate:"required"`
+	NewPassword     string `json:"new_password" validate:"required,min=8"`
+}
+
+type UserDto struct {
+	ID                 int64      `json:"id"`
+	Username           string     `json:"username"`
+	Role               string     `json:"role"`
+	MustChangePassword bool       `json:"must_change_password"`
+	CreatedAt          *time.Time `json:"created_at"`
+	UpdatedAt          *time.Time `json:"updated_at"`
+}
+
+type CreateUserDto struct {
+	Username string `json:"username" validate:"required,min=1,max=64"`
+	Password string `json:"password" validate:"required,min=8"`
+	Role     string `json:"role" validate:"required,oneof=admin user"`
+}
+
+type UpdateUserDto struct {
+	Username string `json:"username" validate:"required,min=1,max=64"`
+	Role     string `json:"role" validate:"required,oneof=admin user"`
+}
+
+type ResetPasswordDto struct {
+	Password string `json:"password" validate:"required,min=8"`
+}

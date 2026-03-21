@@ -14,22 +14,31 @@ import {Avatar} from "../components/catalyst/avatar.tsx";
 import logo from '../assets/logo.svg'
 import githubLogo from '../assets/github.svg'
 import {usePreferences} from "../stores/usePreferences.ts";
+import {useAuth} from "../stores/useAuth.ts";
 import {useEffect, useState} from "react";
 import Swap from "../components/Swap.tsx";
-import {MoonIcon, SunIcon} from "@heroicons/react/16/solid";
-
-const navItems = [
-    {label: 'Contracts', url: '/'},
-    {label: 'Settings', url: '/settings'},
-]
+import {ArrowRightStartOnRectangleIcon, MoonIcon, SunIcon} from "@heroicons/react/16/solid";
 
 function MainLayout() {
     const {theme, setTheme} = usePreferences()
+    const {user, logout} = useAuth()
     const [darkMode, setDarkMode] = useState<boolean>(theme == "dark")
+    const isAdmin = user?.role === 'admin'
 
     useEffect(() => {
         setDarkMode(theme == "dark")
     }, [theme])
+
+    const handleLogout = async () => {
+        await logout()
+        window.location.hash = '#/login'
+    }
+
+    const navItems = [
+        {label: 'Contracts', url: '/'},
+        ...(isAdmin ? [{label: 'Users', url: '/users'}] : []),
+        {label: 'Settings', url: '/settings'},
+    ]
 
     return (
         <div className="text-black dark:text-white">
@@ -67,6 +76,9 @@ function MainLayout() {
                         </NavbarSection>
                         <NavbarSpacer/>
                         <NavbarSection className="gap-x-6">
+                            <span className="hidden lg:block text-sm text-zinc-500 dark:text-zinc-400">
+                                {user?.username}
+                            </span>
                             <a href="https://github.com/Serbroda/jucosuma"
                                target="_blank"
                                className="hidden lg:block hover:opacity-75"
@@ -87,6 +99,9 @@ function MainLayout() {
                                 }}
                                 className="hover:cursor-pointer transition duration-300 ease-in-out"
                             />
+                            <button onClick={handleLogout} className="hover:opacity-75 hover:cursor-pointer">
+                                <ArrowRightStartOnRectangleIcon className="size-5"/>
+                            </button>
                         </NavbarSection>
                     </Navbar>
                 }
@@ -115,6 +130,9 @@ function MainLayout() {
                                         {label}
                                     </SidebarItem>
                                 ))}
+                                <SidebarItem onClick={handleLogout}>
+                                    Logout
+                                </SidebarItem>
                             </SidebarSection>
                         </SidebarBody>
                     </Sidebar>

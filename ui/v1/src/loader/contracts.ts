@@ -1,7 +1,12 @@
 import {apiBasePath} from "../config.ts";
+import {apiFetch} from "../lib/fetch.ts";
 
 async function fetchJSON(url: string) {
-    const res = await fetch(url);
+    const res = await apiFetch(url);
+    if (res.status === 401) {
+        window.location.hash = '#/login';
+        throw new Response('Unauthorized', {status: 401});
+    }
     if (!res.ok) {
         throw new Response(res.statusText, {status: res.status});
     }

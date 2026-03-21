@@ -2,6 +2,7 @@
 import type {ActionFunction} from "react-router";
 import type {ContractDto} from "../gen/types.gen";
 import {apiBasePath} from "../config.ts";
+import {apiFetch} from "../lib/fetch.ts";
 
 const formatCurrency = (input: string | FormDataEntryValue | null): number | undefined => {
     if (!input) {
@@ -61,7 +62,7 @@ export const contractAction: ActionFunction = async ({request, params}) => {
         : `${apiBasePath}/contracts`;
 
     // 6) An den Go-Server senden
-    const res = await fetch(url, {
+    const res = await apiFetch(url, {
         method,
         // Kein Content-Type-Header! Browser fügt multipart/form-data + Boundary hinzu
         body: fd,

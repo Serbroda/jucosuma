@@ -50,6 +50,10 @@ func main() {
 		uploadsDir: *uploadsDir,
 	}
 
+	if err := app.seedAdmin("admin_password.txt"); err != nil {
+		log.Fatalf("Failed to seed admin: %v", err)
+	}
+
 	e := app.routes()
 
 	log.Printf("Starting server on %s", *addr)

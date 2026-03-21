@@ -101,3 +101,31 @@ export interface UpdateDocumentDto {
 export interface ContractHolderDto {
   name: string;
 }
+export interface LoginDto {
+  username: string;
+  password: string;
+}
+export interface ChangePasswordDto {
+  current_password: string;
+  new_password: string;
+}
+export interface UserDto {
+  id: number /* int64 */;
+  username: string;
+  role: string;
+  must_change_password: boolean;
+  created_at?: string /* RFC3339 */;
+  updated_at?: string /* RFC3339 */;
+}
+export interface CreateUserDto {
+  username: string;
+  password: string;
+  role: string;
+}
+export interface UpdateUserDto {
+  username: string;
+  role: string;
+}
+export interface ResetPasswordDto {
+  password: string;
+}
