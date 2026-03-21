@@ -26,7 +26,7 @@ func (q *Queries) DeleteContractSoft(ctx context.Context, id int64) error {
 const findAllContracts = `-- name: FindAllContracts :many
 ;
 
-SELECT id, name, company, category, start_date, end_date, contract_number, customer_number, contract_holder, billing_period, costs, currency, next_billing_date, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at
+SELECT id, name, company, category, start_date, end_date, contract_number, customer_number, contract_holder, billing_period, costs, currency, next_billing_date, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at, owner_id, split_between
 FROM contracts
 WHERE deleted_at IS NULL
 ORDER BY name ASC
@@ -64,6 +64,8 @@ func (q *Queries) FindAllContracts(ctx context.Context) ([]Contract, error) {
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.OwnerID,
+			&i.SplitBetween,
 		); err != nil {
 			return nil, err
 		}
@@ -81,7 +83,7 @@ func (q *Queries) FindAllContracts(ctx context.Context) ([]Contract, error) {
 const findContractById = `-- name: FindContractById :one
 ;
 
-SELECT id, name, company, category, start_date, end_date, contract_number, customer_number, contract_holder, billing_period, costs, currency, next_billing_date, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at
+SELECT id, name, company, category, start_date, end_date, contract_number, customer_number, contract_holder, billing_period, costs, currency, next_billing_date, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at, owner_id, split_between
 FROM contracts
 WHERE id = ?
   AND deleted_at IS NULL LIMIT 1
@@ -113,6 +115,8 @@ func (q *Queries) FindContractById(ctx context.Context, id int64) (Contract, err
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.OwnerID,
+		&i.SplitBetween,
 	)
 	return i, err
 }
@@ -150,6 +154,64 @@ func (q *Queries) FindContractHolders(ctx context.Context) ([]*string, error) {
 	return items, nil
 }
 
+const findContractsForUser = `-- name: FindContractsForUser :many
+;
+
+SELECT id, name, company, category, start_date, end_date, contract_number, customer_number, contract_holder, billing_period, costs, currency, next_billing_date, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at, owner_id, split_between
+FROM contracts
+WHERE deleted_at IS NULL
+  AND (owner_id IS NULL OR owner_id = ?1)
+ORDER BY name ASC
+`
+
+func (q *Queries) FindContractsForUser(ctx context.Context, userID *int64) ([]Contract, error) {
+	rows, err := q.db.QueryContext(ctx, findContractsForUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Contract
+	for rows.Next() {
+		var i Contract
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Company,
+			&i.Category,
+			&i.StartDate,
+			&i.EndDate,
+			&i.ContractNumber,
+			&i.CustomerNumber,
+			&i.ContractHolder,
+			&i.BillingPeriod,
+			&i.Costs,
+			&i.Currency,
+			&i.NextBillingDate,
+			&i.ContactPerson,
+			&i.ContactAddress,
+			&i.ContactPhone,
+			&i.ContactEmail,
+			&i.IconSource,
+			&i.Notes,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.OwnerID,
+			&i.SplitBetween,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertContract = `-- name: InsertContract :one
 INSERT INTO contracts (created_at,
                        updated_at,
@@ -170,7 +232,9 @@ INSERT INTO contracts (created_at,
                        contact_phone,
                        contact_email,
                        icon_source,
-                       notes)
+                       notes,
+                       owner_id,
+                       split_between)
 VALUES (CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP,
         ?1,
@@ -190,7 +254,9 @@ VALUES (CURRENT_TIMESTAMP,
         ?15,
         ?16,
         ?17,
-        ?18) RETURNING id, name, company, category, start_date, end_date, contract_number, customer_number, contract_holder, billing_period, costs, currency, next_billing_date, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at
+        ?18,
+        ?19,
+        ?20) RETURNING id, name, company, category, start_date, end_date, contract_number, customer_number, contract_holder, billing_period, costs, currency, next_billing_date, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at, owner_id, split_between
 `
 
 type InsertContractParams struct {
@@ -212,6 +278,8 @@ type InsertContractParams struct {
 	ContactEmail    *string    `db:"contact_email"`
 	IconSource      *string    `db:"icon_source"`
 	Notes           *string    `db:"notes"`
+	OwnerID         *int64     `db:"owner_id"`
+	SplitBetween    int64      `db:"split_between"`
 }
 
 func (q *Queries) InsertContract(ctx context.Context, arg InsertContractParams) (Contract, error) {
@@ -234,6 +302,8 @@ func (q *Queries) InsertContract(ctx context.Context, arg InsertContractParams) 
 		arg.ContactEmail,
 		arg.IconSource,
 		arg.Notes,
+		arg.OwnerID,
+		arg.SplitBetween,
 	)
 	var i Contract
 	err := row.Scan(
@@ -259,6 +329,8 @@ func (q *Queries) InsertContract(ctx context.Context, arg InsertContractParams) 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.OwnerID,
+		&i.SplitBetween,
 	)
 	return i, err
 }
@@ -285,8 +357,10 @@ SET name              = ?1,
     contact_email     = ?16,
     icon_source       = ?17,
     notes             = ?18,
+    owner_id          = ?19,
+    split_between     = ?20,
     updated_at        = CURRENT_TIMESTAMP
-WHERE id = ?19
+WHERE id = ?21
   AND deleted_at IS NULL
 `
 
@@ -309,6 +383,8 @@ type UpdateContractByIdParams struct {
 	ContactEmail    *string    `db:"contact_email"`
 	IconSource      *string    `db:"icon_source"`
 	Notes           *string    `db:"notes"`
+	OwnerID         *int64     `db:"owner_id"`
+	SplitBetween    int64      `db:"split_between"`
 	ID              int64      `db:"id"`
 }
 
@@ -332,6 +408,8 @@ func (q *Queries) UpdateContractById(ctx context.Context, arg UpdateContractById
 		arg.ContactEmail,
 		arg.IconSource,
 		arg.Notes,
+		arg.OwnerID,
+		arg.SplitBetween,
 		arg.ID,
 	)
 	return err

@@ -74,6 +74,8 @@ type ContractDto struct {
 	ContactEmail    *string        `json:"contact_email"`
 	IconSource      *string        `json:"icon_source"`
 	Notes           *string        `json:"notes"`
+	OwnerID         *int64         `json:"owner_id"`
+	SplitBetween    int64          `json:"split_between"`
 	CreatedAt       *time.Time     `json:"created_at"`
 	UpdatedAt       *time.Time     `json:"updated_at"`
 	Documents       []DocumentDto  `json:"documents"`
@@ -98,6 +100,8 @@ type CreateContractDto struct {
 	ContactEmail    *string   `json:"contact_email"`
 	IconSource      *string   `json:"icon_source"`
 	Notes           *string   `json:"notes"`
+	OwnerID         *int64    `json:"owner_id"`
+	SplitBetween    int64     `json:"split_between"`
 }
 
 type UpdateContractDto struct {
@@ -119,6 +123,8 @@ type UpdateContractDto struct {
 	ContactEmail    *string   `json:"contact_email"`
 	IconSource      *string   `json:"icon_source"`
 	Notes           *string   `json:"notes"`
+	OwnerID         *int64    `json:"owner_id"`
+	SplitBetween    int64     `json:"split_between"`
 }
 
 type DocumentDto struct {

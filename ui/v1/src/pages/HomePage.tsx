@@ -9,6 +9,7 @@ import {
     FunnelIcon,
     MagnifyingGlassIcon,
     PlusIcon,
+    LockClosedIcon,
     XMarkIcon
 } from "@heroicons/react/16/solid";
 import {Badge} from "../components/catalyst/badge.tsx";
@@ -24,6 +25,7 @@ import type {ContractDto, ContractHolderDto} from "../gen/types.gen.ts";
 import {ContractStatusActive, ContractStatusCancelled, ContractStatusExpired} from "../gen/types.gen.ts";
 import {Select} from "../components/catalyst/select.tsx";
 import {usePreferences} from "../stores/usePreferences.ts";
+import {useAuth} from "../stores/useAuth.ts";
 import {apiBasePath} from "../config.ts";
 import dayjs from "../lib/dayjs";
 import ImportDialog from "../components/ImportDialog.tsx";
@@ -95,10 +97,12 @@ function computeCosts(contracts: ContractDto[], mainCurrency: string) {
 export default function HomePage() {
     const {contracts, holders} = useLoaderData() as { contracts: ContractDto[]; holders: ContractHolderDto[] };
     const {mainCurrency} = usePreferences();
+    const {user: currentUser} = useAuth();
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState<string>("all");
     const [filterCategory, setFilterCategory] = useState<string>("all");
     const [filterHolder, setFilterHolder] = useState<string>("all");
+    const [filterVisibility, setFilterVisibility] = useState<string>("all");
     const [showFilters, setShowFilters] = useState(false);
     const [showImport, setShowImport] = useState(false);
     const [sortKey, setSortKey] = useState<SortKey>("name");
@@ -114,7 +118,7 @@ export default function HomePage() {
         return Array.from(cats).sort();
     }, [contracts]);
 
-    const hasActiveFilters = filterStatus !== "all" || filterCategory !== "all" || filterHolder !== "all";
+    const hasActiveFilters = filterStatus !== "all" || filterCategory !== "all" || filterHolder !== "all" || filterVisibility !== "all";
 
     const filteredContracts = useMemo(() => {
         if (!contracts) return [];
@@ -128,8 +132,13 @@ export default function HomePage() {
         if (filterHolder !== "all") {
             result = result.filter((c) => c.contract_holder === filterHolder);
         }
+        if (filterVisibility === "shared") {
+            result = result.filter((c) => !c.owner_id);
+        } else if (filterVisibility === "mine") {
+            result = result.filter((c) => c.owner_id === currentUser?.id);
+        }
         return sortContracts(result, sortKey, sortDir);
-    }, [contracts, search, filterStatus, filterCategory, filterHolder, sortKey, sortDir]);
+    }, [contracts, search, filterStatus, filterCategory, filterHolder, filterVisibility, currentUser, sortKey, sortDir]);
 
     // Costs based on filtered contracts (excluding expired)
     const filteredActive = useMemo(() => {
@@ -178,6 +187,7 @@ export default function HomePage() {
         setFilterStatus("all");
         setFilterCategory("all");
         setFilterHolder("all");
+        setFilterVisibility("all");
     };
 
     const SortButton = ({field, label}: { field: SortKey; label: string }) => (
@@ -323,43 +333,53 @@ export default function HomePage() {
             )}
 
             {/* Toolbar: Search + Actions */}
-            <div className="flex gap-2 items-center">
-                <div className="flex-grow">
-                    <InputGroup>
-                        <MagnifyingGlassIcon/>
-                        <Input
-                            type="search"
-                            name="term"
-                            placeholder="Search"
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
-                    </InputGroup>
-                </div>
-                <Button
-                    plain
-                    className={classNames(
-                        "hover:cursor-pointer relative",
-                        hasActiveFilters ? "text-zinc-950 dark:text-white" : ""
-                    )}
-                    onClick={() => setShowFilters(!showFilters)}
-                >
-                    <FunnelIcon/>
-                    {hasActiveFilters && (
-                        <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-blue-500"/>
-                    )}
-                </Button>
-                <Button plain className="hover:cursor-pointer" onClick={() => setShowImport(true)}>
-                    <ArrowUpTrayIcon/>
-                </Button>
-                <a href={`${apiBasePath}/contracts/export.csv`} download>
-                    <Button plain className="hover:cursor-pointer">
-                        <ArrowDownTrayIcon/>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <div className="flex gap-2 items-center sm:flex-grow">
+                    <div className="flex-grow">
+                        <InputGroup>
+                            <MagnifyingGlassIcon/>
+                            <Input
+                                type="search"
+                                name="term"
+                                placeholder="Search"
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                        </InputGroup>
+                    </div>
+                    {/* Mobile only: Add button next to search */}
+                    <Button className="hover:cursor-pointer sm:hidden" to="/contracts/add">
+                        <PlusIcon/>
                     </Button>
-                </a>
-                <Button className="hover:cursor-pointer" to="/contracts/add">
-                    <PlusIcon/>
-                    <span className="hidden lg:block">Add Contract</span>
-                </Button>
+                </div>
+                <div className="flex gap-1 items-center">
+                    <Button
+                        plain
+                        className={classNames(
+                            "hover:cursor-pointer relative",
+                            hasActiveFilters ? "text-zinc-950 dark:text-white" : ""
+                        )}
+                        onClick={() => setShowFilters(!showFilters)}
+                    >
+                        <FunnelIcon/>
+                        {hasActiveFilters && (
+                            <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-blue-500"/>
+                        )}
+                    </Button>
+                    <Button plain className="hover:cursor-pointer" onClick={() => setShowImport(true)}>
+                        <ArrowUpTrayIcon/>
+                    </Button>
+                    <a href={`${apiBasePath}/contracts/export.csv`} download>
+                        <Button plain className="hover:cursor-pointer">
+                            <ArrowDownTrayIcon/>
+                        </Button>
+                    </a>
+                    <span className="hidden sm:inline-flex ml-auto">
+                        <Button className="hover:cursor-pointer" to="/contracts/add">
+                            <PlusIcon/>
+                            <span className="hidden lg:block">Add Contract</span>
+                        </Button>
+                    </span>
+                </div>
             </div>
 
             {/* Filter Panel (collapsible) */}
@@ -394,6 +414,15 @@ export default function HomePage() {
                         {holders?.map((h) => (
                             <option key={h.name} value={h.name}>{h.name}</option>
                         ))}
+                    </Select>
+                    <Select
+                        className="w-full sm:w-auto text-sm !py-1"
+                        value={filterVisibility}
+                        onChange={(e) => setFilterVisibility(e.target.value)}
+                    >
+                        <option value="all">All Contracts</option>
+                        <option value="shared">Shared</option>
+                        <option value="mine">My Personal</option>
                     </Select>
                     {hasActiveFilters && (
                         <button
@@ -453,29 +482,50 @@ export default function HomePage() {
 
                             <Avatar
                                 square={true}
-                                className={classNames("w-10 h-10", contract?.icon_source ? '' : 'dark:invert')}
+                                className={classNames("w-10 h-10 shrink-0", contract?.icon_source ? '' : 'dark:invert')}
                                 src={contract?.icon_source || image}/>
 
                             <div className="flex flex-col grow min-w-0">
-                                <div className="flex items-center gap-2">
-                                    <span className="truncate text-base/6 font-semibold text-zinc-950 dark:text-white">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="truncate text-base/6 sm:text-sm/6 font-semibold text-zinc-950 dark:text-white">
                                         {contract.name}
                                     </span>
-                                    <Badge color={statusColor(contract.status)} className="shrink-0 text-xs">
+                                    <span className="hidden sm:inline-flex">
+                                        <Badge color={statusColor(contract.status)} className="shrink-0 text-xs">
+                                            {contract.status}
+                                        </Badge>
+                                    </span>
+                                    {contract.owner_id && (
+                                        <LockClosedIcon className="size-3 shrink-0 text-zinc-400 dark:text-zinc-500" title="Personal"/>
+                                    )}
+                                </div>
+                                <div className="text-xs sm:text-sm/6 text-zinc-500 dark:text-zinc-400 truncate">
+                                    {[contract.company, contract.contract_holder].filter(Boolean).join(' · ')}
+                                </div>
+                                {/* Mobile: status + costs under subtitle */}
+                                <div className="flex items-center gap-1.5 mt-0.5 sm:hidden">
+                                    <Badge color={statusColor(contract.status)} className="text-xs">
                                         {contract.status}
                                     </Badge>
-                                </div>
-                                <div className="text-sm/6 text-zinc-500 dark:text-zinc-400">
-                                    {contract.company}
+                                    {contract.costs && (
+                                        <span className="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
+                                            {formatCurrency(contract.costs, contract.currency)}
+                                            {contract.billing_period ? ` ${billingPeriodShorthand(contract.billing_period)}` : ''}
+                                            {contract.split_between > 1 ? ` ÷${contract.split_between}` : ''}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
+                            {/* Desktop: costs badge */}
                             {contract.costs &&
-                                <Badge className="shrink-0">
-                                    {formatCurrency(contract.costs, contract.currency) + (contract.billing_period ? ` ${billingPeriodShorthand(contract.billing_period)}` : '')}
-                                </Badge>
+                                <span className="hidden sm:inline-flex">
+                                    <Badge className="shrink-0">
+                                        {formatCurrency(contract.costs, contract.currency) + (contract.billing_period ? ` ${billingPeriodShorthand(contract.billing_period)}` : '') + (contract.split_between > 1 ? ` ÷${contract.split_between}` : '')}
+                                    </Badge>
+                                </span>
                             }
-                            <ChevronRightIcon className="h-5 w-5 shrink-0 text-zinc-950 dark:text-white"/>
+                            <ChevronRightIcon className="h-5 w-5 shrink-0 text-zinc-950 dark:text-white hidden sm:block"/>
                         </NavLink>
                     </li>
                 )}

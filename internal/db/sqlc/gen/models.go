@@ -40,6 +40,8 @@ type Contract struct {
 	CreatedAt       *time.Time `db:"created_at"`
 	UpdatedAt       *time.Time `db:"updated_at"`
 	DeletedAt       *time.Time `db:"deleted_at"`
+	OwnerID         *int64     `db:"owner_id"`
+	SplitBetween    int64      `db:"split_between"`
 }
 
 type Document struct {

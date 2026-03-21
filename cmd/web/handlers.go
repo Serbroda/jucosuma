@@ -19,7 +19,15 @@ import (
 )
 
 func (app *application) getContracts(ctx echo.Context) error {
-	contracts, err := app.queries.FindAllContracts(ctx.Request().Context())
+	user := ctx.Get("user").(sqlc.User)
+
+	var contracts []sqlc.Contract
+	var err error
+	if user.Role == "admin" {
+		contracts, err = app.queries.FindAllContracts(ctx.Request().Context())
+	} else {
+		contracts, err = app.queries.FindContractsForUser(ctx.Request().Context(), &user.ID)
+	}
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -32,6 +40,7 @@ func (app *application) getContracts(ctx echo.Context) error {
 }
 
 func (app *application) getContractById(ctx echo.Context) error {
+	user := ctx.Get("user").(sqlc.User)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
@@ -41,6 +50,11 @@ func (app *application) getContractById(ctx echo.Context) error {
 	contract, err := app.queries.FindContractById(ctx.Request().Context(), id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	// Check access: admins see everything, users see shared + own
+	if user.Role != "admin" && contract.OwnerID != nil && *contract.OwnerID != user.ID {
+		return echo.NewHTTPError(http.StatusForbidden, "access denied")
 	}
 
 	contractDto := dtos.MapContractToContractDto(contract)
@@ -118,14 +132,25 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			ContactEmail:    payload.ContactEmail,
 			IconSource:      payload.IconSource,
 			Notes:           payload.Notes,
+			OwnerID:         payload.OwnerID,
+			SplitBetween:    maxInt64(payload.SplitBetween, 1),
 		})
 		if err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 		contract = &inserted
 	} else {
-		// UpdateContractById liefert keinen Contract zurück, daher nachladen
-		err := qtx.UpdateContractById(ctx, sqlc.UpdateContractByIdParams{
+		// Check access on update
+		existing, err := qtx.FindContractById(ctx, *id)
+		if err != nil {
+			return nil, echo.NewHTTPError(http.StatusNotFound, "contract not found")
+		}
+		user := c.Get("user").(sqlc.User)
+		if user.Role != "admin" && existing.OwnerID != nil && *existing.OwnerID != user.ID {
+			return nil, echo.NewHTTPError(http.StatusForbidden, "access denied")
+		}
+
+		err = qtx.UpdateContractById(ctx, sqlc.UpdateContractByIdParams{
 			ID:              *id,
 			Name:            payload.Name,
 			Company:         payload.Company,
@@ -145,6 +170,8 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			ContactEmail:    payload.ContactEmail,
 			IconSource:      payload.IconSource,
 			Notes:           payload.Notes,
+			OwnerID:         payload.OwnerID,
+			SplitBetween:    maxInt64(payload.SplitBetween, 1),
 		})
 		if err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -247,6 +274,13 @@ func (app *application) exportContractsCSV(ctx echo.Context) error {
 	return nil
 }
 
+func maxInt64(a, b int64) int64 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 func csvEscape(s string) string {
 	if strings.ContainsAny(s, ";,\"\n") {
 		return `"` + strings.ReplaceAll(s, `"`, `""`) + `"`
@@ -280,11 +314,21 @@ func formatFloat(f *float64) string {
 }
 
 func (app *application) deleteContract(ctx echo.Context) error {
+	user := ctx.Get("user").(sqlc.User)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
+
+	contract, err := app.queries.FindContractById(ctx.Request().Context(), id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "contract not found")
+	}
+	if user.Role != "admin" && contract.OwnerID != nil && *contract.OwnerID != user.ID {
+		return echo.NewHTTPError(http.StatusForbidden, "access denied")
+	}
+
 	err = app.queries.DeleteContractSoft(ctx.Request().Context(), id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())

@@ -18,7 +18,9 @@ INSERT INTO contracts (created_at,
                        contact_phone,
                        contact_email,
                        icon_source,
-                       notes)
+                       notes,
+                       owner_id,
+                       split_between)
 VALUES (CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP,
         sqlc.arg('name'),
@@ -38,7 +40,9 @@ VALUES (CURRENT_TIMESTAMP,
         sqlc.arg('contact_phone'),
         sqlc.arg('contact_email'),
         sqlc.arg('icon_source'),
-        sqlc.arg('notes')) RETURNING *
+        sqlc.arg('notes'),
+        sqlc.arg('owner_id'),
+        sqlc.arg('split_between')) RETURNING *
 ;
 
 -- name: FindContractById :one
@@ -52,6 +56,14 @@ WHERE id = ?
 SELECT *
 FROM contracts
 WHERE deleted_at IS NULL
+ORDER BY name ASC
+;
+
+-- name: FindContractsForUser :many
+SELECT *
+FROM contracts
+WHERE deleted_at IS NULL
+  AND (owner_id IS NULL OR owner_id = sqlc.arg('user_id'))
 ORDER BY name ASC
 ;
 
@@ -75,6 +87,8 @@ SET name              = sqlc.arg('name'),
     contact_email     = sqlc.arg('contact_email'),
     icon_source       = sqlc.arg('icon_source'),
     notes             = sqlc.arg('notes'),
+    owner_id          = sqlc.arg('owner_id'),
+    split_between     = sqlc.arg('split_between'),
     updated_at        = CURRENT_TIMESTAMP
 WHERE id = sqlc.arg('id')
   AND deleted_at IS NULL

@@ -28,13 +28,15 @@ func MapContractToContractDto(item sqlc.Contract) ContractDto {
 		ContactEmail:   item.ContactEmail,
 		IconSource:     item.IconSource,
 		Notes:          item.Notes,
+		OwnerID:        item.OwnerID,
+		SplitBetween:   item.SplitBetween,
 		CreatedAt:      item.CreatedAt,
 		UpdatedAt:      item.UpdatedAt,
 	}
 
 	dto.Status = computeStatus(item.EndDate)
 	dto.NextBillingDate = computeNextBillingDate(item.NextBillingDate, item.StartDate, item.BillingPeriod)
-	dto.MonthlyCosts = computeMonthlyCosts(item.Costs, item.BillingPeriod)
+	dto.MonthlyCosts = computeMonthlyCosts(item.Costs, item.BillingPeriod, item.SplitBetween)
 
 	return dto
 }
@@ -102,7 +104,7 @@ func addBillingPeriod(t time.Time, period string) time.Time {
 	}
 }
 
-func computeMonthlyCosts(costs *float64, billingPeriod string) *float64 {
+func computeMonthlyCosts(costs *float64, billingPeriod string, splitBetween int64) *float64 {
 	if costs == nil || *costs == 0 {
 		return nil
 	}
@@ -132,6 +134,9 @@ func computeMonthlyCosts(costs *float64, billingPeriod string) *float64 {
 	}
 
 	monthly := *costs * factor
+	if splitBetween > 1 {
+		monthly = monthly / float64(splitBetween)
+	}
 	return &monthly
 }
 

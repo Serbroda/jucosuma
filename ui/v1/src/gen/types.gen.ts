@@ -43,6 +43,8 @@ export interface ContractDto {
   contact_email?: string;
   icon_source?: string;
   notes?: string;
+  owner_id?: number /* int64 */;
+  split_between: number /* int64 */;
   created_at?: string /* RFC3339 */;
   updated_at?: string /* RFC3339 */;
   documents: DocumentDto[];
@@ -66,6 +68,8 @@ export interface CreateContractDto {
   contact_email?: string;
   icon_source?: string;
   notes?: string;
+  owner_id?: number /* int64 */;
+  split_between: number /* int64 */;
 }
 export interface UpdateContractDto {
   name: string;
@@ -86,6 +90,8 @@ export interface UpdateContractDto {
   contact_email?: string;
   icon_source?: string;
   notes?: string;
+  owner_id?: number /* int64 */;
+  split_between: number /* int64 */;
 }
 export interface DocumentDto {
   id: number /* int64 */;

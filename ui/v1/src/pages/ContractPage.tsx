@@ -150,11 +150,25 @@ export default function ContractPage() {
                     <DescriptionDetails>{billingPeriodLabel(c?.billing_period)}</DescriptionDetails>
                     {c?.costs != null && <>
                         <DescriptionTerm>Costs</DescriptionTerm>
-                        <DescriptionDetails>{formatCurrency(c.costs, c.currency)}</DescriptionDetails>
+                        <DescriptionDetails>
+                            {formatCurrency(c.costs, c.currency)}
+                            {c.split_between > 1 && (
+                                <span className="text-zinc-400 dark:text-zinc-500 ml-1">
+                                    (split by {c.split_between})
+                                </span>
+                            )}
+                        </DescriptionDetails>
                     </>}
                     {hasRecurringBilling && c?.monthly_costs != null && <>
                         <DescriptionTerm>Monthly Costs</DescriptionTerm>
-                        <DescriptionDetails>{formatCurrency(c.monthly_costs, c.currency)}</DescriptionDetails>
+                        <DescriptionDetails>
+                            {formatCurrency(c.monthly_costs, c.currency)}
+                            {c.split_between > 1 && (
+                                <span className="text-zinc-400 dark:text-zinc-500 ml-1">
+                                    (your share)
+                                </span>
+                            )}
+                        </DescriptionDetails>
                     </>}
                     {hasRecurringBilling && c?.next_billing_date && <>
                         <DescriptionTerm>Next Billing Date</DescriptionTerm>

@@ -38,6 +38,8 @@ export const contractAction: ActionFunction = async ({request, params}) => {
         contact_email: form.get("contact_email") as string,
         icon_source: form.get("icon_source") as string || undefined,
         notes: form.get("notes") as string || undefined,
+        owner_id: form.get("owner_id") ? Number(form.get("owner_id")) : undefined,
+        split_between: Number(form.get("split_between")) || 1,
     };
 
     // 3) Neues FormData für den Backend-Request

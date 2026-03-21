@@ -18,6 +18,7 @@ import {useEffect, useRef, useState} from "react";
 import {ErrorMessage} from "./catalyst/fieldset.tsx";
 import {apiBasePath} from "../config.ts";
 import {apiFetch} from "../lib/fetch.ts";
+import {useAuth} from "../stores/useAuth.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import image from "../assets/image.png";
 import {Textarea} from "./catalyst/textarea.tsx";
@@ -39,7 +40,9 @@ export interface ContractFormProps {
 export default function ContractForm({contract, holders, categories, mode = 'add', error}: ContractFormProps) {
     const navigation = useNavigate();
     const {state} = useNavigation();
+    const {user: currentUser} = useAuth();
     const isEdit = mode === 'edit';
+    const [isPersonal, setIsPersonal] = useState(contract.owner_id != null);
     const [nameError, setNameError] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
     const isBusy = state === 'submitting' || isDeleting;
@@ -237,6 +240,22 @@ export default function ContractForm({contract, holders, categories, mode = 'add
                     </Select>
                 </Field>
 
+                <Field>
+                    <Label>Visibility</Label>
+                    <Select
+                        value={isPersonal ? "personal" : "shared"}
+                        onChange={(e) => setIsPersonal(e.target.value === "personal")}
+                    >
+                        <option value="shared">Shared (Household)</option>
+                        <option value="personal">Personal (Only me)</option>
+                    </Select>
+                    <Input
+                        type="hidden"
+                        name="owner_id"
+                        value={isPersonal ? String(currentUser?.id ?? "") : ""}
+                    />
+                </Field>
+
                 <Divider className="mt-6"/>
                 <Subheading>Details</Subheading>
                 <Field>
@@ -320,7 +339,7 @@ export default function ContractForm({contract, holders, categories, mode = 'add
                 </Field>
 
                 {hasBilling && (
-                    <div className="grid grid-cols-[1fr_auto] gap-2">
+                    <div className="grid grid-cols-[1fr_5.5rem_4rem] gap-2">
                         <Field>
                             <Label>Costs</Label>
                             <Input
@@ -336,13 +355,21 @@ export default function ContractForm({contract, holders, categories, mode = 'add
                             <Select
                                 name="currency"
                                 defaultValue={contract.currency ?? "EUR"}
-                                className="w-24"
                             >
                                 <option value="EUR">EUR</option>
                                 <option value="USD">USD</option>
                                 <option value="GBP">GBP</option>
                                 <option value="CHF">CHF</option>
                             </Select>
+                        </Field>
+                        <Field>
+                            <Label>Split</Label>
+                            <Input
+                                type="number"
+                                name="split_between"
+                                min="1"
+                                defaultValue={contract.split_between ?? 1}
+                            />
                         </Field>
                     </div>
                 )}
