@@ -65,12 +65,11 @@ export default function HomePage() {
                                             className="truncate text-base/6 font-semibold text-zinc-950 dark:text-white">{contract.name}</div>
                                         <div
                                             className="text-sm/6 text-zinc-500 dark:text-zinc-400">
-                                            <span
-                                                className="capitalize">{contract.contract_type}</span> - {contract.company}
+                                            {contract.company}
                                         </div>
                                     </div>
 
-                                    {contract.costs && <Badge className="shrink-0">{formatCurrency(contract.costs) + (contract.billing_period ? ` ${billingPeriodShorthand(contract.billing_period)}` : '')}</Badge>}
+                                    {contract.costs && <Badge className="shrink-0">{formatCurrency(contract.costs, contract.currency) + (contract.billing_period ? ` ${billingPeriodShorthand(contract.billing_period)}` : '')}</Badge>}
                                     <ChevronRightIcon className={"h-5 w-5 shrink-0 text-zinc-950 dark:text-white"}/>
                                 </NavLink>
                             </li>

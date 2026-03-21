@@ -9,6 +9,8 @@ export interface LogoDto {
   logo: string;
 }
 export type BillingPeriod = string;
+export const BillingPeriodNone: BillingPeriod = "none";
+export const BillingPeriodOneTime: BillingPeriod = "one_time";
 export const BillingPeriodWeekly: BillingPeriod = "weekly";
 export const BillingPeriodMonthly: BillingPeriod = "monthly";
 export const BillingPeriodQuarterly: BillingPeriod = "quarterly";
@@ -19,15 +21,16 @@ export interface ContractDto {
   id: number /* int64 */;
   name: string;
   company?: string;
-  contract_type: string;
   category: string;
   start_date: DateOnly;
   end_date?: DateOnly;
   contract_number?: string;
   customer_number?: string;
   contract_holder?: string;
-  costs?: number /* float64 */;
   billing_period: string;
+  costs?: number /* float64 */;
+  currency?: string;
+  next_billing_date?: DateOnly;
   contact_person?: string;
   contact_address?: string;
   contact_phone?: string;
@@ -41,15 +44,16 @@ export interface ContractDto {
 export interface CreateContractDto {
   name: string;
   company?: string;
-  contract_type: string;
   category: string;
   start_date: DateOnly;
   end_date?: DateOnly;
   contract_number?: string;
   customer_number?: string;
   contract_holder?: string;
-  costs?: number /* float64 */;
   billing_period: string;
+  costs?: number /* float64 */;
+  currency?: string;
+  next_billing_date?: DateOnly;
   contact_person?: string;
   contact_address?: string;
   contact_phone?: string;
@@ -60,15 +64,16 @@ export interface CreateContractDto {
 export interface UpdateContractDto {
   name: string;
   company?: string;
-  contract_type: string;
   category: string;
   start_date: DateOnly;
   end_date?: DateOnly;
   contract_number?: string;
   customer_number?: string;
   contract_holder?: string;
-  costs?: number /* float64 */;
   billing_period: string;
+  costs?: number /* float64 */;
+  currency?: string;
+  next_billing_date?: DateOnly;
   contact_person?: string;
   contact_address?: string;
   contact_phone?: string;

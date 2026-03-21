@@ -1,7 +1,7 @@
 import {
     BillingPeriodAnnually,
     BillingPeriodEveryTwoYears,
-    BillingPeriodMonthly,
+    BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime,
     BillingPeriodQuarterly, BillingPeriodSemiannual,
     BillingPeriodWeekly,
     type ContractDto, type ContractHolderDto, type DocumentDto
@@ -10,7 +10,6 @@ import {Avatar} from "./catalyst/avatar.tsx";
 import {Field, Label} from "./catalyst/fieldset.tsx";
 import {Input} from "./catalyst/input.tsx";
 import {Select} from "./catalyst/select.tsx";
-import {Radio, RadioField, RadioGroup} from "./catalyst/radio.tsx";
 import {Divider} from "./catalyst/divider.tsx";
 import {Subheading} from "./catalyst/heading.tsx";
 import {Button} from "./catalyst/button.tsx";
@@ -201,31 +200,6 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
                     </Select>
                 </Field>
 
-                <Field>
-                    <Label>Type</Label>
-                    <RadioGroup
-                        name="contract_type"
-                        defaultValue={contract.contract_type ?? "contract"}
-                    >
-                        <RadioField>
-                            <Radio
-                                value="contract"
-                                defaultChecked={contract.contract_type === "contract"}
-                                className="hover:cursor-pointer"
-                            />
-                            <Label>Contract</Label>
-                        </RadioField>
-                        <RadioField>
-                            <Radio
-                                value="subscription"
-                                defaultChecked={contract.contract_type === "subscription"}
-                                className="hover:cursor-pointer"
-                            />
-                            <Label>Subscription</Label>
-                        </RadioField>
-                    </RadioGroup>
-                </Field>
-
                 <Divider className="mt-6"/>
                 <Subheading>Details</Subheading>
                 <Field>
@@ -290,8 +264,25 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
 
 
                 <Divider className="mt-6"/>
-                <Subheading>Costs</Subheading>
+                <Subheading>Billing</Subheading>
                 <Field>
+                    <Label>Billing Period</Label>
+                    <Select
+                        name="billing_period"
+                        defaultValue={contract.billing_period ?? "none"}
+                    >
+                        <option value={BillingPeriodNone}>None</option>
+                        <option value={BillingPeriodOneTime}>One Time</option>
+                        <option value={BillingPeriodWeekly}>Weekly</option>
+                        <option value={BillingPeriodMonthly}>Monthly</option>
+                        <option value={BillingPeriodQuarterly}>Quarterly</option>
+                        <option value={BillingPeriodSemiannual}>Semiannually</option>
+                        <option value={BillingPeriodAnnually}>Annually</option>
+                        <option value={BillingPeriodEveryTwoYears}>Every two years</option>
+                    </Select>
+                </Field>
+
+                <Field disabled={contract.billing_period === BillingPeriodNone}>
                     <Label>Costs</Label>
                     <Input
                         type="text"
@@ -302,18 +293,29 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
                 </Field>
 
                 <Field>
-                    <Label>Billing Period</Label>
+                    <Label>Currency</Label>
                     <Select
-                        name="billing_period"
-                        defaultValue={contract.billing_period ?? "weekly"}
+                        name="currency"
+                        defaultValue={contract.currency ?? "EUR"}
                     >
-                        <option value={BillingPeriodWeekly}>Weekly</option>
-                        <option value={BillingPeriodMonthly}>Monthly</option>
-                        <option value={BillingPeriodQuarterly}>Quarterly</option>
-                        <option value={BillingPeriodSemiannual}>Semiannually</option>
-                        <option value={BillingPeriodAnnually}>Annually</option>
-                        <option value={BillingPeriodEveryTwoYears}>Every two years</option>
+                        <option value="EUR">EUR</option>
+                        <option value="USD">USD</option>
+                        <option value="GBP">GBP</option>
+                        <option value="CHF">CHF</option>
                     </Select>
+                </Field>
+
+                <Field>
+                    <Label>Next Billing Date</Label>
+                    <Input
+                        type="date"
+                        name="next_billing_date"
+                        defaultValue={
+                            contract.next_billing_date
+                                ? dayjs(contract.next_billing_date).format("YYYY-MM-DD")
+                                : ""
+                        }
+                    />
                 </Field>
 
                 <Divider className="mt-6"/>

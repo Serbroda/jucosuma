@@ -2,14 +2,14 @@ function range(size: number, startAt = 0) {
     return [...Array(size).keys()].map(i => i + startAt);
 }
 
-function formatCurrency(value: number | undefined | null): string {
+function formatCurrency(value: number | undefined | null, currency?: string): string {
     if (!value) {
         return '';
     }
 
     const formatter = new Intl.NumberFormat('de-DE', {
         style: 'currency',
-        currency: 'EUR',
+        currency: currency || 'EUR',
     });
     return formatter.format(value);
 }

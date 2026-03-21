@@ -21,7 +21,6 @@ export const contractAction: ActionFunction = async ({request, params}) => {
     const meta: Partial<ContractDto> = {
         name: form.get("name") as string,
         company: form.get("company") as string || undefined,
-        contract_type: form.get("contract_type") as string,
         category: form.get("category") as string,
         start_date: form.get("start_date") as string,
         end_date: form.get("end_date") as string || undefined,
@@ -30,6 +29,8 @@ export const contractAction: ActionFunction = async ({request, params}) => {
         contract_holder: form.get("contract_holder") as string || undefined,
         costs: formatCurrency(form.get("costs")),
         billing_period: form.get("billing_period") as string,
+        currency: form.get("currency") as string || undefined,
+        next_billing_date: form.get("next_billing_date") as string || undefined,
         contact_person: form.get("contact_person") as string,
         contact_address: form.get("contact_address") as string,
         contact_phone: form.get("contact_phone") as string,

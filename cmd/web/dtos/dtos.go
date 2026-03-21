@@ -34,6 +34,8 @@ type LogoDto struct {
 type BillingPeriod string
 
 const (
+	BillingPeriodNone          BillingPeriod = "none"
+	BillingPeriodOneTime       BillingPeriod = "one_time"
 	BillingPeriodWeekly        BillingPeriod = "weekly"
 	BillingPeriodMonthly       BillingPeriod = "monthly"
 	BillingPeriodQuarterly     BillingPeriod = "quarterly"
@@ -43,67 +45,70 @@ const (
 )
 
 type ContractDto struct {
-	ID             int64         `json:"id"`
-	Name           string        `json:"name"`
-	Company        *string       `json:"company"`
-	ContractType   string        `json:"contract_type"`
-	Category       string        `json:"category"`
-	StartDate      DateOnly      `json:"start_date"`
-	EndDate        *DateOnly     `json:"end_date"`
-	ContractNumber *string       `json:"contract_number"`
-	CustomerNumber *string       `json:"customer_number"`
-	ContractHolder *string       `json:"contract_holder"`
-	Costs          *float64      `json:"costs"`
-	BillingPeriod  string        `json:"billing_period"`
-	ContactPerson  *string       `json:"contact_person"`
-	ContactAddress *string       `json:"contact_address"`
-	ContactPhone   *string       `json:"contact_phone"`
-	ContactEmail   *string       `json:"contact_email"`
-	IconSource     *string       `json:"icon_source"`
-	Notes          *string       `json:"notes"`
-	CreatedAt      *time.Time    `json:"created_at"`
-	UpdatedAt      *time.Time    `json:"updated_at"`
-	Documents      []DocumentDto `json:"documents"`
+	ID              int64         `json:"id"`
+	Name            string        `json:"name"`
+	Company         *string       `json:"company"`
+	Category        string        `json:"category"`
+	StartDate       DateOnly      `json:"start_date"`
+	EndDate         *DateOnly     `json:"end_date"`
+	ContractNumber  *string       `json:"contract_number"`
+	CustomerNumber  *string       `json:"customer_number"`
+	ContractHolder  *string       `json:"contract_holder"`
+	BillingPeriod   string        `json:"billing_period"`
+	Costs           *float64      `json:"costs"`
+	Currency        *string       `json:"currency"`
+	NextBillingDate *DateOnly     `json:"next_billing_date"`
+	ContactPerson   *string       `json:"contact_person"`
+	ContactAddress  *string       `json:"contact_address"`
+	ContactPhone    *string       `json:"contact_phone"`
+	ContactEmail    *string       `json:"contact_email"`
+	IconSource      *string       `json:"icon_source"`
+	Notes           *string       `json:"notes"`
+	CreatedAt       *time.Time    `json:"created_at"`
+	UpdatedAt       *time.Time    `json:"updated_at"`
+	Documents       []DocumentDto `json:"documents"`
 }
 
 type CreateContractDto struct {
-	Name           string    `json:"name" validate:"required,min=1,max=256"`
-	Company        *string   `json:"company"`
-	ContractType   string    `json:"contract_type" validate:"required,min=1,max=256"`
-	Category       string    `json:"category"`
-	StartDate      DateOnly  `json:"start_date"`
-	EndDate        *DateOnly `json:"end_date"`
-	ContractNumber *string   `json:"contract_number"`
-	CustomerNumber *string   `json:"customer_number"`
-	ContractHolder *string   `json:"contract_holder"`
-	Costs          *float64  `json:"costs"`
-	BillingPeriod  string    `json:"billing_period"`
-	ContactPerson  *string   `json:"contact_person"`
-	ContactAddress *string   `json:"contact_address"`
-	ContactPhone   *string   `json:"contact_phone"`
-	ContactEmail   *string   `json:"contact_email"`
-	IconSource     *string   `json:"icon_source"`
-	Notes          *string   `json:"notes"`
+	Name            string    `json:"name" validate:"required,min=1,max=256"`
+	Company         *string   `json:"company"`
+	Category        string    `json:"category"`
+	StartDate       DateOnly  `json:"start_date"`
+	EndDate         *DateOnly `json:"end_date"`
+	ContractNumber  *string   `json:"contract_number"`
+	CustomerNumber  *string   `json:"customer_number"`
+	ContractHolder  *string   `json:"contract_holder"`
+	BillingPeriod   string    `json:"billing_period"`
+	Costs           *float64  `json:"costs"`
+	Currency        *string   `json:"currency"`
+	NextBillingDate *DateOnly `json:"next_billing_date"`
+	ContactPerson   *string   `json:"contact_person"`
+	ContactAddress  *string   `json:"contact_address"`
+	ContactPhone    *string   `json:"contact_phone"`
+	ContactEmail    *string   `json:"contact_email"`
+	IconSource      *string   `json:"icon_source"`
+	Notes           *string   `json:"notes"`
 }
 
 type UpdateContractDto struct {
-	Name           string    `json:"name" validate:"required,min=1,max=256"`
-	Company        *string   `json:"company"`
-	ContractType   string    `json:"contract_type" validate:"required,min=1,max=256"`
-	Category       string    `json:"category"`
-	StartDate      DateOnly  `json:"start_date"`
-	EndDate        *DateOnly `json:"end_date"`
-	ContractNumber *string   `json:"contract_number"`
-	CustomerNumber *string   `json:"customer_number"`
-	ContractHolder *string   `json:"contract_holder"`
-	Costs          *float64  `json:"costs"`
-	BillingPeriod  string    `json:"billing_period"`
-	ContactPerson  *string   `json:"contact_person"`
-	ContactAddress *string   `json:"contact_address"`
-	ContactPhone   *string   `json:"contact_phone"`
-	ContactEmail   *string   `json:"contact_email"`
-	IconSource     *string   `json:"icon_source"`
-	Notes          *string   `json:"notes"`
+	Name            string    `json:"name" validate:"required,min=1,max=256"`
+	Company         *string   `json:"company"`
+	Category        string    `json:"category"`
+	StartDate       DateOnly  `json:"start_date"`
+	EndDate         *DateOnly `json:"end_date"`
+	ContractNumber  *string   `json:"contract_number"`
+	CustomerNumber  *string   `json:"customer_number"`
+	ContractHolder  *string   `json:"contract_holder"`
+	BillingPeriod   string    `json:"billing_period"`
+	Costs           *float64  `json:"costs"`
+	Currency        *string   `json:"currency"`
+	NextBillingDate *DateOnly `json:"next_billing_date"`
+	ContactPerson   *string   `json:"contact_person"`
+	ContactAddress  *string   `json:"contact_address"`
+	ContactPhone    *string   `json:"contact_phone"`
+	ContactEmail    *string   `json:"contact_email"`
+	IconSource      *string   `json:"icon_source"`
+	Notes           *string   `json:"notes"`
 }
 
 type DocumentDto struct {

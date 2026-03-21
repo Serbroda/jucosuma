@@ -1,7 +1,7 @@
 import {
     BillingPeriodAnnually,
     BillingPeriodEveryTwoYears,
-    BillingPeriodMonthly,
+    BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime,
     BillingPeriodQuarterly, BillingPeriodSemiannual,
     BillingPeriodWeekly
 } from "../gen/types.gen.ts";
@@ -12,6 +12,10 @@ function billingPeriodShorthand(period: string | undefined | null): string {
     }
 
     switch (period) {
+        case BillingPeriodNone:
+            return '';
+        case BillingPeriodOneTime:
+            return 'Once';
         case BillingPeriodWeekly:
             return 'Wk';
         case BillingPeriodMonthly:

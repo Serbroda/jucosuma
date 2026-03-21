@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Serbroda/contracts/cmd/web/dtos"
@@ -99,23 +100,24 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 	var contract *sqlc.Contract
 	if id == nil {
 		inserted, err := qtx.InsertContract(ctx, sqlc.InsertContractParams{
-			Name:           payload.Name,
-			Company:        payload.Company,
-			ContractType:   payload.ContractType,
-			Category:       payload.Category,
-			StartDate:      time.Time(payload.StartDate),
-			EndDate:        (*time.Time)(payload.EndDate),
-			ContractNumber: payload.ContractNumber,
-			CustomerNumber: payload.CustomerNumber,
-			ContractHolder: utils.TrimToNil(payload.ContractHolder),
-			Costs:          payload.Costs,
-			BillingPeriod:  payload.BillingPeriod,
-			ContactPerson:  payload.ContactPerson,
-			ContactAddress: payload.ContactAddress,
-			ContactPhone:   payload.ContactPhone,
-			ContactEmail:   payload.ContactEmail,
-			IconSource:     payload.IconSource,
-			Notes:          payload.Notes,
+			Name:            payload.Name,
+			Company:         payload.Company,
+			Category:        payload.Category,
+			StartDate:       time.Time(payload.StartDate),
+			EndDate:         (*time.Time)(payload.EndDate),
+			ContractNumber:  payload.ContractNumber,
+			CustomerNumber:  payload.CustomerNumber,
+			ContractHolder:  utils.TrimToNil(payload.ContractHolder),
+			BillingPeriod:   strings.ToUpper(payload.BillingPeriod),
+			Costs:           payload.Costs,
+			Currency:        payload.Currency,
+			NextBillingDate: (*time.Time)(payload.NextBillingDate),
+			ContactPerson:   payload.ContactPerson,
+			ContactAddress:  payload.ContactAddress,
+			ContactPhone:    payload.ContactPhone,
+			ContactEmail:    payload.ContactEmail,
+			IconSource:      payload.IconSource,
+			Notes:           payload.Notes,
 		})
 		if err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -124,24 +126,25 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 	} else {
 		// UpdateContractById liefert keinen Contract zurück, daher nachladen
 		err := qtx.UpdateContractById(ctx, sqlc.UpdateContractByIdParams{
-			ID:             *id,
-			Name:           payload.Name,
-			Company:        payload.Company,
-			ContractType:   payload.ContractType,
-			Category:       payload.Category,
-			StartDate:      time.Time(payload.StartDate),
-			EndDate:        (*time.Time)(payload.EndDate),
-			ContractNumber: payload.ContractNumber,
-			CustomerNumber: payload.CustomerNumber,
-			ContractHolder: utils.TrimToNil(payload.ContractHolder),
-			Costs:          payload.Costs,
-			BillingPeriod:  payload.BillingPeriod,
-			ContactPerson:  payload.ContactPerson,
-			ContactAddress: payload.ContactAddress,
-			ContactPhone:   payload.ContactPhone,
-			ContactEmail:   payload.ContactEmail,
-			IconSource:     payload.IconSource,
-			Notes:          payload.Notes,
+			ID:              *id,
+			Name:            payload.Name,
+			Company:         payload.Company,
+			Category:        payload.Category,
+			StartDate:       time.Time(payload.StartDate),
+			EndDate:         (*time.Time)(payload.EndDate),
+			ContractNumber:  payload.ContractNumber,
+			CustomerNumber:  payload.CustomerNumber,
+			ContractHolder:  utils.TrimToNil(payload.ContractHolder),
+			BillingPeriod:   strings.ToUpper(payload.BillingPeriod),
+			Costs:           payload.Costs,
+			Currency:        payload.Currency,
+			NextBillingDate: (*time.Time)(payload.NextBillingDate),
+			ContactPerson:   payload.ContactPerson,
+			ContactAddress:  payload.ContactAddress,
+			ContactPhone:    payload.ContactPhone,
+			ContactEmail:    payload.ContactEmail,
+			IconSource:      payload.IconSource,
+			Notes:           payload.Notes,
 		})
 		if err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())

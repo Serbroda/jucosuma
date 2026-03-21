@@ -80,7 +80,7 @@ export default function ContractPage() {
                             <Tooltip text="Costs">
                                 <HeaderDetails
                                     icon={<BanknotesIcon className="size-4 fill-zinc-400 dark:fill-zinc-500"/>}
-                                    info={formatCurrency(data?.contract.costs)}
+                                    info={formatCurrency(data?.contract.costs, data?.contract.currency)}
                                 />
                             </Tooltip>
                         }
@@ -103,8 +103,6 @@ export default function ContractPage() {
                     <DescriptionDetails>{data?.contract.company}</DescriptionDetails>
                     <DescriptionTerm>Category</DescriptionTerm>
                     <DescriptionDetails>{data?.contract.category}</DescriptionDetails>
-                    <DescriptionTerm>Type</DescriptionTerm>
-                    <DescriptionDetails className="capitalize">{data?.contract.contract_type}</DescriptionDetails>
                 </DescriptionList>
 
                 <Subheading className="mt-10">Details</Subheading>
@@ -122,13 +120,17 @@ export default function ContractPage() {
                     <DescriptionDetails>{data?.contract.contract_holder}</DescriptionDetails>
                 </DescriptionList>
 
-                <Subheading className="mt-10">Costs</Subheading>
+                <Subheading className="mt-10">Billing</Subheading>
                 <Divider className="mt-4"/>
                 <DescriptionList>
-                    <DescriptionTerm>Costs</DescriptionTerm>
-                    <DescriptionDetails>{formatCurrency(data?.contract.costs)}</DescriptionDetails>
                     <DescriptionTerm>Billing Period</DescriptionTerm>
-                    <DescriptionDetails className="capitalize">{data?.contract.billing_period}</DescriptionDetails>
+                    <DescriptionDetails className="capitalize">{data?.contract.billing_period?.replace('_', ' ')}</DescriptionDetails>
+                    <DescriptionTerm>Costs</DescriptionTerm>
+                    <DescriptionDetails>{formatCurrency(data?.contract.costs, data?.contract.currency)}</DescriptionDetails>
+                    <DescriptionTerm>Currency</DescriptionTerm>
+                    <DescriptionDetails>{data?.contract.currency}</DescriptionDetails>
+                    <DescriptionTerm>Next Billing Date</DescriptionTerm>
+                    <DescriptionDetails>{data?.contract.next_billing_date ? dayjs(data?.contract.next_billing_date).format('DD.MM.YYYY') : ''}</DescriptionDetails>
                 </DescriptionList>
 
                 <Subheading className="mt-10">Contact Information</Subheading>
