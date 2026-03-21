@@ -5,6 +5,7 @@ import {Input} from "../components/catalyst/input.tsx";
 import {Button} from "../components/catalyst/button.tsx";
 import {Heading} from "../components/catalyst/heading.tsx";
 import {ErrorMessage} from "../components/catalyst/fieldset.tsx";
+import ThemeToggle from "../components/ThemeToggle.tsx";
 
 export default function ChangePasswordPage() {
     const {changePassword, user} = useAuth();
@@ -42,6 +43,7 @@ export default function ChangePasswordPage() {
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-white dark:bg-zinc-900 px-4">
+            <ThemeToggle/>
             <div className="w-full max-w-sm">
                 <Heading className="text-center mb-2">Change Password</Heading>
                 {user?.must_change_password && (

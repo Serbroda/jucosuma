@@ -129,3 +129,18 @@ export interface UpdateUserDto {
 export interface ResetPasswordDto {
   password: string;
 }
+export interface CategoryDto {
+  id: number /* int64 */;
+  name: string;
+  sort_order: number /* int64 */;
+  created_at?: string /* RFC3339 */;
+  updated_at?: string /* RFC3339 */;
+}
+export interface CreateCategoryDto {
+  name: string;
+  sort_order: number /* int64 */;
+}
+export interface UpdateCategoryDto {
+  name: string;
+  sort_order: number /* int64 */;
+}

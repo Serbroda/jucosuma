@@ -8,6 +8,15 @@ import (
 	"time"
 )
 
+type Category struct {
+	ID        int64      `db:"id"`
+	Name      string     `db:"name"`
+	SortOrder int64      `db:"sort_order"`
+	CreatedAt *time.Time `db:"created_at"`
+	UpdatedAt *time.Time `db:"updated_at"`
+	DeletedAt *time.Time `db:"deleted_at"`
+}
+
 type Contract struct {
 	ID              int64      `db:"id"`
 	Name            string     `db:"name"`

@@ -4,7 +4,7 @@ import {
     BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime,
     BillingPeriodQuarterly, BillingPeriodSemiannual,
     BillingPeriodWeekly,
-    type ContractDto, type ContractHolderDto, type DocumentDto
+    type CategoryDto, type ContractDto, type ContractHolderDto, type DocumentDto
 } from "../gen/types.gen.ts";
 import {Avatar} from "./catalyst/avatar.tsx";
 import {Field, Label} from "./catalyst/fieldset.tsx";
@@ -31,25 +31,12 @@ import {Combobox, ComboboxLabel, ComboboxOption} from "./catalyst/combobox.tsx";
 export interface ContractFormProps {
     contract: Partial<ContractDto>;
     holders: ContractHolderDto[];
+    categories: CategoryDto[];
     mode?: 'add' | 'edit';
     error?: string;
 }
 
-const categories = [
-    {name: "Other"},
-    {name: "Education"},
-    {name: "Entertainment"},
-    {name: "Finance"},
-    {name: "Health & Fitness"},
-    {name: "Housing & Rent"},
-    {name: "Insurance"},
-    {name: "Software & Services"},
-    {name: "Telecommunications & Internet"},
-    {name: "Transportation"},
-    {name: "Utilities"},
-];
-
-export default function ContractForm({contract, holders, mode = 'add', error}: ContractFormProps) {
+export default function ContractForm({contract, holders, categories, mode = 'add', error}: ContractFormProps) {
     const navigation = useNavigate();
     const {state} = useNavigation();
     const isEdit = mode === 'edit';
@@ -240,10 +227,10 @@ export default function ContractForm({contract, holders, mode = 'add', error}: C
                     <Label>Category</Label>
                     <Select
                         name="category"
-                        defaultValue={contract.category ?? "Other"}
+                        defaultValue={contract.category ?? categories[0]?.name ?? "Other"}
                     >
                         {categories.map((cat) => (
-                            <option key={cat.name} value={cat.name}>
+                            <option key={cat.id} value={cat.name}>
                                 {cat.name}
                             </option>
                         ))}

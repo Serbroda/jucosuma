@@ -21,6 +21,11 @@ async function contractHoldersLoader() {
     return {holders: res};
 }
 
+async function categoriesLoader() {
+    const res = await fetchJSON(`${apiBasePath}/categories`);
+    return {categories: res ?? []};
+}
+
 async function contractsLoader() {
     const [contracts, {holders}] = await Promise.all([
         fetchJSON(`${apiBasePath}/contracts`),
@@ -33,13 +38,23 @@ async function contractsLoader() {
 }
 
 async function contractLoader({params}: { params: any }) {
-    const contract = await fetchJSON(`${apiBasePath}/contracts/${params.id}`);
+    const [contract, {holders}, {categories}] = await Promise.all([
+        fetchJSON(`${apiBasePath}/contracts/${params.id}`),
+        contractHoldersLoader(),
+        categoriesLoader(),
+    ]);
     if (!contract) {
         throw new Response("Not Found", {status: 404});
     }
-
-    const contractHolders = await contractHoldersLoader();
-    return {contract: contract, holders: contractHolders.holders};
+    return {contract, holders, categories};
 }
 
-export {contractsLoader, contractLoader, contractHoldersLoader};
+async function contractFormLoader() {
+    const [{holders}, {categories}] = await Promise.all([
+        contractHoldersLoader(),
+        categoriesLoader(),
+    ]);
+    return {holders, categories};
+}
+
+export {contractsLoader, contractLoader, contractHoldersLoader, categoriesLoader, contractFormLoader};

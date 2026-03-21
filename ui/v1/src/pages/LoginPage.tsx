@@ -4,6 +4,7 @@ import {Field, Label} from "../components/catalyst/fieldset.tsx";
 import {Input} from "../components/catalyst/input.tsx";
 import {Button} from "../components/catalyst/button.tsx";
 import {Heading} from "../components/catalyst/heading.tsx";
+import ThemeToggle from "../components/ThemeToggle.tsx";
 
 export default function LoginPage() {
     const {login} = useAuth();
@@ -32,6 +33,7 @@ export default function LoginPage() {
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-white dark:bg-zinc-900 px-4">
+            <ThemeToggle/>
             <div className="w-full max-w-sm">
                 <Heading className="text-center mb-8">Jucosuma</Heading>
 

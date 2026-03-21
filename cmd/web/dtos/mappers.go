@@ -19,7 +19,7 @@ func MapContractToContractDto(item sqlc.Contract) ContractDto {
 		ContractNumber: item.ContractNumber,
 		CustomerNumber: item.CustomerNumber,
 		ContractHolder: item.ContractHolder,
-		BillingPeriod:  item.BillingPeriod,
+		BillingPeriod:  strings.ToLower(item.BillingPeriod),
 		Costs:          item.Costs,
 		Currency:       item.Currency,
 		ContactPerson:  item.ContactPerson,
@@ -43,10 +43,17 @@ func computeStatus(endDate *time.Time) ContractStatus {
 	if endDate == nil {
 		return ContractStatusActive
 	}
-	if endDate.After(time.Now()) {
+	endDay := time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 0, 0, 0, 0, time.UTC)
+	if !endDay.Before(today()) {
 		return ContractStatusCancelled
 	}
 	return ContractStatusExpired
+}
+
+// today returns the current date as a time.Time at midnight UTC, for date-only comparisons.
+func today() time.Time {
+	now := time.Now()
+	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 }
 
 func computeNextBillingDate(stored *time.Time, startDate time.Time, billingPeriod string) *DateOnly {
@@ -55,16 +62,21 @@ func computeNextBillingDate(stored *time.Time, startDate time.Time, billingPerio
 		return nil
 	}
 
+	td := today()
+
 	// If manually set and in the future, use it
-	if stored != nil && stored.After(time.Now()) {
-		d := DateOnly(*stored)
-		return &d
+	if stored != nil {
+		storedDate := time.Date(stored.Year(), stored.Month(), stored.Day(), 0, 0, 0, 0, time.UTC)
+		if !storedDate.Before(td) {
+			d := DateOnly(storedDate)
+			return &d
+		}
 	}
 
 	// Calculate from start_date + billing_period
-	now := time.Now()
-	next := startDate
-	for !next.After(now) {
+	// Normalize start_date to UTC midnight
+	next := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
+	for next.Before(td) {
 		next = addBillingPeriod(next, period)
 	}
 	d := DateOnly(next)
@@ -141,6 +153,16 @@ func MapDocumentsToDocumentDtos(items []sqlc.Document) []DocumentDto {
 func MapContractHolderToContractHolderDto(item *string) ContractHolderDto {
 	return ContractHolderDto{
 		Name: *item,
+	}
+}
+
+func MapCategoryToCategoryDto(c sqlc.Category) CategoryDto {
+	return CategoryDto{
+		ID:        c.ID,
+		Name:      c.Name,
+		SortOrder: c.SortOrder,
+		CreatedAt: c.CreatedAt,
+		UpdatedAt: c.UpdatedAt,
 	}
 }
 

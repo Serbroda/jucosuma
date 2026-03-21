@@ -34,9 +34,13 @@ func (app *application) routes() *echo.Echo {
 	auth.GET("/auth/me", app.me)
 	auth.PUT("/auth/change-password", app.changePassword)
 
+	// Categories (all users can read)
+	auth.GET("/categories", app.getCategories)
+
 	// Contract routes
 	auth.GET("/contracts", app.getContracts)
 	auth.GET("/contracts/export.csv", app.exportContractsCSV)
+	auth.POST("/contracts/import", app.importContractsCSV)
 	auth.POST("/contracts", app.createContract)
 	auth.GET("/contracts/:id", app.getContractById)
 	auth.PUT("/contracts/:id", app.updateContract)
@@ -53,6 +57,11 @@ func (app *application) routes() *echo.Echo {
 	admin.PUT("/users/:id", app.updateUser)
 	admin.DELETE("/users/:id", app.deleteUser)
 	admin.PUT("/users/:id/reset-password", app.resetUserPassword)
+
+	// Category management (admin only)
+	admin.POST("/categories", app.createCategory)
+	admin.PUT("/categories/:id", app.updateCategory)
+	admin.DELETE("/categories/:id", app.deleteCategory)
 
 	return e
 }

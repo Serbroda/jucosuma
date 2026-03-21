@@ -4,6 +4,7 @@ import {
     ArrowDownIcon,
     ArrowDownTrayIcon,
     ArrowUpIcon,
+    ArrowUpTrayIcon,
     ChevronRightIcon,
     FunnelIcon,
     MagnifyingGlassIcon,
@@ -24,6 +25,8 @@ import {ContractStatusActive, ContractStatusCancelled, ContractStatusExpired} fr
 import {Select} from "../components/catalyst/select.tsx";
 import {usePreferences} from "../stores/usePreferences.ts";
 import {apiBasePath} from "../config.ts";
+import dayjs from "../lib/dayjs";
+import ImportDialog from "../components/ImportDialog.tsx";
 
 const statusColor = (status: string): "green" | "yellow" | "zinc" => {
     switch (status) {
@@ -97,6 +100,7 @@ export default function HomePage() {
     const [filterCategory, setFilterCategory] = useState<string>("all");
     const [filterHolder, setFilterHolder] = useState<string>("all");
     const [showFilters, setShowFilters] = useState(false);
+    const [showImport, setShowImport] = useState(false);
     const [sortKey, setSortKey] = useState<SortKey>("name");
     const [sortDir, setSortDir] = useState<SortDir>("asc");
 
@@ -141,6 +145,25 @@ export default function HomePage() {
     }, [contracts]);
 
     const global = useMemo(() => computeCosts(globalActive, mainCurrency), [globalActive, mainCurrency]);
+
+    // Dashboard widgets
+    const upcomingBilling = useMemo(() => {
+        if (!contracts) return [];
+        return contracts
+            .filter(c => c.next_billing_date && c.status === ContractStatusActive)
+            .sort((a, b) => (a.next_billing_date ?? '').localeCompare(b.next_billing_date ?? ''))
+            .slice(0, 5);
+    }, [contracts]);
+
+    const expiringSoon = useMemo(() => {
+        if (!contracts) return [];
+        const now = dayjs();
+        const cutoff = now.add(90, 'day');
+        return contracts
+            .filter(c => c.end_date && c.status === ContractStatusCancelled
+                && dayjs(c.end_date).isAfter(now) && dayjs(c.end_date).isBefore(cutoff))
+            .sort((a, b) => (a.end_date ?? '').localeCompare(b.end_date ?? ''));
+    }, [contracts]);
 
     const toggleSort = useCallback((key: SortKey) => {
         if (sortKey === key) {
@@ -217,26 +240,80 @@ export default function HomePage() {
                         </div>
                     </div>
 
-                    {/* Category Breakdown */}
-                    {filtered.categorySorted.length > 1 && (
+                    {/* Category Breakdown + Next Billing side by side */}
+                    {(filtered.categorySorted.length > 1 || upcomingBilling.length > 0) && (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                            {filtered.categorySorted.length > 1 && (
+                                <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
+                                    <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-3">By Category</div>
+                                    <div className={classNames("flex flex-col gap-2", filtered.categorySorted.length > 4 ? "max-h-40 overflow-y-auto overflow-x-hidden" : "")}>
+                                        {filtered.categorySorted.map(([category, amount]) => {
+                                            const percentage = filtered.mainTotal > 0 ? (amount / filtered.mainTotal) * 100 : 0;
+                                            return (
+                                                <div key={category} className="flex items-center gap-3">
+                                                    <span className="text-sm text-zinc-950 dark:text-white w-28 sm:w-40 truncate">{category}</span>
+                                                    <div className="hidden sm:block flex-1 h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+                                                        <div
+                                                            className="h-full rounded-full bg-zinc-400 dark:bg-zinc-500 transition-all"
+                                                            style={{width: `${percentage}%`}}
+                                                        />
+                                                    </div>
+                                                    <span className="text-sm tabular-nums text-zinc-500 dark:text-zinc-400 w-24 text-right">
+                                                        {formatCurrency(amount, mainCurrency)}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                            {upcomingBilling.length > 0 && (
+                                <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
+                                    <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-3">Next Billing</div>
+                                    <div className={classNames("flex flex-col gap-2", upcomingBilling.length > 4 ? "max-h-40 overflow-y-auto overflow-x-hidden" : "")}>
+                                        {upcomingBilling.map((c) => (
+                                            <NavLink key={c.id} to={`/contracts/${c.id}`}
+                                                     className="flex items-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded -mx-1 px-1 py-0.5 transition-colors">
+                                                <Avatar square className={classNames("size-6", c.icon_source ? '' : 'dark:invert')}
+                                                        src={c.icon_source || image}/>
+                                                <span className="text-sm text-zinc-950 dark:text-white truncate grow">{c.name}</span>
+                                                <span className="text-xs tabular-nums text-zinc-400 dark:text-zinc-500 shrink-0">
+                                                    {dayjs(c.next_billing_date).format('DD.MM.')}
+                                                </span>
+                                                {c.costs && (
+                                                    <span className="text-xs tabular-nums text-zinc-500 dark:text-zinc-400 shrink-0">
+                                                        {formatCurrency(c.costs, c.currency)}
+                                                    </span>
+                                                )}
+                                            </NavLink>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Expiring Soon */}
+                    {expiringSoon.length > 0 && (
                         <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
-                            <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-3">By Category</div>
+                            <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-3">Expiring Soon</div>
                             <div className="flex flex-col gap-2">
-                                {filtered.categorySorted.map(([category, amount]) => {
-                                    const percentage = filtered.mainTotal > 0 ? (amount / filtered.mainTotal) * 100 : 0;
+                                {expiringSoon.map((c) => {
+                                    const daysLeft = dayjs(c.end_date).diff(dayjs(), 'day');
+                                    const urgency = daysLeft <= 30 ? 'text-red-500' : daysLeft <= 60 ? 'text-amber-500' : 'text-zinc-400';
                                     return (
-                                        <div key={category} className="flex items-center gap-3">
-                                            <span className="text-sm text-zinc-950 dark:text-white w-40 lg:w-48 truncate">{category}</span>
-                                            <div className="flex-1 h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-                                                <div
-                                                    className="h-full rounded-full bg-zinc-400 dark:bg-zinc-500 transition-all"
-                                                    style={{width: `${percentage}%`}}
-                                                />
-                                            </div>
-                                            <span className="text-sm tabular-nums text-zinc-500 dark:text-zinc-400 w-24 text-right">
-                                                {formatCurrency(amount, mainCurrency)}
+                                        <NavLink key={c.id} to={`/contracts/${c.id}`}
+                                                 className="flex items-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded -mx-1 px-1 py-0.5 transition-colors">
+                                            <Avatar square className={classNames("size-6", c.icon_source ? '' : 'dark:invert')}
+                                                    src={c.icon_source || image}/>
+                                            <span className="text-sm text-zinc-950 dark:text-white truncate grow">{c.name}</span>
+                                            <span className={classNames("text-xs tabular-nums shrink-0", urgency)}>
+                                                {daysLeft}d left
                                             </span>
-                                        </div>
+                                            <span className="text-xs tabular-nums text-zinc-400 dark:text-zinc-500 shrink-0">
+                                                {dayjs(c.end_date).format('DD.MM.YY')}
+                                            </span>
+                                        </NavLink>
                                     );
                                 })}
                             </div>
@@ -271,6 +348,9 @@ export default function HomePage() {
                         <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-blue-500"/>
                     )}
                 </Button>
+                <Button plain className="hover:cursor-pointer" onClick={() => setShowImport(true)}>
+                    <ArrowUpTrayIcon/>
+                </Button>
                 <a href={`${apiBasePath}/contracts/export.csv`} download>
                     <Button plain className="hover:cursor-pointer">
                         <ArrowDownTrayIcon/>
@@ -286,7 +366,7 @@ export default function HomePage() {
             {showFilters && (
                 <div className="flex flex-wrap items-center gap-2 -mt-3 px-1">
                     <Select
-                        className="w-auto text-sm !py-1"
+                        className="w-full sm:w-auto text-sm !py-1"
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
                     >
@@ -296,7 +376,7 @@ export default function HomePage() {
                         <option value={ContractStatusExpired}>Expired</option>
                     </Select>
                     <Select
-                        className="w-auto text-sm !py-1"
+                        className="w-full sm:w-auto text-sm !py-1"
                         value={filterCategory}
                         onChange={(e) => setFilterCategory(e.target.value)}
                     >
@@ -306,7 +386,7 @@ export default function HomePage() {
                         ))}
                     </Select>
                     <Select
-                        className="w-auto text-sm !py-1"
+                        className="w-full sm:w-auto text-sm !py-1"
                         value={filterHolder}
                         onChange={(e) => setFilterHolder(e.target.value)}
                     >
@@ -369,7 +449,7 @@ export default function HomePage() {
                     <li key={contract.id}>
                         <NavLink
                             to={"/contracts/" + contract.id}
-                            className="p-2 flex gap-2 items-center border-b border-zinc-200 dark:border-zinc-800 hover:cursor-pointer hover:bg-zinc-950/5 dark:hover:bg-white/5">
+                            className="p-2 py-3 sm:py-2 flex gap-2 items-center border-b border-zinc-200 dark:border-zinc-800 hover:cursor-pointer hover:bg-zinc-950/5 dark:hover:bg-white/5">
 
                             <Avatar
                                 square={true}
@@ -406,6 +486,8 @@ export default function HomePage() {
                     No contracts match your filters.
                 </div>
             )}
+
+            <ImportDialog isOpen={showImport} onClose={() => setShowImport(false)}/>
         </div>
     )
 }

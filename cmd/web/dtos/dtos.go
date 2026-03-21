@@ -171,3 +171,21 @@ type UpdateUserDto struct {
 type ResetPasswordDto struct {
 	Password string `json:"password" validate:"required,min=8"`
 }
+
+type CategoryDto struct {
+	ID        int64      `json:"id"`
+	Name      string     `json:"name"`
+	SortOrder int64      `json:"sort_order"`
+	CreatedAt *time.Time `json:"created_at"`
+	UpdatedAt *time.Time `json:"updated_at"`
+}
+
+type CreateCategoryDto struct {
+	Name      string `json:"name" validate:"required,min=1,max=128"`
+	SortOrder int64  `json:"sort_order"`
+}
+
+type UpdateCategoryDto struct {
+	Name      string `json:"name" validate:"required,min=1,max=128"`
+	SortOrder int64  `json:"sort_order"`
+}
