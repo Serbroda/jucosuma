@@ -122,7 +122,7 @@ export default function HomePage() {
 
     const filteredContracts = useMemo(() => {
         if (!contracts) return [];
-        let result = contracts.filter((c) => startWithAnyIgnoreCase(search, c.name, c.company));
+        let result = contracts.filter((c) => startWithAnyIgnoreCase(search, c.name, c.company ?? ''));
         if (filterStatus !== "all") {
             result = result.filter((c) => c.status === filterStatus);
         }
