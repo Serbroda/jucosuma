@@ -1,22 +1,24 @@
 import {
     BillingPeriodAnnually,
     BillingPeriodEveryTwoYears,
-    BillingPeriodMonthly,
+    BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime,
     BillingPeriodQuarterly, BillingPeriodSemiannual,
     BillingPeriodWeekly,
-    type ContractDto, type ContractHolderDto, type DocumentDto
+    type CategoryDto, type ContractDto, type ContractHolderDto, type DocumentDto
 } from "../gen/types.gen.ts";
 import {Avatar} from "./catalyst/avatar.tsx";
 import {Field, Label} from "./catalyst/fieldset.tsx";
 import {Input} from "./catalyst/input.tsx";
 import {Select} from "./catalyst/select.tsx";
-import {Radio, RadioField, RadioGroup} from "./catalyst/radio.tsx";
 import {Divider} from "./catalyst/divider.tsx";
 import {Subheading} from "./catalyst/heading.tsx";
 import {Button} from "./catalyst/button.tsx";
-import {Form, useNavigate} from "react-router";
-import {useState} from "react";
+import {Form, useNavigate, useNavigation} from "react-router";
+import {useEffect, useRef, useState} from "react";
+import {ErrorMessage} from "./catalyst/fieldset.tsx";
 import {apiBasePath} from "../config.ts";
+import {apiFetch} from "../lib/fetch.ts";
+import {useAuth} from "../stores/useAuth.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import image from "../assets/image.png";
 import {Textarea} from "./catalyst/textarea.tsx";
@@ -30,24 +32,27 @@ import {Combobox, ComboboxLabel, ComboboxOption} from "./catalyst/combobox.tsx";
 export interface ContractFormProps {
     contract: Partial<ContractDto>;
     holders: ContractHolderDto[];
+    categories: CategoryDto[];
+    mode?: 'add' | 'edit';
+    error?: string;
 }
 
-const categories = [
-    {name: "Other"},
-    {name: "Education"},
-    {name: "Entertainment"},
-    {name: "Finance"},
-    {name: "Health & Fitness"},
-    {name: "Housing & Rent"},
-    {name: "Insurance"},
-    {name: "Software & Services"},
-    {name: "Telecommunications & Internet"},
-    {name: "Transportation"},
-    {name: "Utilities"},
-];
-
-export default function ContractForm({contract, holders}: ContractFormProps) {
+export default function ContractForm({contract, holders, categories, mode = 'add', error}: ContractFormProps) {
     const navigation = useNavigate();
+    const {state} = useNavigation();
+    const {user: currentUser} = useAuth();
+    const isEdit = mode === 'edit';
+    const [isPersonal, setIsPersonal] = useState(contract.owner_id != null);
+    const [nameError, setNameError] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
+    const isBusy = state === 'submitting' || isDeleting;
+    const errorRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (error && errorRef.current) {
+            errorRef.current.scrollIntoView({behavior: 'smooth', block: 'center'});
+        }
+    }, [error]);
     const [isChooseIconOpen, setChooseIconOpen] = useState(false);
     const [confirmDialogProps, setConfirmDialogProps] = useState<ConfirmDialogProps>({
         title: "",
@@ -61,9 +66,14 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
         },
     });
     const [holdersWithInput, setHoldersWithInput] = useState<ContractHolderDto[]>(holders);
+    const [billingPeriod, setBillingPeriod] = useState(contract.billing_period ?? "none");
+    const [showNextBillingOverride, setShowNextBillingOverride] = useState(false);
+
+    const hasBilling = billingPeriod !== BillingPeriodNone;
+    const hasRecurringBilling = hasBilling && billingPeriod !== BillingPeriodOneTime;
 
     const handleHolderChange = (value: string) => {
-        setHoldersWithInput( [...holders, {name: value}])
+        setHoldersWithInput([...holders, {name: value}])
     }
 
     const [editDocId, setEditDocId] = useState<number | null>(null);
@@ -75,7 +85,7 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
     };
 
     const saveEdit = async (documentId: number) => {
-        const res = await fetch(`${apiBasePath}/documents/${documentId}`, {
+        const res = await apiFetch(`${apiBasePath}/documents/${documentId}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
@@ -92,20 +102,30 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
     };
 
     const deleteContract = async () => {
-        const res = await fetch(`${apiBasePath}/contracts/${contract.id}`, {
-            method: "DELETE",
-        });
-        if (res.ok) {
-            navigation("/");
+        setIsDeleting(true);
+        try {
+            const res = await apiFetch(`${apiBasePath}/contracts/${contract.id}`, {
+                method: "DELETE",
+            });
+            if (res.ok) {
+                navigation("/");
+            }
+        } finally {
+            setIsDeleting(false);
         }
     };
 
     const deleteDocument = async (documentId: number) => {
-        const res = await fetch(`${apiBasePath}/documents/${documentId}`, {
-            method: "DELETE",
-        });
-        if (res.ok) {
-            navigation(`/contracts/${contract.id}/edit`);
+        setIsDeleting(true);
+        try {
+            const res = await apiFetch(`${apiBasePath}/documents/${documentId}`, {
+                method: "DELETE",
+            });
+            if (res.ok) {
+                navigation(`/contracts/${contract.id}/edit`);
+            }
+        } finally {
+            setIsDeleting(false);
         }
     }
 
@@ -146,7 +166,23 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
                 method="post"
                 encType="multipart/form-data"
                 className="grid grid-cols-1 gap-4"
+                onSubmit={(e) => {
+                    setNameError('');
+                    const formData = new FormData(e.currentTarget);
+                    const name = (formData.get('name') as string)?.trim();
+                    if (!name) {
+                        e.preventDefault();
+                        setNameError('Name is required.');
+                        return;
+                    }
+                }}
             >
+                {error && (
+                    <div ref={errorRef} className="rounded-lg border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-3 text-sm text-red-700 dark:text-red-400">
+                        {error}
+                    </div>
+                )}
+
                 <div className="justify-self-center">
                     <Button
                         plain
@@ -175,7 +211,10 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
                         name="name"
                         placeholder="Enter contract name"
                         defaultValue={contract.name ?? ""}
+                        invalid={!!nameError}
+                        onChange={() => nameError && setNameError('')}
                     />
+                    {nameError && <ErrorMessage>{nameError}</ErrorMessage>}
                 </Field>
 
                 <Field>
@@ -191,10 +230,10 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
                     <Label>Category</Label>
                     <Select
                         name="category"
-                        defaultValue={contract.category ?? "Other"}
+                        defaultValue={contract.category ?? categories[0]?.name ?? "Other"}
                     >
                         {categories.map((cat) => (
-                            <option key={cat.name} value={cat.name}>
+                            <option key={cat.id} value={cat.name}>
                                 {cat.name}
                             </option>
                         ))}
@@ -202,28 +241,19 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
                 </Field>
 
                 <Field>
-                    <Label>Type</Label>
-                    <RadioGroup
-                        name="contract_type"
-                        defaultValue={contract.contract_type ?? "contract"}
+                    <Label>Visibility</Label>
+                    <Select
+                        value={isPersonal ? "personal" : "shared"}
+                        onChange={(e) => setIsPersonal(e.target.value === "personal")}
                     >
-                        <RadioField>
-                            <Radio
-                                value="contract"
-                                defaultChecked={contract.contract_type === "contract"}
-                                className="hover:cursor-pointer"
-                            />
-                            <Label>Contract</Label>
-                        </RadioField>
-                        <RadioField>
-                            <Radio
-                                value="subscription"
-                                defaultChecked={contract.contract_type === "subscription"}
-                                className="hover:cursor-pointer"
-                            />
-                            <Label>Subscription</Label>
-                        </RadioField>
-                    </RadioGroup>
+                        <option value="shared">Shared (Household)</option>
+                        <option value="personal">Personal (Only me)</option>
+                    </Select>
+                    <Input
+                        type="hidden"
+                        name="owner_id"
+                        value={isPersonal ? String(currentUser?.id ?? "") : ""}
+                    />
                 </Field>
 
                 <Divider className="mt-6"/>
@@ -288,25 +318,17 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
                     </Combobox>}
                 </Field>
 
-
                 <Divider className="mt-6"/>
-                <Subheading>Costs</Subheading>
-                <Field>
-                    <Label>Costs</Label>
-                    <Input
-                        type="text"
-                        name="costs"
-                        defaultValue={formatDecimal(contract.costs) ?? ""}
-                        pattern="^-?\d+(.\d{1,2})?$"
-                    />
-                </Field>
-
+                <Subheading>Billing</Subheading>
                 <Field>
                     <Label>Billing Period</Label>
                     <Select
                         name="billing_period"
-                        defaultValue={contract.billing_period ?? "weekly"}
+                        defaultValue={contract.billing_period ?? "none"}
+                        onChange={(e) => setBillingPeriod(e.target.value)}
                     >
+                        <option value={BillingPeriodNone}>None</option>
+                        <option value={BillingPeriodOneTime}>One Time</option>
                         <option value={BillingPeriodWeekly}>Weekly</option>
                         <option value={BillingPeriodMonthly}>Monthly</option>
                         <option value={BillingPeriodQuarterly}>Quarterly</option>
@@ -315,6 +337,72 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
                         <option value={BillingPeriodEveryTwoYears}>Every two years</option>
                     </Select>
                 </Field>
+
+                {hasBilling && (
+                    <div className="grid grid-cols-[1fr_5.5rem_4rem] gap-2">
+                        <Field>
+                            <Label>Costs</Label>
+                            <Input
+                                type="text"
+                                name="costs"
+                                defaultValue={formatDecimal(contract.costs) ?? ""}
+                                pattern="^-?\d+(.\d{1,2})?$"
+                                placeholder="0,00"
+                            />
+                        </Field>
+                        <Field>
+                            <Label>Currency</Label>
+                            <Select
+                                name="currency"
+                                defaultValue={contract.currency ?? "EUR"}
+                            >
+                                <option value="EUR">EUR</option>
+                                <option value="USD">USD</option>
+                                <option value="GBP">GBP</option>
+                                <option value="CHF">CHF</option>
+                            </Select>
+                        </Field>
+                        <Field>
+                            <Label>Split</Label>
+                            <Input
+                                type="number"
+                                name="split_between"
+                                min="1"
+                                defaultValue={contract.split_between ?? 1}
+                            />
+                        </Field>
+                    </div>
+                )}
+
+                {hasRecurringBilling && (
+                    <div>
+                        {!showNextBillingOverride && !contract.next_billing_date ? (
+                            <button
+                                type="button"
+                                onClick={() => setShowNextBillingOverride(true)}
+                                className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                            >
+                                Set next billing date manually
+                            </button>
+                        ) : (
+                            <Field>
+                                <Label>Next Billing Date</Label>
+                                <Input
+                                    type="date"
+                                    name="next_billing_date"
+                                    defaultValue={
+                                        contract.next_billing_date
+                                            ? dayjs(contract.next_billing_date).format("YYYY-MM-DD")
+                                            : ""
+                                    }
+                                />
+                                <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
+                                    Leave empty to auto-calculate from start date.
+                                </p>
+                            </Field>
+                        )}
+                    </div>
+                )}
 
                 <Divider className="mt-6"/>
                 <Subheading>Contact Information</Subheading>
@@ -348,7 +436,7 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
                 </Field>
 
                 <Divider className="mt-6"/>
-                <Subheading>Data</Subheading>
+                <Subheading>Documents & Notes</Subheading>
                 <Field>
                     <Label>Documents</Label>
                     <Input
@@ -389,18 +477,14 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
                                 {editDocId === doc.id ? (
                                     <Button
                                         className="my-1 ml-1 lg:size-6 hover:cursor-pointer"
-                                        onClick={() =>
-                                            saveEdit(doc.id)
-                                        }
+                                        onClick={() => saveEdit(doc.id)}
                                     >
                                         <CheckIcon/>
                                     </Button>
                                 ) : (
                                     <Button
                                         className="my-1 ml-1 lg:size-6 hover:cursor-pointer"
-                                        onClick={() =>
-                                            startEdit(doc)
-                                        }
+                                        onClick={() => startEdit(doc)}
                                     >
                                         <PencilIcon/>
                                     </Button>
@@ -411,8 +495,7 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
                                     onClick={() =>
                                         openConfirmDialog({
                                             title: "Delete Document",
-                                            message:
-                                                "Are you sure you want to delete this document?",
+                                            message: "Are you sure you want to delete this document?",
                                             submitLabel: "Delete",
                                             cancelLabel: "Cancel",
                                             onSubmit: deleteDocument.bind(null, doc.id),
@@ -425,8 +508,6 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
                         ))}
                 </div>
 
-                <Divider className="mt-6"/>
-                <Subheading>Other</Subheading>
                 <Field>
                     <Label>Notes</Label>
                     <Textarea
@@ -435,36 +516,44 @@ export default function ContractForm({contract, holders}: ContractFormProps) {
                     />
                 </Field>
 
+                {/* Actions */}
                 <div className="flex mt-6 gap-4 lg:gap-2 flex-wrap">
                     <Button
-                        type="button"
-                        color="red"
-                        onClick={() => openConfirmDialog({
-                            title: "Delete Contract",
-                            message: "Are you sure you want to delete this contract?",
-                            submitLabel: "Delete",
-                            cancelLabel: "Cancel",
-                            onSubmit: deleteContract.bind(null),
-                        })}
-                        className="w-full lg:w-auto hover:cursor-pointer"
+                        type="submit"
+                        disabled={isBusy}
+                        className="w-full lg:w-auto hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Delete
-                    </Button>
-                    <div className="hidden lg:block lg:grow"/>
-                    <Button type="submit" className="w-full lg:w-auto hover:cursor-pointer">
-                        Save
+                        {state === 'submitting' ? 'Saving...' : 'Save'}
                     </Button>
                     <Button
                         type="button"
                         outline
-                        onClick={() => navigation("/")}
+                        disabled={isBusy}
+                        onClick={() => navigation(isEdit ? `/contracts/${contract.id}` : "/")}
                         className="w-full lg:w-auto hover:cursor-pointer"
                     >
                         Cancel
                     </Button>
+                    {isEdit && <>
+                        <div className="hidden lg:block lg:grow"/>
+                        <Button
+                            type="button"
+                            color="red"
+                            disabled={isBusy}
+                            onClick={() => openConfirmDialog({
+                                title: "Delete Contract",
+                                message: "Are you sure you want to delete this contract?",
+                                submitLabel: "Delete",
+                                cancelLabel: "Cancel",
+                                onSubmit: deleteContract.bind(null),
+                            })}
+                            className="w-full lg:w-auto hover:cursor-pointer"
+                        >
+                            Delete
+                        </Button>
+                    </>}
                 </div>
             </Form>
         </>
-    )
-        ;
+    );
 }

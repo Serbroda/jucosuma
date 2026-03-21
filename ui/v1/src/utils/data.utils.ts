@@ -1,10 +1,34 @@
 import {
     BillingPeriodAnnually,
     BillingPeriodEveryTwoYears,
-    BillingPeriodMonthly,
+    BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime,
     BillingPeriodQuarterly, BillingPeriodSemiannual,
     BillingPeriodWeekly
 } from "../gen/types.gen.ts";
+
+function billingPeriodLabel(period: string | undefined | null): string {
+    if (!period) return '';
+    switch (period) {
+        case BillingPeriodNone:
+            return 'None';
+        case BillingPeriodOneTime:
+            return 'One Time';
+        case BillingPeriodWeekly:
+            return 'Weekly';
+        case BillingPeriodMonthly:
+            return 'Monthly';
+        case BillingPeriodQuarterly:
+            return 'Quarterly';
+        case BillingPeriodSemiannual:
+            return 'Semiannually';
+        case BillingPeriodAnnually:
+            return 'Annually';
+        case BillingPeriodEveryTwoYears:
+            return 'Every Two Years';
+        default:
+            return period;
+    }
+}
 
 function billingPeriodShorthand(period: string | undefined | null): string {
     if (!period) {
@@ -12,6 +36,10 @@ function billingPeriodShorthand(period: string | undefined | null): string {
     }
 
     switch (period) {
+        case BillingPeriodNone:
+            return '';
+        case BillingPeriodOneTime:
+            return 'Once';
         case BillingPeriodWeekly:
             return 'Wk';
         case BillingPeriodMonthly:
@@ -130,4 +158,4 @@ function resizeImageFile(
     });
 }
 
-export {billingPeriodShorthand, fileToBase64}
+export {billingPeriodLabel, billingPeriodShorthand, fileToBase64}

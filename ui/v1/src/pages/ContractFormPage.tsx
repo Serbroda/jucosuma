@@ -1,7 +1,7 @@
 import {useActionData, useLoaderData} from "react-router";
 import {Heading} from "../components/catalyst/heading.tsx";
 import {Divider} from "../components/catalyst/divider.tsx";
-import type {ContractDto, ContractHolderDto} from "../gen/types.gen.ts";
+import type {CategoryDto, ContractDto, ContractHolderDto} from "../gen/types.gen.ts";
 import ContractForm from "../components/ContractForm.tsx";
 import {useEffect} from "react";
 
@@ -10,14 +10,15 @@ export interface ContractPageProps {
 }
 
 type ActionData = {
-    errors?: Record<string, string>;
+    error?: string;
     values?: Partial<ContractDto>;
 };
 
 export default function ContractFormPage({mode}: ContractPageProps) {
-    const data = useLoaderData() as { contract?: ContractDto, holders?: ContractHolderDto[] } | undefined;
+    const data = useLoaderData() as { contract?: ContractDto, holders?: ContractHolderDto[], categories?: CategoryDto[] } | undefined;
     const contract: ContractDto = data?.contract ?? ({} as ContractDto);
     const holders: ContractHolderDto[] = data?.holders ?? [];
+    const categories: CategoryDto[] = data?.categories ?? [];
 
     const actionData = useActionData() as ActionData | undefined;
     const defaults: Partial<ContractDto> = actionData?.values ?? contract;
@@ -33,7 +34,10 @@ export default function ContractFormPage({mode}: ContractPageProps) {
 
             <ContractForm
                 contract={defaults}
-                holders={holders}/>
+                holders={holders}
+                categories={categories}
+                mode={mode}
+                error={actionData?.error}/>
         </div>
     )
 }

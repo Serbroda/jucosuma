@@ -9,31 +9,42 @@ export interface LogoDto {
   logo: string;
 }
 export type BillingPeriod = string;
+export const BillingPeriodNone: BillingPeriod = "none";
+export const BillingPeriodOneTime: BillingPeriod = "one_time";
 export const BillingPeriodWeekly: BillingPeriod = "weekly";
 export const BillingPeriodMonthly: BillingPeriod = "monthly";
 export const BillingPeriodQuarterly: BillingPeriod = "quarterly";
 export const BillingPeriodSemiannual: BillingPeriod = "semiannually";
 export const BillingPeriodAnnually: BillingPeriod = "annually";
 export const BillingPeriodEveryTwoYears: BillingPeriod = "every_two_years";
+export type ContractStatus = string;
+export const ContractStatusActive: ContractStatus = "active";
+export const ContractStatusCancelled: ContractStatus = "cancelled";
+export const ContractStatusExpired: ContractStatus = "expired";
 export interface ContractDto {
   id: number /* int64 */;
   name: string;
   company?: string;
-  contract_type: string;
   category: string;
   start_date: DateOnly;
   end_date?: DateOnly;
   contract_number?: string;
   customer_number?: string;
   contract_holder?: string;
-  costs?: number /* float64 */;
   billing_period: string;
+  costs?: number /* float64 */;
+  currency?: string;
+  next_billing_date?: DateOnly;
+  status: ContractStatus;
+  monthly_costs?: number /* float64 */;
   contact_person?: string;
   contact_address?: string;
   contact_phone?: string;
   contact_email?: string;
   icon_source?: string;
   notes?: string;
+  owner_id?: number /* int64 */;
+  split_between: number /* int64 */;
   created_at?: string /* RFC3339 */;
   updated_at?: string /* RFC3339 */;
   documents: DocumentDto[];
@@ -41,40 +52,46 @@ export interface ContractDto {
 export interface CreateContractDto {
   name: string;
   company?: string;
-  contract_type: string;
   category: string;
   start_date: DateOnly;
   end_date?: DateOnly;
   contract_number?: string;
   customer_number?: string;
   contract_holder?: string;
-  costs?: number /* float64 */;
   billing_period: string;
+  costs?: number /* float64 */;
+  currency?: string;
+  next_billing_date?: DateOnly;
   contact_person?: string;
   contact_address?: string;
   contact_phone?: string;
   contact_email?: string;
   icon_source?: string;
   notes?: string;
+  owner_id?: number /* int64 */;
+  split_between: number /* int64 */;
 }
 export interface UpdateContractDto {
   name: string;
   company?: string;
-  contract_type: string;
   category: string;
   start_date: DateOnly;
   end_date?: DateOnly;
   contract_number?: string;
   customer_number?: string;
   contract_holder?: string;
-  costs?: number /* float64 */;
   billing_period: string;
+  costs?: number /* float64 */;
+  currency?: string;
+  next_billing_date?: DateOnly;
   contact_person?: string;
   contact_address?: string;
   contact_phone?: string;
   contact_email?: string;
   icon_source?: string;
   notes?: string;
+  owner_id?: number /* int64 */;
+  split_between: number /* int64 */;
 }
 export interface DocumentDto {
   id: number /* int64 */;
@@ -89,4 +106,47 @@ export interface UpdateDocumentDto {
 }
 export interface ContractHolderDto {
   name: string;
+}
+export interface LoginDto {
+  username: string;
+  password: string;
+}
+export interface ChangePasswordDto {
+  current_password: string;
+  new_password: string;
+}
+export interface UserDto {
+  id: number /* int64 */;
+  username: string;
+  role: string;
+  must_change_password: boolean;
+  created_at?: string /* RFC3339 */;
+  updated_at?: string /* RFC3339 */;
+}
+export interface CreateUserDto {
+  username: string;
+  password: string;
+  role: string;
+}
+export interface UpdateUserDto {
+  username: string;
+  role: string;
+}
+export interface ResetPasswordDto {
+  password: string;
+}
+export interface CategoryDto {
+  id: number /* int64 */;
+  name: string;
+  sort_order: number /* int64 */;
+  created_at?: string /* RFC3339 */;
+  updated_at?: string /* RFC3339 */;
+}
+export interface CreateCategoryDto {
+  name: string;
+  sort_order: number /* int64 */;
+}
+export interface UpdateCategoryDto {
+  name: string;
+  sort_order: number /* int64 */;
 }

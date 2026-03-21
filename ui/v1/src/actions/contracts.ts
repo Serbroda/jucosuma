@@ -2,6 +2,7 @@
 import type {ActionFunction} from "react-router";
 import type {ContractDto} from "../gen/types.gen";
 import {apiBasePath} from "../config.ts";
+import {apiFetch} from "../lib/fetch.ts";
 
 const formatCurrency = (input: string | FormDataEntryValue | null): number | undefined => {
     if (!input) {
@@ -21,7 +22,6 @@ export const contractAction: ActionFunction = async ({request, params}) => {
     const meta: Partial<ContractDto> = {
         name: form.get("name") as string,
         company: form.get("company") as string || undefined,
-        contract_type: form.get("contract_type") as string,
         category: form.get("category") as string,
         start_date: form.get("start_date") as string,
         end_date: form.get("end_date") as string || undefined,
@@ -30,12 +30,16 @@ export const contractAction: ActionFunction = async ({request, params}) => {
         contract_holder: form.get("contract_holder") as string || undefined,
         costs: formatCurrency(form.get("costs")),
         billing_period: form.get("billing_period") as string,
+        currency: form.get("currency") as string || undefined,
+        next_billing_date: form.get("next_billing_date") as string || undefined,
         contact_person: form.get("contact_person") as string,
         contact_address: form.get("contact_address") as string,
         contact_phone: form.get("contact_phone") as string,
         contact_email: form.get("contact_email") as string,
         icon_source: form.get("icon_source") as string || undefined,
         notes: form.get("notes") as string || undefined,
+        owner_id: form.get("owner_id") ? Number(form.get("owner_id")) : undefined,
+        split_between: Number(form.get("split_between")) || 1,
     };
 
     // 3) Neues FormData für den Backend-Request
@@ -60,18 +64,22 @@ export const contractAction: ActionFunction = async ({request, params}) => {
         : `${apiBasePath}/contracts`;
 
     // 6) An den Go-Server senden
-    const res = await fetch(url, {
+    const res = await apiFetch(url, {
         method,
         // Kein Content-Type-Header! Browser fügt multipart/form-data + Boundary hinzu
         body: fd,
     });
 
     if (!res.ok) {
-        // Fehler zurückgeben, damit react-router dich zum errorElement routet
-        return new Response(await res.text(), {
-            status: res.status,
-            headers: {"Content-Type": "application/json"},
-        });
+        const errorText = await res.text();
+        let message = "An error occurred while saving.";
+        try {
+            const parsed = JSON.parse(errorText);
+            message = parsed.message || message;
+        } catch {
+            if (errorText) message = errorText;
+        }
+        return {error: message, values: meta};
     }
 
     const c = await res.json()

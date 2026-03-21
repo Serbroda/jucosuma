@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Serbroda/contracts/cmd/web/dtos"
@@ -18,7 +19,15 @@ import (
 )
 
 func (app *application) getContracts(ctx echo.Context) error {
-	contracts, err := app.queries.FindAllContracts(ctx.Request().Context())
+	user := ctx.Get("user").(sqlc.User)
+
+	var contracts []sqlc.Contract
+	var err error
+	if user.Role == "admin" {
+		contracts, err = app.queries.FindAllContracts(ctx.Request().Context())
+	} else {
+		contracts, err = app.queries.FindContractsForUser(ctx.Request().Context(), &user.ID)
+	}
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -31,6 +40,7 @@ func (app *application) getContracts(ctx echo.Context) error {
 }
 
 func (app *application) getContractById(ctx echo.Context) error {
+	user := ctx.Get("user").(sqlc.User)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
@@ -40,6 +50,11 @@ func (app *application) getContractById(ctx echo.Context) error {
 	contract, err := app.queries.FindContractById(ctx.Request().Context(), id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	// Check access: admins see everything, users see shared + own
+	if user.Role != "admin" && contract.OwnerID != nil && *contract.OwnerID != user.ID {
+		return echo.NewHTTPError(http.StatusForbidden, "access denied")
 	}
 
 	contractDto := dtos.MapContractToContractDto(contract)
@@ -99,49 +114,64 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 	var contract *sqlc.Contract
 	if id == nil {
 		inserted, err := qtx.InsertContract(ctx, sqlc.InsertContractParams{
-			Name:           payload.Name,
-			Company:        payload.Company,
-			ContractType:   payload.ContractType,
-			Category:       payload.Category,
-			StartDate:      time.Time(payload.StartDate),
-			EndDate:        (*time.Time)(payload.EndDate),
-			ContractNumber: payload.ContractNumber,
-			CustomerNumber: payload.CustomerNumber,
-			ContractHolder: utils.TrimToNil(payload.ContractHolder),
-			Costs:          payload.Costs,
-			BillingPeriod:  payload.BillingPeriod,
-			ContactPerson:  payload.ContactPerson,
-			ContactAddress: payload.ContactAddress,
-			ContactPhone:   payload.ContactPhone,
-			ContactEmail:   payload.ContactEmail,
-			IconSource:     payload.IconSource,
-			Notes:          payload.Notes,
+			Name:            payload.Name,
+			Company:         payload.Company,
+			Category:        payload.Category,
+			StartDate:       time.Time(payload.StartDate),
+			EndDate:         (*time.Time)(payload.EndDate),
+			ContractNumber:  payload.ContractNumber,
+			CustomerNumber:  payload.CustomerNumber,
+			ContractHolder:  utils.TrimToNil(payload.ContractHolder),
+			BillingPeriod:   strings.ToUpper(payload.BillingPeriod),
+			Costs:           payload.Costs,
+			Currency:        payload.Currency,
+			NextBillingDate: (*time.Time)(payload.NextBillingDate),
+			ContactPerson:   payload.ContactPerson,
+			ContactAddress:  payload.ContactAddress,
+			ContactPhone:    payload.ContactPhone,
+			ContactEmail:    payload.ContactEmail,
+			IconSource:      payload.IconSource,
+			Notes:           payload.Notes,
+			OwnerID:         payload.OwnerID,
+			SplitBetween:    maxInt64(payload.SplitBetween, 1),
 		})
 		if err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 		contract = &inserted
 	} else {
-		// UpdateContractById liefert keinen Contract zurück, daher nachladen
-		err := qtx.UpdateContractById(ctx, sqlc.UpdateContractByIdParams{
-			ID:             *id,
-			Name:           payload.Name,
-			Company:        payload.Company,
-			ContractType:   payload.ContractType,
-			Category:       payload.Category,
-			StartDate:      time.Time(payload.StartDate),
-			EndDate:        (*time.Time)(payload.EndDate),
-			ContractNumber: payload.ContractNumber,
-			CustomerNumber: payload.CustomerNumber,
-			ContractHolder: utils.TrimToNil(payload.ContractHolder),
-			Costs:          payload.Costs,
-			BillingPeriod:  payload.BillingPeriod,
-			ContactPerson:  payload.ContactPerson,
-			ContactAddress: payload.ContactAddress,
-			ContactPhone:   payload.ContactPhone,
-			ContactEmail:   payload.ContactEmail,
-			IconSource:     payload.IconSource,
-			Notes:          payload.Notes,
+		// Check access on update
+		existing, err := qtx.FindContractById(ctx, *id)
+		if err != nil {
+			return nil, echo.NewHTTPError(http.StatusNotFound, "contract not found")
+		}
+		user := c.Get("user").(sqlc.User)
+		if user.Role != "admin" && existing.OwnerID != nil && *existing.OwnerID != user.ID {
+			return nil, echo.NewHTTPError(http.StatusForbidden, "access denied")
+		}
+
+		err = qtx.UpdateContractById(ctx, sqlc.UpdateContractByIdParams{
+			ID:              *id,
+			Name:            payload.Name,
+			Company:         payload.Company,
+			Category:        payload.Category,
+			StartDate:       time.Time(payload.StartDate),
+			EndDate:         (*time.Time)(payload.EndDate),
+			ContractNumber:  payload.ContractNumber,
+			CustomerNumber:  payload.CustomerNumber,
+			ContractHolder:  utils.TrimToNil(payload.ContractHolder),
+			BillingPeriod:   strings.ToUpper(payload.BillingPeriod),
+			Costs:           payload.Costs,
+			Currency:        payload.Currency,
+			NextBillingDate: (*time.Time)(payload.NextBillingDate),
+			ContactPerson:   payload.ContactPerson,
+			ContactAddress:  payload.ContactAddress,
+			ContactPhone:    payload.ContactPhone,
+			ContactEmail:    payload.ContactEmail,
+			IconSource:      payload.IconSource,
+			Notes:           payload.Notes,
+			OwnerID:         payload.OwnerID,
+			SplitBetween:    maxInt64(payload.SplitBetween, 1),
 		})
 		if err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -203,12 +233,102 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 	return contract, nil
 }
 
+func (app *application) exportContractsCSV(ctx echo.Context) error {
+	contracts, err := app.queries.FindAllContracts(ctx.Request().Context())
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	ctx.Response().Header().Set("Content-Type", "text/csv")
+	ctx.Response().Header().Set("Content-Disposition", "attachment; filename=contracts.csv")
+
+	writer := ctx.Response().Writer
+	// BOM for Excel UTF-8 compatibility
+	writer.Write([]byte{0xEF, 0xBB, 0xBF})
+	writer.Write([]byte("Name;Company;Category;Status;Start Date;End Date;Billing Period;Costs;Currency;Monthly Costs;Next Billing Date;Contract Number;Customer Number;Contract Holder;Contact Person;Contact Email;Contact Phone;Notes\n"))
+
+	for _, c := range contracts {
+		dto := dtos.MapContractToContractDto(c)
+		writer.Write([]byte(fmt.Sprintf("%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s\n",
+			csvEscape(dto.Name),
+			csvEscapePtr(dto.Company),
+			csvEscape(dto.Category),
+			csvEscape(string(dto.Status)),
+			formatDateOnly(dto.StartDate),
+			formatDateOnlyPtr(dto.EndDate),
+			csvEscape(dto.BillingPeriod),
+			formatFloat(dto.Costs),
+			csvEscapePtr(dto.Currency),
+			formatFloat(dto.MonthlyCosts),
+			formatDateOnlyPtr(dto.NextBillingDate),
+			csvEscapePtr(dto.ContractNumber),
+			csvEscapePtr(dto.CustomerNumber),
+			csvEscapePtr(dto.ContractHolder),
+			csvEscapePtr(dto.ContactPerson),
+			csvEscapePtr(dto.ContactEmail),
+			csvEscapePtr(dto.ContactPhone),
+			csvEscapePtr(dto.Notes),
+		)))
+	}
+
+	return nil
+}
+
+func maxInt64(a, b int64) int64 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func csvEscape(s string) string {
+	if strings.ContainsAny(s, ";,\"\n") {
+		return `"` + strings.ReplaceAll(s, `"`, `""`) + `"`
+	}
+	return s
+}
+
+func csvEscapePtr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return csvEscape(*s)
+}
+
+func formatDateOnly(d dtos.DateOnly) string {
+	return time.Time(d).Format("2006-01-02")
+}
+
+func formatDateOnlyPtr(d *dtos.DateOnly) string {
+	if d == nil {
+		return ""
+	}
+	return time.Time(*d).Format("2006-01-02")
+}
+
+func formatFloat(f *float64) string {
+	if f == nil {
+		return ""
+	}
+	return fmt.Sprintf("%.2f", *f)
+}
+
 func (app *application) deleteContract(ctx echo.Context) error {
+	user := ctx.Get("user").(sqlc.User)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
+
+	contract, err := app.queries.FindContractById(ctx.Request().Context(), id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "contract not found")
+	}
+	if user.Role != "admin" && contract.OwnerID != nil && *contract.OwnerID != user.ID {
+		return echo.NewHTTPError(http.StatusForbidden, "access denied")
+	}
+
 	err = app.queries.DeleteContractSoft(ctx.Request().Context(), id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
