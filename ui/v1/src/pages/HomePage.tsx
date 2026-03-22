@@ -108,6 +108,7 @@ export default function HomePage() {
     const [filterVisibility, setFilterVisibility] = useState<string>("all");
     const [showFilters, setShowFilters] = useState(false);
     const [showImport, setShowImport] = useState(false);
+    const [showExportMenu, setShowExportMenu] = useState(false);
     const [sortKey, setSortKey] = useState<SortKey>("name");
     const [sortDir, setSortDir] = useState<SortDir>("asc");
 
@@ -371,20 +372,27 @@ export default function HomePage() {
                     <Button plain className="hover:cursor-pointer" onClick={() => setShowImport(true)}>
                         <ArrowUpTrayIcon/>
                     </Button>
-                    <div className="relative group">
-                        <Button plain className="hover:cursor-pointer">
+                    <div className="relative">
+                        <Button plain className="hover:cursor-pointer" onClick={() => setShowExportMenu(!showExportMenu)}>
                             <ArrowDownTrayIcon/>
                         </Button>
-                        <div className="absolute right-0 top-full mt-1 hidden group-hover:flex flex-col bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg z-10 min-w-[100px]">
-                            <a href={`${apiBasePath}/contracts/export.csv`} download
-                               className="px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-t-lg">
-                                CSV
-                            </a>
-                            <a href={`${apiBasePath}/contracts/export.json`} download
-                               className="px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-b-lg">
-                                JSON
-                            </a>
-                        </div>
+                        {showExportMenu && (
+                            <>
+                                <div className="fixed inset-0 z-10" onClick={() => setShowExportMenu(false)}/>
+                                <div className="absolute right-0 top-full mt-1 flex flex-col bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg z-20 min-w-[100px]">
+                                    <a href={`${apiBasePath}/contracts/export.csv`} download
+                                       onClick={() => setShowExportMenu(false)}
+                                       className="px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-t-lg">
+                                        CSV
+                                    </a>
+                                    <a href={`${apiBasePath}/contracts/export.json`} download
+                                       onClick={() => setShowExportMenu(false)}
+                                       className="px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-b-lg">
+                                        JSON
+                                    </a>
+                                </div>
+                            </>
+                        )}
                     </div>
                     <span className="hidden sm:inline-flex ml-auto">
                         <Button className="hover:cursor-pointer" to="/contracts/add">
