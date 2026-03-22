@@ -82,8 +82,6 @@ export const contractAction: ActionFunction = async ({request, params}) => {
         return {error: message, values: meta};
     }
 
-    const c = await res.json()
-
     // Auf Erfolg weiterleiten
     return new Response(null, {
         status: 303,

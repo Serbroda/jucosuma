@@ -5,6 +5,9 @@
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 @layer base {
+    html, body {
+        @apply bg-white dark:bg-zinc-900;
+    }
     h1 {
         @apply text-3xl font-bold leading-tight;
     }
