@@ -43,7 +43,7 @@ const statusColor = (status: string): "green" | "yellow" | "zinc" => {
     }
 };
 
-type SortKey = "name" | "costs" | "next_billing_date" | "status";
+type SortKey = "name" | "company" | "costs" | "next_billing_date" | "status";
 type SortDir = "asc" | "desc";
 
 const statusOrder: Record<string, number> = {active: 0, cancelled: 1, expired: 2};
@@ -55,6 +55,9 @@ function sortContracts(contracts: ContractDto[], sortKey: SortKey, sortDir: Sort
         switch (sortKey) {
             case "name":
                 cmp = a.name.localeCompare(b.name);
+                break;
+            case "company":
+                cmp = (a.company ?? '').localeCompare(b.company ?? '');
                 break;
             case "costs":
                 cmp = (a.monthly_costs ?? 0) - (b.monthly_costs ?? 0);
@@ -159,7 +162,7 @@ export default function HomePage() {
     const upcomingBilling = useMemo(() => {
         if (!contracts) return [];
         return contracts
-            .filter(c => c.next_billing_date && c.status === ContractStatusActive)
+            .filter(c => c.next_billing_date && c.status !== ContractStatusExpired)
             .sort((a, b) => (a.next_billing_date ?? '').localeCompare(b.next_billing_date ?? ''))
             .slice(0, 5);
     }, [contracts]);
@@ -368,11 +371,21 @@ export default function HomePage() {
                     <Button plain className="hover:cursor-pointer" onClick={() => setShowImport(true)}>
                         <ArrowUpTrayIcon/>
                     </Button>
-                    <a href={`${apiBasePath}/contracts/export.csv`} download>
+                    <div className="relative group">
                         <Button plain className="hover:cursor-pointer">
                             <ArrowDownTrayIcon/>
                         </Button>
-                    </a>
+                        <div className="absolute right-0 top-full mt-1 hidden group-hover:flex flex-col bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg z-10 min-w-[100px]">
+                            <a href={`${apiBasePath}/contracts/export.csv`} download
+                               className="px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-t-lg">
+                                CSV
+                            </a>
+                            <a href={`${apiBasePath}/contracts/export.json`} download
+                               className="px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-b-lg">
+                                JSON
+                            </a>
+                        </div>
+                    </div>
                     <span className="hidden sm:inline-flex ml-auto">
                         <Button className="hover:cursor-pointer" to="/contracts/add">
                             <PlusIcon/>
@@ -455,6 +468,8 @@ export default function HomePage() {
                     >
                         <option value="name:asc">Name A-Z</option>
                         <option value="name:desc">Name Z-A</option>
+                        <option value="company:asc">Company A-Z</option>
+                        <option value="company:desc">Company Z-A</option>
                         <option value="costs:desc">Costs high-low</option>
                         <option value="costs:asc">Costs low-high</option>
                         <option value="next_billing_date:asc">Billing soonest</option>
@@ -466,6 +481,7 @@ export default function HomePage() {
                 {/* Desktop sort */}
                 <div className="hidden lg:flex items-center gap-0.5">
                     <SortButton field="name" label="Name"/>
+                    <SortButton field="company" label="Company"/>
                     <SortButton field="costs" label="Costs"/>
                     <SortButton field="next_billing_date" label="Billing"/>
                     <SortButton field="status" label="Status"/>

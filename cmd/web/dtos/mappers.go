@@ -161,6 +161,12 @@ func MapContractHolderToContractHolderDto(item *string) ContractHolderDto {
 	}
 }
 
+func MapCompanyToCompanyDto(item *string) CompanyDto {
+	return CompanyDto{
+		Name: *item,
+	}
+}
+
 func MapCategoryToCategoryDto(c sqlc.Category) CategoryDto {
 	return CategoryDto{
 		ID:        c.ID,

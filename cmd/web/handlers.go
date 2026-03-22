@@ -376,6 +376,30 @@ func (app *application) updateDocument(ctx echo.Context) error {
 	return ctx.String(http.StatusOK, "successfully deleted")
 }
 
+func (app *application) getUsedIcons(ctx echo.Context) error {
+	icons, err := app.queries.FindUsedIcons(ctx.Request().Context())
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	// Filter out nil values and return as string array
+	var result []string
+	for _, icon := range icons {
+		if icon != nil {
+			result = append(result, *icon)
+		}
+	}
+	return ctx.JSON(http.StatusOK, result)
+}
+
+func (app *application) getCompanies(ctx echo.Context) error {
+	entities, err := app.queries.FindCompanies(ctx.Request().Context())
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	res := utils.MapSlice(entities, dtos.MapCompanyToCompanyDto)
+	return ctx.JSON(http.StatusOK, res)
+}
+
 func (app *application) getContractHolders(ctx echo.Context) error {
 	entities, err := app.queries.FindContractHolders(ctx.Request().Context())
 	if err != nil {

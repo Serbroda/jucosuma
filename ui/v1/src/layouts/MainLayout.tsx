@@ -99,7 +99,7 @@ function MainLayout() {
                                 }}
                                 className="hover:cursor-pointer transition duration-300 ease-in-out"
                             />
-                            <button onClick={handleLogout} className="hover:opacity-75 hover:cursor-pointer">
+                            <button onClick={handleLogout} className="hover:opacity-75 hover:cursor-pointer mr-5">
                                 <ArrowRightStartOnRectangleIcon className="size-5"/>
                             </button>
                         </NavbarSection>

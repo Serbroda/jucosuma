@@ -15,7 +15,7 @@ type ImportRow = {
 };
 
 type ImportResult = {
-    rows: ImportRow[];
+    rows?: ImportRow[];
     imported?: number;
     errors?: number;
 };
@@ -28,6 +28,8 @@ export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClo
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    const isJson = file?.name.endsWith('.json');
+
     const reset = () => {
         setFile(null);
         setPreview(null);
@@ -36,9 +38,10 @@ export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClo
     };
 
     const handleClose = () => {
+        const didImport = result && result.imported && result.imported > 0;
         reset();
         onClose();
-        if (result && result.imported && result.imported > 0) {
+        if (didImport) {
             navigate('/');
         }
     };
@@ -48,12 +51,22 @@ export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClo
         setLoading(true);
         setError('');
         try {
-            const fd = new FormData();
-            fd.append('file', file);
-            const res = await apiFetch(`${apiBasePath}/contracts/import?preview=true`, {
-                method: 'POST',
-                body: fd,
-            });
+            let res: Response;
+            if (isJson) {
+                const text = await file.text();
+                res = await apiFetch(`${apiBasePath}/contracts/import.json?preview=true`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: text,
+                });
+            } else {
+                const fd = new FormData();
+                fd.append('file', file);
+                res = await apiFetch(`${apiBasePath}/contracts/import?preview=true`, {
+                    method: 'POST',
+                    body: fd,
+                });
+            }
             if (!res.ok) {
                 const err = await res.json().catch(() => ({message: 'Preview failed'}));
                 throw new Error(err.message || 'Preview failed');
@@ -71,12 +84,22 @@ export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClo
         setLoading(true);
         setError('');
         try {
-            const fd = new FormData();
-            fd.append('file', file);
-            const res = await apiFetch(`${apiBasePath}/contracts/import`, {
-                method: 'POST',
-                body: fd,
-            });
+            let res: Response;
+            if (isJson) {
+                const text = await file.text();
+                res = await apiFetch(`${apiBasePath}/contracts/import.json`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: text,
+                });
+            } else {
+                const fd = new FormData();
+                fd.append('file', file);
+                res = await apiFetch(`${apiBasePath}/contracts/import`, {
+                    method: 'POST',
+                    body: fd,
+                });
+            }
             if (!res.ok) {
                 const err = await res.json().catch(() => ({message: 'Import failed'}));
                 throw new Error(err.message || 'Import failed');
@@ -89,6 +112,8 @@ export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClo
             setLoading(false);
         }
     };
+
+    const rows = preview?.rows ?? [];
 
     return (
         <Dialog open={isOpen} onClose={handleClose}>
@@ -109,10 +134,10 @@ export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClo
                             <div className="text-red-500 mt-1">{result.errors} row{result.errors !== 1 ? 's' : ''} had errors.</div>
                         )}
                     </div>
-                ) : preview ? (
+                ) : preview && rows.length > 0 ? (
                     <div>
                         <div className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
-                            {preview.rows.length} row{preview.rows.length !== 1 ? 's' : ''} found. Review before importing:
+                            {rows.length} row{rows.length !== 1 ? 's' : ''} found. Review before importing:
                         </div>
                         <div className="max-h-64 overflow-y-auto border border-zinc-200 dark:border-zinc-800 rounded-lg">
                             <table className="w-full text-xs">
@@ -125,7 +150,7 @@ export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClo
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {preview.rows.map((row, i) => (
+                                    {rows.map((row, i) => (
                                         <tr key={i} className="border-t border-zinc-100 dark:border-zinc-800">
                                             <td className="p-2 truncate max-w-[120px]">{row.name}</td>
                                             <td className="p-2 truncate max-w-[100px] hidden sm:table-cell">{row.company}</td>
@@ -145,11 +170,11 @@ export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClo
                 ) : (
                     <div>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
-                            Upload a CSV file matching the export format (semicolon-separated).
+                            Upload a CSV or JSON file.
                         </p>
                         <Input
                             type="file"
-                            accept=".csv"
+                            accept=".csv,.json"
                             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                         />
                     </div>
