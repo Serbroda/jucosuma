@@ -144,6 +144,10 @@ type ContractHolderDto struct {
 	Name string `json:"name"`
 }
 
+type CompanyDto struct {
+	Name string `json:"name"`
+}
+
 type LoginDto struct {
 	Username string `json:"username" validate:"required"`
 	Password string `json:"password" validate:"required"`

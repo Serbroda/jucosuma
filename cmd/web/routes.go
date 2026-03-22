@@ -40,7 +40,9 @@ func (app *application) routes() *echo.Echo {
 	// Contract routes
 	auth.GET("/contracts", app.getContracts)
 	auth.GET("/contracts/export.csv", app.exportContractsCSV)
+	auth.GET("/contracts/export.json", app.exportContractsJSON)
 	auth.POST("/contracts/import", app.importContractsCSV)
+	auth.POST("/contracts/import.json", app.importContractsJSON)
 	auth.POST("/contracts", app.createContract)
 	auth.GET("/contracts/:id", app.getContractById)
 	auth.PUT("/contracts/:id", app.updateContract)
@@ -48,6 +50,8 @@ func (app *application) routes() *echo.Echo {
 	auth.PUT("/documents/:id", app.updateDocument)
 	auth.DELETE("/documents/:id", app.deleteDocument)
 	auth.GET("/contract_holders", app.getContractHolders)
+	auth.GET("/companies", app.getCompanies)
+	auth.GET("/used_icons", app.getUsedIcons)
 	auth.GET("/search_logos", app.searchLogos)
 
 	// Admin-only routes

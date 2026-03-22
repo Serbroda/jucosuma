@@ -21,6 +21,11 @@ async function contractHoldersLoader() {
     return {holders: res};
 }
 
+async function companiesLoader() {
+    const res = await fetchJSON(`${apiBasePath}/companies`);
+    return {companies: res ?? []};
+}
+
 async function categoriesLoader() {
     const res = await fetchJSON(`${apiBasePath}/categories`);
     return {categories: res ?? []};
@@ -38,23 +43,25 @@ async function contractsLoader() {
 }
 
 async function contractLoader({params}: { params: any }) {
-    const [contract, {holders}, {categories}] = await Promise.all([
+    const [contract, {holders}, {companies}, {categories}] = await Promise.all([
         fetchJSON(`${apiBasePath}/contracts/${params.id}`),
         contractHoldersLoader(),
+        companiesLoader(),
         categoriesLoader(),
     ]);
     if (!contract) {
         throw new Response("Not Found", {status: 404});
     }
-    return {contract, holders, categories};
+    return {contract, holders, companies, categories};
 }
 
 async function contractFormLoader() {
-    const [{holders}, {categories}] = await Promise.all([
+    const [{holders}, {companies}, {categories}] = await Promise.all([
         contractHoldersLoader(),
+        companiesLoader(),
         categoriesLoader(),
     ]);
-    return {holders, categories};
+    return {holders, companies, categories};
 }
 
 export {contractsLoader, contractLoader, contractHoldersLoader, categoriesLoader, contractFormLoader};

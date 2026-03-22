@@ -107,3 +107,20 @@ WHERE deleted_at IS NULL
   AND contract_holder IS NOT NULL
 ORDER BY contract_holder ASC
 ;
+
+-- name: FindUsedIcons :many
+SELECT DISTINCT icon_source
+FROM contracts
+WHERE deleted_at IS NULL
+  AND icon_source IS NOT NULL
+  AND icon_source != ''
+ORDER BY name ASC
+;
+
+-- name: FindCompanies :many
+SELECT DISTINCT company
+FROM contracts
+WHERE deleted_at IS NULL
+  AND company IS NOT NULL
+ORDER BY company ASC
+;

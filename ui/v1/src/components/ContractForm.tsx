@@ -4,7 +4,7 @@ import {
     BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime,
     BillingPeriodQuarterly, BillingPeriodSemiannual,
     BillingPeriodWeekly,
-    type CategoryDto, type ContractDto, type ContractHolderDto, type DocumentDto
+    type CategoryDto, type CompanyDto, type ContractDto, type ContractHolderDto, type DocumentDto
 } from "../gen/types.gen.ts";
 import {Avatar} from "./catalyst/avatar.tsx";
 import {Field, Label} from "./catalyst/fieldset.tsx";
@@ -32,12 +32,13 @@ import {Combobox, ComboboxLabel, ComboboxOption} from "./catalyst/combobox.tsx";
 export interface ContractFormProps {
     contract: Partial<ContractDto>;
     holders: ContractHolderDto[];
+    companies: CompanyDto[];
     categories: CategoryDto[];
     mode?: 'add' | 'edit';
     error?: string;
 }
 
-export default function ContractForm({contract, holders, categories, mode = 'add', error}: ContractFormProps) {
+export default function ContractForm({contract, holders, companies, categories, mode = 'add', error}: ContractFormProps) {
     const navigation = useNavigate();
     const {state} = useNavigation();
     const {user: currentUser} = useAuth();
@@ -66,6 +67,7 @@ export default function ContractForm({contract, holders, categories, mode = 'add
         },
     });
     const [holdersWithInput, setHoldersWithInput] = useState<ContractHolderDto[]>(holders);
+    const [companiesWithInput, setCompaniesWithInput] = useState<CompanyDto[]>(companies);
     const [billingPeriod, setBillingPeriod] = useState(contract.billing_period ?? "none");
     const [showNextBillingOverride, setShowNextBillingOverride] = useState(false);
 
@@ -175,6 +177,11 @@ export default function ContractForm({contract, holders, categories, mode = 'add
                         setNameError('Name is required.');
                         return;
                     }
+                    const startDate = (formData.get('start_date') as string)?.trim();
+                    if (!startDate) {
+                        e.preventDefault();
+                        return;
+                    }
                 }}
             >
                 {error && (
@@ -206,7 +213,7 @@ export default function ContractForm({contract, holders, categories, mode = 'add
                 </div>
 
                 <Field>
-                    <Label>Name</Label>
+                    <Label>Name *</Label>
                     <Input
                         name="name"
                         placeholder="Enter contract name"
@@ -219,18 +226,27 @@ export default function ContractForm({contract, holders, categories, mode = 'add
 
                 <Field>
                     <Label>Company</Label>
-                    <Input
+                    <Combobox
                         name="company"
-                        placeholder="Enter company"
-                        defaultValue={contract.company ?? ""}
-                    />
+                        options={companiesWithInput}
+                        onInputChange={(e) => {
+                            setCompaniesWithInput([...companies, {name: e.target.value}])
+                        }}
+                        displayValue={(c) => c?.name}
+                        defaultValue={{name: contract.company || ''}}>
+                        {(c) => (
+                            <ComboboxOption value={c}>
+                                <ComboboxLabel>{c.name}</ComboboxLabel>
+                            </ComboboxOption>
+                        )}
+                    </Combobox>
                 </Field>
 
                 <Field>
                     <Label>Category</Label>
                     <Select
                         name="category"
-                        defaultValue={contract.category ?? categories[0]?.name ?? "Other"}
+                        defaultValue={contract.category ?? "Other"}
                     >
                         {categories.map((cat) => (
                             <option key={cat.id} value={cat.name}>
@@ -259,10 +275,11 @@ export default function ContractForm({contract, holders, categories, mode = 'add
                 <Divider className="mt-6"/>
                 <Subheading>Details</Subheading>
                 <Field>
-                    <Label>Start Date</Label>
+                    <Label>Start Date *</Label>
                     <Input
                         type="date"
                         name="start_date"
+                        required
                         defaultValue={
                             contract.start_date
                                 ? dayjs(contract.start_date).format("YYYY-MM-DD")

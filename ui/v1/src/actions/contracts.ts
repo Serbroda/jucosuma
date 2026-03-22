@@ -87,6 +87,6 @@ export const contractAction: ActionFunction = async ({request, params}) => {
     // Auf Erfolg weiterleiten
     return new Response(null, {
         status: 303,
-        headers: {Location: id ? `/contracts/${id}` : `/contracts/${c.id}`},
+        headers: {Location: id ? `/contracts/${id}` : `/`},
     });
 };

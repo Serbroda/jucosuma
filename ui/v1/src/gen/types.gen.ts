@@ -107,6 +107,9 @@ export interface UpdateDocumentDto {
 export interface ContractHolderDto {
   name: string;
 }
+export interface CompanyDto {
+  name: string;
+}
 export interface LoginDto {
   username: string;
   password: string;

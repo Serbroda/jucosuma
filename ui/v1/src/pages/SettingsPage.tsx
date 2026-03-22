@@ -44,6 +44,15 @@ export default function SettingsPage() {
         await fetchCategories();
     };
 
+    const updateCategory = async (id: number, name: string, sortOrder: number) => {
+        await apiFetch(`${apiBasePath}/categories/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name, sort_order: sortOrder}),
+        });
+        await fetchCategories();
+    };
+
     const deleteCategory = async (id: number) => {
         await apiFetch(`${apiBasePath}/categories/${id}`, {method: 'DELETE'});
         await fetchCategories();
@@ -91,8 +100,20 @@ export default function SettingsPage() {
 
                         <ul className="flex flex-col">
                             {categories.map((cat) => (
-                                <li key={cat.id} className="flex items-center justify-between py-2 border-b border-zinc-200 dark:border-zinc-800">
-                                    <span className="text-sm text-zinc-950 dark:text-white">{cat.name}</span>
+                                <li key={cat.id} className="flex items-center gap-2 py-2 border-b border-zinc-200 dark:border-zinc-800">
+                                    <Input
+                                        type="number"
+                                        defaultValue={cat.sort_order}
+                                        className="!w-14"
+                                        min="0"
+                                        onBlur={(e) => {
+                                            const val = parseInt(e.target.value) || 0;
+                                            if (val !== cat.sort_order) {
+                                                updateCategory(cat.id, cat.name, val);
+                                            }
+                                        }}
+                                    />
+                                    <span className="text-sm text-zinc-950 dark:text-white grow">{cat.name}</span>
                                     <Button plain onClick={() => deleteCategory(cat.id)} className="hover:cursor-pointer text-red-500">
                                         <TrashIcon className="size-4"/>
                                     </Button>

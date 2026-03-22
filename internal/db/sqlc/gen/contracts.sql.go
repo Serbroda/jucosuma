@@ -80,6 +80,39 @@ func (q *Queries) FindAllContracts(ctx context.Context) ([]Contract, error) {
 	return items, nil
 }
 
+const findCompanies = `-- name: FindCompanies :many
+;
+
+SELECT DISTINCT company
+FROM contracts
+WHERE deleted_at IS NULL
+  AND company IS NOT NULL
+ORDER BY company ASC
+`
+
+func (q *Queries) FindCompanies(ctx context.Context) ([]*string, error) {
+	rows, err := q.db.QueryContext(ctx, findCompanies)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*string
+	for rows.Next() {
+		var company *string
+		if err := rows.Scan(&company); err != nil {
+			return nil, err
+		}
+		items = append(items, company)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const findContractById = `-- name: FindContractById :one
 ;
 
@@ -202,6 +235,40 @@ func (q *Queries) FindContractsForUser(ctx context.Context, userID *int64) ([]Co
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const findUsedIcons = `-- name: FindUsedIcons :many
+;
+
+SELECT DISTINCT icon_source
+FROM contracts
+WHERE deleted_at IS NULL
+  AND icon_source IS NOT NULL
+  AND icon_source != ''
+ORDER BY name ASC
+`
+
+func (q *Queries) FindUsedIcons(ctx context.Context) ([]*string, error) {
+	rows, err := q.db.QueryContext(ctx, findUsedIcons)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*string
+	for rows.Next() {
+		var icon_source *string
+		if err := rows.Scan(&icon_source); err != nil {
+			return nil, err
+		}
+		items = append(items, icon_source)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
