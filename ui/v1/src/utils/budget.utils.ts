@@ -17,7 +17,6 @@ import {
     type PersonDto,
     type SavingsGoalDto,
 } from "../gen/types.gen.ts";
-import i18n from "../i18n";
 import {categoryLabel} from "./household.utils.ts";
 
 /**
@@ -99,6 +98,19 @@ export function attribution(c: ContractDto, persons: PersonDto[], accounts: Acco
     return owner != null ? new Map([[owner, 1]]) : null;
 }
 
+/**
+ * Who an expense belongs to: a single household member ("private" cost) or the household
+ * (several members, or a shared account without explicit split). External persons never count.
+ */
+export function costOwner(c: ContractDto, persons: PersonDto[], accounts: AccountDto[]): number | "household" {
+    const parts = attribution(c, persons, accounts);
+    if (!parts) return "household";
+    const members = [...parts.entries()]
+        .filter(([id, f]) => f > 0 && persons.some((p) => p.id === id && p.in_household))
+        .map(([id]) => id);
+    return members.length === 1 ? members[0] : "household";
+}
+
 export type AccountFlow = { account: AccountDto; inflow: number; outflow: number };
 export type PersonalBudget = { person: PersonDto; budget: number; spent: number };
 
@@ -116,7 +128,8 @@ export type MonthSummary = {
     freeBudgets: number;       // pocket money not planned for costs (household scope only)
     unallocated: number;
     byCategory: { id?: number; name: string; label: string; amount: number }[];
-    byPerson: { key: string; label: string; amount: number }[];
+    householdCosts: number;    // costs belonging to the household as a whole
+    privateCosts: Record<number, number>; // private costs per household member
     accounts: AccountFlow[];
     budgets: PersonalBudget[];
     entries: MonthEntry[];
@@ -145,7 +158,8 @@ export function summarizeMonth(
             .map((a) => [a.id, {account: a, inflow: 0, outflow: 0}]),
     );
     const byCategory = new Map<string, { id?: number; name: string; label: string; amount: number }>();
-    const byPerson: Record<string, number> = {};
+    let householdCosts = 0;
+    const privateCosts: Record<number, number> = {};
     const budgets = new Map<number, PersonalBudget>(
         persons.filter((p) => p.in_household && (!personal || p.id === personId))
             .map((p) => [p.id, {person: p, budget: 0, spent: 0}]),
@@ -204,17 +218,9 @@ export function summarizeMonth(
             cat.amount += own;
             byCategory.set(groupKey, cat);
 
-            if (!personal) {
-                const parts = attribution(c, persons, accounts);
-                if (!parts) {
-                    byPerson.shared = (byPerson.shared ?? 0) + amount;
-                } else {
-                    for (const [id, fraction] of parts) {
-                        if (!persons.find((p) => p.id === id)?.in_household) continue;
-                        byPerson[String(id)] = (byPerson[String(id)] ?? 0) + amount * fraction;
-                    }
-                }
-            }
+            const owner = costOwner(c, persons, accounts);
+            if (owner === "household") householdCosts += own;
+            else privateCosts[owner] = (privateCosts[owner] ?? 0) + own;
 
             if (from) from.outflow += household;
             if (account?.person_id != null) {
@@ -224,11 +230,8 @@ export function summarizeMonth(
         }
     }
 
-    const personLabel = (key: string) =>
-        key === "shared" ? i18n.t("overview.sharedNotSplit")
-            : persons.find((p) => String(p.id) === key)?.name ?? i18n.t("common.unknown");
-
-    const budgetList = [...budgets.values()].filter((b) => b.budget !== 0 || b.spent !== 0);
+    // only persons who actually get pocket money have a budget
+    const budgetList = [...budgets.values()].filter((b) => b.budget > 0);
     // Pocket money is allocated to persons; only its unplanned part is set aside here
     // (costs paid from it are already part of the expenses).
     const freeBudgets = personal ? 0 : budgetList.reduce((sum, b) => sum + Math.max(0, b.budget - b.spent), 0);
@@ -241,9 +244,8 @@ export function summarizeMonth(
         freeBudgets,
         unallocated: income - expenses - savings - freeBudgets,
         byCategory: [...byCategory.values()].filter((c) => c.amount > 0).sort((a, b) => b.amount - a.amount),
-        byPerson: Object.entries(byPerson)
-            .map(([key, amount]) => ({key, label: personLabel(key), amount}))
-            .sort((a, b) => b.amount - a.amount),
+        householdCosts,
+        privateCosts,
         accounts: [...flows.values()].filter((f) => f.inflow !== 0 || f.outflow !== 0),
         budgets: budgetList,
         entries: entries.sort((a, b) => b.own - a.own),
@@ -291,11 +293,29 @@ export function summarizeGoals(contracts: ContractDto[], goals: SavingsGoalDto[]
     });
 }
 
-/** "Danny 50 % · Julia 50 %" for an entry, or the account owner, or `sharedLabel` when not attributed. */
-export function splitText(c: ContractDto, persons: PersonDto[], accounts: AccountDto[], sharedLabel: string, locale: string): string {
+/**
+ * Readable assignment of an expense: "Household", a person's name, or percentages when the split
+ * is uneven or external persons take part (e.g. "Household 25 % · Friends 75 %").
+ */
+export function splitText(c: ContractDto, persons: PersonDto[], accounts: AccountDto[], householdLabel: string, locale: string): string {
     const parts = attribution(c, persons, accounts);
-    if (!parts) return sharedLabel;
-    return [...parts.entries()]
-        .map(([id, f]) => `${persons.find((p) => p.id === id)?.name ?? "?"} ${(Math.round(f * 1000) / 10).toLocaleString(locale)} %`)
-        .join(" · ");
+    if (!parts) return householdLabel;
+    const percent = (f: number) => `${(Math.round(f * 1000) / 10).toLocaleString(locale)} %`;
+    const isMember = (id: number) => persons.some((p) => p.id === id && p.in_household);
+    const members = [...parts.entries()].filter(([id, f]) => f > 0 && isMember(id));
+    const externals = [...parts.entries()].filter(([id, f]) => f > 0 && !isMember(id));
+    const name = (id: number) => persons.find((p) => p.id === id)?.name ?? "?";
+    const householdSize = persons.filter((p) => p.in_household).length;
+    const equal = members.every(([, f]) => Math.abs(f - members[0][1]) < 1e-9);
+
+    let head: string[];
+    if (members.length === householdSize && householdSize > 1 && equal) {
+        const share = members.reduce((s, [, f]) => s + f, 0);
+        head = [externals.length ? `${householdLabel} ${percent(share)}` : householdLabel];
+    } else if (members.length === 1 && externals.length === 0) {
+        return name(members[0][0]);
+    } else {
+        head = members.map(([id, f]) => `${name(id)} ${percent(f)}`);
+    }
+    return [...head, ...externals.map(([id, f]) => `${name(id)} ${percent(f)}`)].join(" · ");
 }

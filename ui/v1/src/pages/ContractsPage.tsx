@@ -146,7 +146,7 @@ export default function ContractsPage() {
                                 </td>
                                 <td className={classNames(td, "hidden lg:table-cell tabular-nums whitespace-nowrap")}>{c.contract_number ?? "–"}</td>
                                 <td className={classNames(td, "hidden md:table-cell")}>
-                                    {splitText(c, data.persons, data.accounts, t('common.shared'), i18n.language)}
+                                    {splitText(c, data.persons, data.accounts, t('common.household'), i18n.language)}
                                 </td>
                                 <td className={classNames(td, "text-right tabular-nums whitespace-nowrap")}>
                                     <div className="font-medium text-zinc-950 dark:text-white">{format(c.costs ?? 0)}</div>

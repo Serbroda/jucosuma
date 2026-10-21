@@ -90,8 +90,8 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
                                     </span>
                                 </td>
                             )}
-                            {has("split") && <td className={classNames(td, "hidden lg:table-cell whitespace-nowrap")}>{splitText(c, data.persons, data.accounts, t('common.shared'), i18n.language)}</td>}
-                            {has("person") && <td className={classNames(td, "hidden lg:table-cell")}>{splitText(c, data.persons, data.accounts, t('common.shared'), i18n.language)}</td>}
+                            {has("split") && <td className={classNames(td, "hidden lg:table-cell whitespace-nowrap")}>{splitText(c, data.persons, data.accounts, t('common.household'), i18n.language)}</td>}
+                            {has("person") && <td className={classNames(td, "hidden lg:table-cell")}>{splitText(c, data.persons, data.accounts, t('common.household'), i18n.language)}</td>}
                             {has("goal") && (
                                 <td className={classNames(td, "hidden lg:table-cell")}>
                                     {goal ? (

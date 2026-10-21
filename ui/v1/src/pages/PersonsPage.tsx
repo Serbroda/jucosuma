@@ -37,7 +37,7 @@ export default function PersonsPage() {
 
     const format = (v: number) => new Intl.NumberFormat(numberLocale(), {style: "currency", currency: mainCurrency}).format(v);
     const summary = summarizeMonth(data.contracts, data.persons, data.accounts, month, mode, mainCurrency);
-    const shareOf = (p: PersonDto) => summary.byPerson.find((b) => b.key === String(p.id))?.amount ?? 0;
+    const shareOf = (p: PersonDto) => summary.privateCosts[p.id] ?? 0;
     const entriesOf = (p: PersonDto) => data.contracts.filter((c) => c.shares.some((s) => s.person_id === p.id)).length;
     const initials = (name: string) => name.trim().slice(0, 2);
 

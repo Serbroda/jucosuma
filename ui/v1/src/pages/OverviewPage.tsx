@@ -11,8 +11,6 @@ import {
     MinusIcon,
     PlusIcon,
     ShoppingBagIcon,
-    UserGroupIcon,
-    UserIcon,
     WalletIcon,
 } from "@heroicons/react/20/solid";
 import QuickEntryDialog from "../components/QuickEntryDialog.tsx";
@@ -33,7 +31,7 @@ import {
 import {useAppData} from "../hooks/useAppData.ts";
 import {useMonth} from "../stores/useMonth.ts";
 import {slotColor} from "../lib/icons.ts";
-import {amountInMonth, attribution, summarizeMonth} from "../utils/budget.utils.ts";
+import {amountInMonth, costOwner, summarizeMonth} from "../utils/budget.utils.ts";
 import {accountOwnerLabel, daysUntil} from "../utils/household.utils.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
@@ -70,18 +68,8 @@ function KpiCard({icon: IconCmp, tint, label, value, children}: {
     );
 }
 
-function ShareBar({share}: { share: number }) {
-    return (
-        <div className="flex items-center gap-2">
-            <span className="text-xs tabular-nums text-zinc-500 dark:text-zinc-400 w-9">{Math.round(share * 100)} %</span>
-            <div className="h-1.5 grow rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-                <div className="h-full rounded-full" style={{width: `${Math.min(100, share * 100)}%`, background: "var(--chart-1)"}}/>
-            </div>
-        </div>
-    );
-}
-
-function Delta({current, previous, previousLabel}: { current: number; previous: number; previousLabel: string }) {
+/** Change vs. the previous month; by default "up" is bad (costs), with upIsGood for income. */
+function Delta({current, previous, previousLabel, upIsGood}: { current: number; previous: number; previousLabel: string; upIsGood?: boolean }) {
     const {t} = useTranslation();
     if (previous <= 0) return null;
     const change = (current - previous) / previous;
@@ -92,8 +80,8 @@ function Delta({current, previous, previousLabel}: { current: number; previous: 
     return (
         <div className="flex items-center gap-1.5 text-xs">
             <span className={classNames("inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 font-medium",
-                up ? "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-                    : down ? "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400"
+                (up && !upIsGood) || (down && upIsGood) ? "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400"
+                    : up || down ? "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400"
                         : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300")}>
                 <IconCmp className="size-3"/>{percent} %
             </span>
@@ -193,17 +181,14 @@ export default function OverviewPage() {
             && amountInMonth(c, month, "average") > 0)
         .filter((c) => {
             if (recurringFilter === "all") return true;
-            const parts = attribution(c, persons, accounts);
-            const members = parts ? [...parts.keys()].filter((id) => household.some((p) => p.id === id)) : [];
-            if (recurringFilter === "shared") return !parts || members.length > 1;
-            return parts?.has(Number(recurringFilter)) ?? false;
+            const owner = costOwner(c, persons, accounts);
+            return recurringFilter === "shared" ? owner === "household" : owner === Number(recurringFilter);
         })
         .sort((a, b) => (b.monthly_amount ?? 0) - (a.monthly_amount ?? 0)),
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [contracts, persons, accounts, monthKey, recurringFilter]);
 
     const flowByAccount = new Map(summary.accounts.map((f) => [f.account.id, f.inflow - f.outflow]));
-    const sharedCosts = summary.byPerson.find((p) => p.key === "shared")?.amount ?? 0;
     const shortDate = (d: string) => new Intl.DateTimeFormat(numberLocale(), {day: "numeric", month: "short"}).format(new Date(d));
     const needsSetup = persons.length === 0 || accounts.length === 0;
 
@@ -261,41 +246,46 @@ export default function OverviewPage() {
                 </div>
             )}
 
-            {/* KPIs */}
+            {/* KPIs: income → costs → savings → available */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                <KpiCard icon={ShoppingBagIcon} tint="bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
-                         label={personal ? t('overview.myCosts') : t('overview.ourCosts')} value={formatShort(summary.expenses)}>
-                    <Delta current={summary.expenses} previous={previous.expenses}
+                <KpiCard icon={BanknotesIcon} tint="bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400"
+                         label={t('overview.income')} value={formatShort(summary.income)}>
+                    <Delta current={summary.income} previous={previous.income} upIsGood
                            previousLabel={month.subtract(1, "month").format("MMMM")}/>
                 </KpiCard>
-                {personal ? (
-                    <>
-                        <KpiCard icon={BanknotesIcon} tint="bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400"
-                                 label={t('overview.income')} value={formatShort(summary.income)}/>
-                        <KpiCard icon={ChartBarIcon} tint="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
-                                 label={t('overview.saving')} value={formatShort(summary.savings)}/>
-                        <KpiCard icon={WalletIcon} tint="bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
-                                 label={t('overview.unallocated')} value={formatShort(summary.unallocated)}/>
-                    </>
-                ) : (
-                    <>
-                        {household.slice(0, 2).map((p) => {
-                            const amount = summary.byPerson.find((b) => b.key === String(p.id))?.amount ?? 0;
-                            return (
-                                <KpiCard key={p.id} icon={UserIcon}
-                                         tint="bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400"
-                                         label={p.id === me?.id ? t('overview.yourCosts') : t('overview.costsOf', {name: p.name})}
-                                         value={formatShort(amount)}>
-                                    <ShareBar share={summary.expenses > 0 ? amount / summary.expenses : 0}/>
-                                </KpiCard>
-                            );
+                <KpiCard icon={ShoppingBagIcon} tint="bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
+                         label={personal ? t('overview.myCosts') : t('overview.ourCosts')} value={formatShort(summary.expenses)}>
+                    <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                        {personal ? t('overview.costsSplitMe', {
+                            household: formatShort(summary.householdCosts),
+                            own: formatShort(me ? summary.privateCosts[me.id] ?? 0 : 0),
+                        }) : t('overview.costsSplit', {
+                            household: formatShort(summary.householdCosts),
+                            own: formatShort(Object.values(summary.privateCosts).reduce((sum, v) => sum + v, 0)),
                         })}
-                        <KpiCard icon={UserGroupIcon} tint="bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400"
-                                 label={t('overview.sharedCosts')} value={formatShort(sharedCosts)}>
-                            <ShareBar share={summary.expenses > 0 ? sharedCosts / summary.expenses : 0}/>
-                        </KpiCard>
-                    </>
-                )}
+                    </div>
+                    <div className="mt-1">
+                        <Delta current={summary.expenses} previous={previous.expenses}
+                               previousLabel={month.subtract(1, "month").format("MMMM")}/>
+                    </div>
+                </KpiCard>
+                <KpiCard icon={ChartBarIcon} tint="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                         label={t('overview.saving')} value={formatShort(summary.savings)}>
+                    {summary.income > 0 && (
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                            {t('overview.ofIncomeShort', {percent: Math.round(summary.savings / summary.income * 100)})}
+                        </div>
+                    )}
+                </KpiCard>
+                <KpiCard icon={WalletIcon}
+                         tint={summary.unallocated < 0 ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                             : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"}
+                         label={t('overview.available')} value={formatShort(summary.unallocated)}>
+                    <div className={classNames("text-xs", summary.unallocated < 0 ? "text-red-600 dark:text-red-400" : "text-zinc-500 dark:text-zinc-400")}>
+                        {summary.unallocated < 0 ? t('overview.overspent')
+                            : summary.freeBudgets > 0 ? t('overview.availableHintBudgets') : t('overview.availableHint')}
+                    </div>
+                </KpiCard>
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
@@ -335,7 +325,7 @@ export default function OverviewPage() {
                                 onChange={setRecurringFilter}
                                 options={[
                                     {value: "all", label: t('savings.all')},
-                                    {value: "shared", label: t('common.shared')},
+                                    {value: "shared", label: t('common.household')},
                                     ...household.map((p) => ({value: String(p.id), label: p.name})),
                                 ]}
                             />
