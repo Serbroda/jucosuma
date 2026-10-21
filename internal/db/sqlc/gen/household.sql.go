@@ -37,8 +37,17 @@ func (q *Queries) DeletePersonSoft(ctx context.Context, id int64) error {
 	return err
 }
 
+const deleteSavingsGoalSoft = `-- name: DeleteSavingsGoalSoft :exec
+UPDATE savings_goals SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?
+`
+
+func (q *Queries) DeleteSavingsGoalSoft(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteSavingsGoalSoft, id)
+	return err
+}
+
 const findAllAccounts = `-- name: FindAllAccounts :many
-SELECT id, name, type, person_id, sort_order, created_at, updated_at, deleted_at, balance, balance_date, goal_amount, goal_date, is_savings FROM accounts WHERE deleted_at IS NULL ORDER BY sort_order ASC, name ASC
+SELECT id, name, type, person_id, sort_order, created_at, updated_at, deleted_at, balance, balance_date, goal_amount, goal_date, is_savings, iban FROM accounts WHERE deleted_at IS NULL ORDER BY sort_order ASC, name ASC
 `
 
 func (q *Queries) FindAllAccounts(ctx context.Context) ([]Account, error) {
@@ -64,6 +73,7 @@ func (q *Queries) FindAllAccounts(ctx context.Context) ([]Account, error) {
 			&i.GoalAmount,
 			&i.GoalDate,
 			&i.IsSavings,
+			&i.Iban,
 		); err != nil {
 			return nil, err
 		}
@@ -141,6 +151,49 @@ func (q *Queries) FindAllPersons(ctx context.Context) ([]Person, error) {
 	return items, nil
 }
 
+const findAllSavingsGoals = `-- name: FindAllSavingsGoals :many
+SELECT id, name, kind, icon, color, person_id, account_id, target_amount, target_date, current_amount, "current_date", sort_order, created_at, updated_at, deleted_at FROM savings_goals WHERE deleted_at IS NULL ORDER BY sort_order ASC, name ASC
+`
+
+func (q *Queries) FindAllSavingsGoals(ctx context.Context) ([]SavingsGoal, error) {
+	rows, err := q.db.QueryContext(ctx, findAllSavingsGoals)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SavingsGoal
+	for rows.Next() {
+		var i SavingsGoal
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Kind,
+			&i.Icon,
+			&i.Color,
+			&i.PersonID,
+			&i.AccountID,
+			&i.TargetAmount,
+			&i.TargetDate,
+			&i.CurrentAmount,
+			&i.CurrentDate,
+			&i.SortOrder,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const findContractSharesByContractId = `-- name: FindContractSharesByContractId :many
 SELECT contract_id, person_id, weight FROM contract_shares WHERE contract_id = ? ORDER BY person_id
 `
@@ -169,11 +222,11 @@ func (q *Queries) FindContractSharesByContractId(ctx context.Context, contractID
 }
 
 const insertAccount = `-- name: InsertAccount :one
-INSERT INTO accounts (name, type, person_id, sort_order, is_savings, balance, balance_date, goal_amount, goal_date, created_at, updated_at)
-VALUES (?1, ?2, ?3, ?4, ?5,
-        ?6, ?7, ?8, ?9,
+INSERT INTO accounts (name, type, person_id, sort_order, is_savings, iban, balance, balance_date, goal_amount, goal_date, created_at, updated_at)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6,
+        ?7, ?8, ?9, ?10,
         CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-RETURNING id, name, type, person_id, sort_order, created_at, updated_at, deleted_at, balance, balance_date, goal_amount, goal_date, is_savings
+RETURNING id, name, type, person_id, sort_order, created_at, updated_at, deleted_at, balance, balance_date, goal_amount, goal_date, is_savings, iban
 `
 
 type InsertAccountParams struct {
@@ -182,6 +235,7 @@ type InsertAccountParams struct {
 	PersonID    *int64     `db:"person_id"`
 	SortOrder   int64      `db:"sort_order"`
 	IsSavings   int64      `db:"is_savings"`
+	Iban        *string    `db:"iban"`
 	Balance     *float64   `db:"balance"`
 	BalanceDate *time.Time `db:"balance_date"`
 	GoalAmount  *float64   `db:"goal_amount"`
@@ -195,6 +249,7 @@ func (q *Queries) InsertAccount(ctx context.Context, arg InsertAccountParams) (A
 		arg.PersonID,
 		arg.SortOrder,
 		arg.IsSavings,
+		arg.Iban,
 		arg.Balance,
 		arg.BalanceDate,
 		arg.GoalAmount,
@@ -215,6 +270,7 @@ func (q *Queries) InsertAccount(ctx context.Context, arg InsertAccountParams) (A
 		&i.GoalAmount,
 		&i.GoalDate,
 		&i.IsSavings,
+		&i.Iban,
 	)
 	return i, err
 }
@@ -269,6 +325,64 @@ func (q *Queries) InsertPerson(ctx context.Context, arg InsertPersonParams) (Per
 	return i, err
 }
 
+const insertSavingsGoal = `-- name: InsertSavingsGoal :one
+INSERT INTO savings_goals (name, kind, icon, color, person_id, account_id, target_amount, target_date,
+                           current_amount, current_date, sort_order, created_at, updated_at)
+VALUES (?1, ?2, ?3, ?4, ?5,
+        ?6, ?7, ?8, ?9,
+        ?10, ?11, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+RETURNING id, name, kind, icon, color, person_id, account_id, target_amount, target_date, current_amount, "current_date", sort_order, created_at, updated_at, deleted_at
+`
+
+type InsertSavingsGoalParams struct {
+	Name          string     `db:"name"`
+	Kind          string     `db:"kind"`
+	Icon          *string    `db:"icon"`
+	Color         *int64     `db:"color"`
+	PersonID      *int64     `db:"person_id"`
+	AccountID     *int64     `db:"account_id"`
+	TargetAmount  *float64   `db:"target_amount"`
+	TargetDate    *time.Time `db:"target_date"`
+	CurrentAmount *float64   `db:"current_amount"`
+	CurrentDate   *time.Time `db:"current_date"`
+	SortOrder     int64      `db:"sort_order"`
+}
+
+func (q *Queries) InsertSavingsGoal(ctx context.Context, arg InsertSavingsGoalParams) (SavingsGoal, error) {
+	row := q.db.QueryRowContext(ctx, insertSavingsGoal,
+		arg.Name,
+		arg.Kind,
+		arg.Icon,
+		arg.Color,
+		arg.PersonID,
+		arg.AccountID,
+		arg.TargetAmount,
+		arg.TargetDate,
+		arg.CurrentAmount,
+		arg.CurrentDate,
+		arg.SortOrder,
+	)
+	var i SavingsGoal
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Kind,
+		&i.Icon,
+		&i.Color,
+		&i.PersonID,
+		&i.AccountID,
+		&i.TargetAmount,
+		&i.TargetDate,
+		&i.CurrentAmount,
+		&i.CurrentDate,
+		&i.SortOrder,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const updateAccountById = `-- name: UpdateAccountById :exec
 UPDATE accounts
 SET name       = ?1,
@@ -276,12 +390,13 @@ SET name       = ?1,
     person_id  = ?3,
     sort_order = ?4,
     is_savings   = ?5,
-    balance      = ?6,
-    balance_date = ?7,
-    goal_amount  = ?8,
-    goal_date    = ?9,
+    iban         = ?6,
+    balance      = ?7,
+    balance_date = ?8,
+    goal_amount  = ?9,
+    goal_date    = ?10,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = ?10 AND deleted_at IS NULL
+WHERE id = ?11 AND deleted_at IS NULL
 `
 
 type UpdateAccountByIdParams struct {
@@ -290,6 +405,7 @@ type UpdateAccountByIdParams struct {
 	PersonID    *int64     `db:"person_id"`
 	SortOrder   int64      `db:"sort_order"`
 	IsSavings   int64      `db:"is_savings"`
+	Iban        *string    `db:"iban"`
 	Balance     *float64   `db:"balance"`
 	BalanceDate *time.Time `db:"balance_date"`
 	GoalAmount  *float64   `db:"goal_amount"`
@@ -304,6 +420,7 @@ func (q *Queries) UpdateAccountById(ctx context.Context, arg UpdateAccountByIdPa
 		arg.PersonID,
 		arg.SortOrder,
 		arg.IsSavings,
+		arg.Iban,
 		arg.Balance,
 		arg.BalanceDate,
 		arg.GoalAmount,
@@ -336,6 +453,56 @@ func (q *Queries) UpdatePersonById(ctx context.Context, arg UpdatePersonByIdPara
 		arg.Name,
 		arg.InHousehold,
 		arg.UserID,
+		arg.SortOrder,
+		arg.ID,
+	)
+	return err
+}
+
+const updateSavingsGoalById = `-- name: UpdateSavingsGoalById :exec
+UPDATE savings_goals
+SET name           = ?1,
+    kind           = ?2,
+    icon           = ?3,
+    color          = ?4,
+    person_id      = ?5,
+    account_id     = ?6,
+    target_amount  = ?7,
+    target_date    = ?8,
+    current_amount = ?9,
+    current_date   = ?10,
+    sort_order     = ?11,
+    updated_at     = CURRENT_TIMESTAMP
+WHERE id = ?12 AND deleted_at IS NULL
+`
+
+type UpdateSavingsGoalByIdParams struct {
+	Name          string     `db:"name"`
+	Kind          string     `db:"kind"`
+	Icon          *string    `db:"icon"`
+	Color         *int64     `db:"color"`
+	PersonID      *int64     `db:"person_id"`
+	AccountID     *int64     `db:"account_id"`
+	TargetAmount  *float64   `db:"target_amount"`
+	TargetDate    *time.Time `db:"target_date"`
+	CurrentAmount *float64   `db:"current_amount"`
+	CurrentDate   *time.Time `db:"current_date"`
+	SortOrder     int64      `db:"sort_order"`
+	ID            int64      `db:"id"`
+}
+
+func (q *Queries) UpdateSavingsGoalById(ctx context.Context, arg UpdateSavingsGoalByIdParams) error {
+	_, err := q.db.ExecContext(ctx, updateSavingsGoalById,
+		arg.Name,
+		arg.Kind,
+		arg.Icon,
+		arg.Color,
+		arg.PersonID,
+		arg.AccountID,
+		arg.TargetAmount,
+		arg.TargetDate,
+		arg.CurrentAmount,
+		arg.CurrentDate,
 		arg.SortOrder,
 		arg.ID,
 	)

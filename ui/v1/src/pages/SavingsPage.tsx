@@ -1,201 +1,145 @@
 import {useMemo, useState} from "react";
-import {NavLink, useLoaderData, useRevalidator} from "react-router";
-import {Trans, useTranslation} from "react-i18next";
-import {Heading} from "../components/catalyst/heading.tsx";
-import {Input} from "../components/catalyst/input.tsx";
-import {Field, Label} from "../components/catalyst/fieldset.tsx";
+import {useRevalidator} from "react-router";
+import {useTranslation} from "react-i18next";
+import {ArrowPathIcon, PlusIcon} from "@heroicons/react/20/solid";
+import PageHeader from "../components/ui/PageHeader.tsx";
+import IconTile from "../components/ui/IconTile.tsx";
+import RowActions from "../components/ui/RowActions.tsx";
 import SegmentedControl from "../components/SegmentedControl.tsx";
-import type {AccountDto, ContractDto, PersonDto} from "../gen/types.gen.ts";
-import {type SavingsAccount, summarizeSavings} from "../utils/budget.utils.ts";
-import {accountOwnerLabel, accountTypeLabel} from "../utils/household.utils.ts";
-import {formatDecimal, numberLocale, parseAmount} from "../utils/number.utils.ts";
-import {classNames} from "../utils/dom.utils.ts";
-import {saveAccount} from "../lib/accounts.ts";
+import EntryTable from "../components/EntryTable.tsx";
+import GoalDialog from "../components/dialogs/GoalDialog.tsx";
+import {Button} from "../components/catalyst/button.tsx";
+import {GoalKindInvesting, GoalKindSaving, type SavingsGoalDto} from "../gen/types.gen.ts";
+import {useAppData} from "../hooks/useAppData.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
+import {summarizeGoals} from "../utils/budget.utils.ts";
+import {numberLocale} from "../utils/number.utils.ts";
+import {slotColor} from "../lib/icons.ts";
+import {sendJson} from "../lib/api.ts";
+import {card, cardTitle} from "../utils/ui.ts";
 import dayjs from "../lib/dayjs";
 
-import {card, statLabel, statValue} from "../utils/ui.ts";
-
-function SavingsCard({item, persons, currency, onSave}: {
-    item: SavingsAccount;
-    persons: PersonDto[];
-    currency: string;
-    onSave: (account: AccountDto) => Promise<void>;
-}) {
-    const {t} = useTranslation();
-    const {account} = item;
-    const money = (value: number) => new Intl.NumberFormat(numberLocale(), {style: "currency", currency}).format(value);
-
-    const saveBalance = (raw: string) => {
-        const balance = parseAmount(raw);
-        if (balance === account.balance) return;
-        onSave({...account, balance, balance_date: dayjs().format("YYYY-MM-DD")});
-    };
-
-    return (
-        <div className={card}>
-            <div className="flex items-baseline gap-2">
-                <span className="font-semibold text-zinc-950 dark:text-white truncate">{account.name}</span>
-                <span className="text-xs text-zinc-400 dark:text-zinc-500 shrink-0">
-                    {accountTypeLabel(account.type)} · {accountOwnerLabel(account, persons)}
-                </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mt-3">
-                <Field>
-                    <Label>{t('savings.balance')}</Label>
-                    <Input
-                        inputMode="decimal"
-                        defaultValue={formatDecimal(account.balance)}
-                        placeholder="0,00"
-                        className="text-right"
-                        onBlur={(e) => saveBalance(e.target.value)}
-                    />
-                </Field>
-                <div className="flex flex-col justify-end pb-2">
-                    <div className="text-xs text-zinc-500 dark:text-zinc-400">{t('savings.monthlyRate')}</div>
-                    <div className={classNames("text-sm tabular-nums font-medium",
-                        item.monthlyRate < 0 ? "text-red-600 dark:text-red-400" : "text-zinc-950 dark:text-white")}>
-                        {money(item.monthlyRate)}
-                    </div>
-                </div>
-            </div>
-            {account.balance_date && (
-                <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
-                    {t('savings.asOf', {date: dayjs(account.balance_date).format("DD.MM.YYYY")})}
-                </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-3 mt-4">
-                <Field>
-                    <Label>{t('savings.goal')}</Label>
-                    <Input
-                        inputMode="decimal"
-                        defaultValue={formatDecimal(account.goal_amount)}
-                        placeholder={t('savings.optional')}
-                        className="text-right"
-                        onBlur={(e) => {
-                            const goal = parseAmount(e.target.value);
-                            if (goal !== account.goal_amount) onSave({...account, goal_amount: goal});
-                        }}
-                    />
-                </Field>
-                <Field>
-                    <Label>{t('savings.goalDate')}</Label>
-                    <Input
-                        type="date"
-                        defaultValue={account.goal_date ? dayjs(account.goal_date).format("YYYY-MM-DD") : ""}
-                        onBlur={(e) => {
-                            const goalDate = e.target.value || undefined;
-                            if (goalDate !== (account.goal_date ? dayjs(account.goal_date).format("YYYY-MM-DD") : undefined)) {
-                                onSave({...account, goal_date: goalDate});
-                            }
-                        }}
-                    />
-                </Field>
-            </div>
-
-            {item.progress != null && (
-                <div className="mt-4">
-                    <div className="h-2 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-                        <div className="h-full rounded-full bg-green-600 dark:bg-green-500"
-                             style={{width: `${item.progress * 100}%`}}/>
-                    </div>
-                    <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 flex flex-col gap-0.5">
-                        <span>{t('savings.progress', {
-                            percent: Math.round(item.progress * 100),
-                            amount: money(account.goal_amount ?? 0),
-                        })}</span>
-                        {item.monthsToGoal === 0 && <span className="text-green-700 dark:text-green-400">{t('savings.reached')}</span>}
-                        {item.goalReachedOn && (
-                            <span>{t('savings.reachedOn', {date: item.goalReachedOn.format("MMMM YYYY")})}</span>
-                        )}
-                        {item.monthsToGoal == null && item.monthlyRate <= 0 && <span>{t('savings.noRate')}</span>}
-                        {item.requiredRate != null && (
-                            <span className={item.requiredRate > item.monthlyRate ? "text-amber-600 dark:text-amber-400" : ""}>
-                                {t('savings.required', {
-                                    amount: money(item.requiredRate),
-                                    date: dayjs(account.goal_date).format("MMMM YYYY"),
-                                })}
-                            </span>
-                        )}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
+type Filter = "all" | "saving" | "investing" | "shared" | "personal";
 
 export default function SavingsPage() {
-    const {contracts, persons, accounts} = useLoaderData() as {
-        contracts: ContractDto[];
-        persons: PersonDto[];
-        accounts: AccountDto[];
-    };
+    const data = useAppData();
     const {t} = useTranslation();
     const {mainCurrency} = usePreferences();
     const revalidator = useRevalidator();
-    const [owner, setOwner] = useState("all");
+    const [filter, setFilter] = useState<Filter>("all");
+    const [editing, setEditing] = useState<SavingsGoalDto | null | undefined>(undefined);
 
-    const all = useMemo(() => summarizeSavings(contracts, accounts), [contracts, accounts]);
-    const items = all.filter((s) =>
-        owner === "all" || (owner === "shared" ? s.account.person_id == null : String(s.account.person_id) === owner));
-
-    const total = items.reduce((sum, s) => sum + s.balance, 0);
-    const rate = items.reduce((sum, s) => sum + s.monthlyRate, 0);
-    const money = (value: number) => new Intl.NumberFormat(numberLocale(), {style: "currency", currency: mainCurrency}).format(value);
-
-    const onSave = async (account: AccountDto) => {
-        await saveAccount(account);
-        revalidator.revalidate();
-    };
-
-    const owners = [
-        {value: "all", label: t('savings.all')},
-        {value: "shared", label: t('common.shared')},
-        ...persons.filter((p) => p.in_household).map((p) => ({value: String(p.id), label: p.name})),
-    ];
+    const format = (v: number) => new Intl.NumberFormat(numberLocale(), {style: "currency", currency: mainCurrency, maximumFractionDigits: 0}).format(v);
+    const all = useMemo(() => summarizeGoals(data.contracts, data.goals), [data.contracts, data.goals]);
+    const goals = all.filter(({goal}) => {
+        switch (filter) {
+            case "saving": return goal.kind === GoalKindSaving;
+            case "investing": return goal.kind === GoalKindInvesting;
+            case "shared": return goal.person_id == null;
+            case "personal": return goal.person_id != null;
+            default: return true;
+        }
+    });
+    const totalSaved = all.reduce((s, g) => s + g.current, 0);
+    const totalRate = all.reduce((s, g) => s + g.monthlyRate, 0);
+    const goalTransfers = all.flatMap((g) => g.transfers);
+    const ownerName = (g: SavingsGoalDto) =>
+        g.person_id == null ? t('common.shared') : data.persons.find((p) => p.id === g.person_id)?.name ?? t('common.unknown');
 
     return (
         <div className="flex flex-col gap-6">
-            <div className="flex flex-wrap items-center gap-3">
-                <Heading>{t('savings.title')}</Heading>
-                {all.length > 0 && (
-                    <div className="sm:ml-auto">
-                        <SegmentedControl value={owner} onChange={setOwner} options={owners}/>
+            <GoalDialog open={editing !== undefined} goal={editing ?? undefined} onClose={() => setEditing(undefined)}
+                        persons={data.persons} accounts={data.accounts} count={data.goals.length}/>
+            <PageHeader title={t('goals.title')} subtitle={t('goals.subtitle')}
+                        actions={<Button onClick={() => setEditing(null)} className="hover:cursor-pointer"><PlusIcon/>{t('goals.add')}</Button>}/>
+
+            {all.length > 0 && (
+                <div className="flex flex-wrap items-center gap-6">
+                    <div>
+                        <div className="text-sm text-zinc-500 dark:text-zinc-400">{t('goals.totalSaved')}</div>
+                        <div className="text-2xl font-semibold text-zinc-950 dark:text-white">{format(totalSaved)}</div>
                     </div>
-                )}
-            </div>
+                    <div>
+                        <div className="text-sm text-zinc-500 dark:text-zinc-400">{t('savings.monthlyRate')}</div>
+                        <div className="text-2xl font-semibold text-zinc-950 dark:text-white">{format(totalRate)}</div>
+                    </div>
+                    <div className="sm:ml-auto">
+                        <SegmentedControl value={filter} onChange={setFilter} options={[
+                            {value: "all", label: t('goals.allGoals')},
+                            {value: "saving", label: t('goals.saving')},
+                            {value: "investing", label: t('goals.investing')},
+                            {value: "shared", label: t('common.shared')},
+                            {value: "personal", label: t('goals.personal')},
+                        ]}/>
+                    </div>
+                </div>
+            )}
 
             {all.length === 0 ? (
-                <div className={classNames(card, "bg-zinc-50 dark:bg-zinc-900 text-sm text-zinc-500 dark:text-zinc-400")}>
-                    <Trans i18nKey="savings.empty" components={{link: <NavLink to="/household" className="underline"/>}}/>
+                <div className={card + " text-center py-12"}>
+                    <div className="text-sm text-zinc-500 dark:text-zinc-400">{t('goals.empty')}</div>
+                    <Button className="mt-4 hover:cursor-pointer" onClick={() => setEditing(null)}><PlusIcon/>{t('goals.add')}</Button>
                 </div>
             ) : (
-                <>
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                        <div className={card}>
-                            <div className={statLabel}>{t('savings.total')}</div>
-                            <div className={statValue}>{money(total)}</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {goals.map(({goal, current, monthlyRate, progress, reachedOn, requiredRate}) => (
+                        <div key={goal.id} className={card + " flex flex-col gap-3"}>
+                            <div className="flex items-start gap-3">
+                                <IconTile icon={goal.icon} color={goal.color} className="size-11"/>
+                                <div className="grow min-w-0">
+                                    <button onClick={() => setEditing(goal)}
+                                            className="font-semibold text-zinc-950 dark:text-white truncate block text-left hover:underline hover:cursor-pointer">
+                                        {goal.name}
+                                    </button>
+                                    <div className="text-xs text-zinc-400 dark:text-zinc-500">
+                                        {goal.kind === GoalKindInvesting ? t('goals.investing') : t('goals.saving')} · {ownerName(goal)}
+                                    </div>
+                                </div>
+                                <RowActions
+                                    onEdit={() => setEditing(goal)}
+                                    onDelete={async () => {
+                                        await sendJson("DELETE", `/savings_goals/${goal.id}`);
+                                        revalidator.revalidate();
+                                    }}
+                                />
+                            </div>
+                            <div className="flex items-baseline gap-1 text-sm">
+                                <span className="font-semibold text-zinc-950 dark:text-white">{format(current)}</span>
+                                {goal.target_amount != null && (
+                                    <span className="text-zinc-400 dark:text-zinc-500">{t('goals.of', {amount: format(goal.target_amount)})}</span>
+                                )}
+                                {progress != null && (
+                                    <span className="ml-auto text-sm font-medium text-zinc-600 dark:text-zinc-300">{Math.round(progress * 100)} %</span>
+                                )}
+                            </div>
+                            {progress != null && (
+                                <div className="h-2 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+                                    <div className="h-full rounded-full" style={{width: `${progress * 100}%`, background: slotColor(goal.color)}}/>
+                                </div>
+                            )}
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 mt-auto">
+                                <span className="inline-flex items-center gap-1 rounded-md bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5">
+                                    <ArrowPathIcon className="size-3"/>{t('goals.perMonth', {amount: format(monthlyRate)})}
+                                </span>
+                                {progress === 1 && <span>{t('savings.reached')}</span>}
+                                {progress !== 1 && reachedOn && <span>{t('goals.reachedOn', {date: reachedOn.format("MMM YYYY")})}</span>}
+                                {requiredRate != null && requiredRate > monthlyRate + 0.5 && (
+                                    <span className="text-amber-700 dark:text-amber-400">
+                                        {t('goals.required', {amount: format(requiredRate), date: dayjs(goal.target_date).format("MMM YYYY")})}
+                                    </span>
+                                )}
+                            </div>
                         </div>
-                        <div className={card}>
-                            <div className={statLabel}>{t('savings.monthlyRate')}</div>
-                            <div className={statValue}>{money(rate)}</div>
-                        </div>
-                        <div className={classNames(card, "col-span-2 lg:col-span-1")}>
-                            <div className={statLabel}>{t('savings.inOneYear')}</div>
-                            <div className={statValue}>{money(total + rate * 12)}</div>
-                            <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">{t('savings.inOneYearHint')}</div>
-                        </div>
-                    </div>
+                    ))}
+                </div>
+            )}
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                        {items.map((item) => (
-                            <SavingsCard key={item.account.id} item={item} persons={persons} currency={mainCurrency} onSave={onSave}/>
-                        ))}
-                    </div>
-                    <p className="text-xs text-zinc-400 dark:text-zinc-500">{t('savings.rateHint')}</p>
-                </>
+            {goalTransfers.length > 0 && (
+                <div className={card}>
+                    <div className={cardTitle + " mb-3"}>{t('goals.plannedPayments')}</div>
+                    <EntryTable entries={goalTransfers} data={data} columns={["interval", "transfer", "goal"]} emptyText=""/>
+                    <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-3">{t('goals.estimateHint')}</p>
+                </div>
             )}
         </div>
     );

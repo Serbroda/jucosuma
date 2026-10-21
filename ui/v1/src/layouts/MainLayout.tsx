@@ -2,15 +2,20 @@ import {Outlet, useLocation} from "react-router";
 import {useTranslation} from "react-i18next";
 import {
     ArrowRightStartOnRectangleIcon,
-    BanknotesIcon,
+    ArrowsRightLeftIcon,
+    BuildingLibraryIcon,
     Cog6ToothIcon,
     HomeIcon,
     MoonIcon,
-    QueueListIcon,
+    ReceiptPercentIcon,
+    SparklesIcon,
     SunIcon,
+    TagIcon,
     UserGroupIcon,
     UsersIcon,
+    WalletIcon,
 } from "@heroicons/react/20/solid";
+import MonthPicker from "../components/ui/MonthPicker.tsx";
 import {SidebarLayout} from "../components/catalyst/sidebar-layout.tsx";
 import {Navbar, NavbarItem, NavbarSection, NavbarSpacer} from "../components/catalyst/navbar.tsx";
 import {
@@ -43,13 +48,18 @@ function MainLayout() {
 
     const navItems = [
         {label: t('nav.overview'), url: '/', icon: HomeIcon},
-        {label: t('nav.entries'), url: '/entries', icon: QueueListIcon},
-        {label: t('nav.savings'), url: '/savings', icon: BanknotesIcon},
-        {label: t('nav.household'), url: '/household', icon: UserGroupIcon},
+        {label: t('nav.income'), url: '/income', icon: WalletIcon},
+        {label: t('nav.expenses'), url: '/expenses', icon: ReceiptPercentIcon},
+        {label: t('nav.transfers'), url: '/transfers', icon: ArrowsRightLeftIcon},
+        {label: t('nav.savings'), url: '/savings', icon: SparklesIcon},
+        {label: t('nav.accounts'), url: '/accounts', icon: BuildingLibraryIcon},
+        {label: t('nav.categories'), url: '/categories', icon: TagIcon},
+        {label: t('nav.persons'), url: '/persons', icon: UserGroupIcon},
         ...(isAdmin ? [{label: t('nav.users'), url: '/users', icon: UsersIcon}] : []),
     ]
     const isCurrent = (url: string) =>
-        url === '/' ? pathname === '/' : pathname.startsWith(url) || (url === '/entries' && pathname.startsWith('/contracts'))
+        url === '/' ? pathname === '/' : pathname.startsWith(url)
+    const showMonth = !['/settings', '/users', '/contracts'].some((p) => pathname.startsWith(p))
 
     const ThemeIcon = dark ? SunIcon : MoonIcon
 
@@ -115,6 +125,12 @@ function MainLayout() {
                     </Sidebar>
                 }
             >
+                <div className="flex flex-wrap items-center gap-3 mb-8">
+                    <div className="flex items-center gap-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 text-sm text-zinc-700 dark:text-zinc-200">
+                        <HomeIcon className="size-4 text-zinc-500"/>{t('nav.ourHousehold')}
+                    </div>
+                    {showMonth && <div className="ml-auto"><MonthPicker/></div>}
+                </div>
                 <Outlet/>
             </SidebarLayout>
         </div>

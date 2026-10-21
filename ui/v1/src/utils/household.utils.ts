@@ -131,3 +131,12 @@ export function categoryLabelByName(name: string, categories: CategoryDto[]): st
     const lower = name.toLowerCase();
     return categoryLabel(name, categories.find((c) => c.name.toLowerCase() === lower)?.key);
 }
+
+/** Palette slots for household members, in order (aqua, violet, orange, …). */
+const PERSON_SLOTS = [3, 7, 2, 4, 5, 1, 6, 8];
+
+/** Stable palette slot of a household person (by order), so a person keeps one colour everywhere. */
+export function personSlot(persons: PersonDto[], personId: number): number | undefined {
+    const index = persons.filter((p) => p.in_household).findIndex((p) => p.id === personId);
+    return index >= 0 ? PERSON_SLOTS[index % PERSON_SLOTS.length] : undefined;
+}

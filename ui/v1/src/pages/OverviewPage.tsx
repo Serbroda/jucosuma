@@ -1,7 +1,6 @@
 import {type ComponentType, type ReactNode, type SVGProps, useMemo, useState} from "react";
-import {NavLink, useLoaderData, useSearchParams} from "react-router";
+import {NavLink, useSearchParams} from "react-router";
 import {Trans, useTranslation} from "react-i18next";
-import type {Dayjs} from "dayjs";
 import {
     ArrowDownIcon,
     ArrowsRightLeftIcon,
@@ -9,8 +8,6 @@ import {
     BanknotesIcon,
     BuildingLibraryIcon,
     ChartBarIcon,
-    ChevronLeftIcon,
-    ChevronRightIcon,
     MinusIcon,
     PlusIcon,
     ShoppingBagIcon,
@@ -21,9 +18,9 @@ import {
 import QuickEntryDialog from "../components/QuickEntryDialog.tsx";
 import SegmentedControl from "../components/SegmentedControl.tsx";
 import EntryIcon from "../components/EntryIcon.tsx";
+import EntryTable from "../components/EntryTable.tsx";
 import DonutChart, {type DonutSegment} from "../components/charts/DonutChart.tsx";
 import SankeyChart, {type SankeyNode} from "../components/charts/SankeyChart.tsx";
-import {Badge} from "../components/catalyst/badge.tsx";
 import {
     AccountTypeDepot,
     BillingPeriodOneTime,
@@ -31,13 +28,12 @@ import {
     EntryKindIncome,
     EntryKindTransfer,
     type AccountDto,
-    type CategoryDto,
-    type ContractDto,
-    type PersonDto,
 } from "../gen/types.gen.ts";
-import {amountInMonth, attribution, type MonthMode, summarizeMonth} from "../utils/budget.utils.ts";
-import {accountName, accountOwnerLabel, categoryLabel} from "../utils/household.utils.ts";
-import {billingPeriodShorthand} from "../utils/data.utils.ts";
+import {useAppData} from "../hooks/useAppData.ts";
+import {useMonth} from "../stores/useMonth.ts";
+import {slotColor} from "../lib/icons.ts";
+import {amountInMonth, attribution, summarizeMonth} from "../utils/budget.utils.ts";
+import {accountOwnerLabel} from "../utils/household.utils.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
 import {card, cardTitle} from "../utils/ui.ts";
@@ -47,9 +43,8 @@ import dayjs from "../lib/dayjs";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 
-/** Categorical slots in fixed order; the tail of categories folds into "other". */
-const CATEGORY_SLOTS = 5;
-const slotColor = (i: number) => `var(--chart-${i + 1})`;
+/** Largest categories shown individually (each in its own colour); the rest folds into "other". */
+const CATEGORY_SLOTS = 7;
 const SAVINGS_COLOR = "var(--chart-6)";
 const BUDGET_COLOR = "var(--chart-7)";
 
@@ -66,7 +61,7 @@ function KpiCard({icon: IconCmp, tint, label, value, children}: {
                 <IconCmp className="size-5"/>
             </div>
             <div className="min-w-0 grow">
-                <div className="text-sm text-zinc-500 dark:text-zinc-400 truncate">{label}</div>
+                <div className="text-sm leading-snug text-zinc-500 dark:text-zinc-400">{label}</div>
                 <div className="text-2xl font-semibold text-zinc-950 dark:text-white mt-0.5">{value}</div>
                 {children && <div className="mt-2">{children}</div>}
             </div>
@@ -106,15 +101,6 @@ function Delta({current, previous, previousLabel}: { current: number; previous: 
     );
 }
 
-/** "Danny 50 % · Julia 50 %" for an entry, falling back to the account owner or "shared". */
-function splitLabel(c: ContractDto, persons: PersonDto[], accounts: AccountDto[], sharedLabel: string, locale: string): string {
-    const parts = attribution(c, persons, accounts);
-    if (!parts) return sharedLabel;
-    return [...parts.entries()]
-        .map(([id, fraction]) => `${persons.find((p) => p.id === id)?.name ?? "?"} ${(Math.round(fraction * 1000) / 10).toLocaleString(locale)} %`)
-        .join(" · ");
-}
-
 function accountIcon(a: AccountDto): Icon {
     if (a.type === AccountTypeDepot) return ChartBarIcon;
     if (a.is_savings) return BanknotesIcon;
@@ -122,23 +108,16 @@ function accountIcon(a: AccountDto): Icon {
 }
 
 export default function OverviewPage() {
-    const {contracts, persons, accounts, categories} = useLoaderData() as {
-        contracts: ContractDto[];
-        persons: PersonDto[];
-        accounts: AccountDto[];
-        categories: CategoryDto[];
-    };
+    const {contracts, persons, accounts, categories, goals} = useAppData();
+    const {month, monthKey, mode, setMode} = useMonth();
     const {mainCurrency} = usePreferences();
-    const {t, i18n} = useTranslation();
+    const {t} = useTranslation();
     const {user} = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
+    const categoryOf = (name: string) => categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
     const [quickKind, setQuickKind] = useState<string | null>(null);
     const [recurringFilter, setRecurringFilter] = useState("all");
 
-    const monthParam = searchParams.get("month");
-    const month = monthParam && dayjs(`${monthParam}-01`).isValid() ? dayjs(`${monthParam}-01`) : dayjs().startOf("month");
-    const monthKey = month.format("YYYY-MM");
-    const mode: MonthMode = searchParams.get("mode") === "due" ? "due" : "average";
     const me = persons.find((p) => p.user_id != null && p.user_id === user?.id);
     const personal = searchParams.get("scope") === "me" && me != null;
     const personId = personal ? me?.id : undefined;
@@ -154,7 +133,6 @@ export default function OverviewPage() {
         for (const [k, v] of Object.entries(changes)) next.set(k, v);
         setSearchParams(next, {replace: true});
     };
-    const goTo = (m: Dayjs) => update({month: m.format("YYYY-MM")});
 
     const summary = useMemo(
         () => summarizeMonth(contracts, persons, accounts, month, mode, mainCurrency, personId),
@@ -170,11 +148,12 @@ export default function OverviewPage() {
     // Categories: fixed slots for the largest ones, the rest folds into "other"
     const categorySegments: DonutSegment[] = useMemo(() => {
         const top = summary.byCategory.slice(0, CATEGORY_SLOTS);
-        const rest = summary.byCategory.slice(CATEGORY_SLOTS).reduce((sum, [, v]) => sum + v, 0);
-        const segments = top.map(([label, value], i) => ({key: label, label, value, color: slotColor(i)}));
+        const rest = summary.byCategory.slice(CATEGORY_SLOTS).reduce((sum, c) => sum + c.amount, 0);
+        const segments = top.map((c) => ({key: c.name, label: c.label, value: c.amount, color: slotColor(categoryOf(c.name)?.color)}));
         if (rest > 0) segments.push({key: "__other", label: t('overview.otherCategories'), value: rest, color: "var(--chart-other)"});
         return segments;
-    }, [summary, t]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [summary, categories, t]);
 
     const sankey = useMemo(() => {
         const incomeByName = new Map<string, number>();
@@ -231,6 +210,7 @@ export default function OverviewPage() {
                 persons={persons}
                 accounts={accounts}
                 categories={categories}
+                goals={goals}
             />
 
             {/* Header */}
@@ -245,20 +225,6 @@ export default function OverviewPage() {
                             : t('overview.subtitleHousehold', {month: month.format("MMMM YYYY")})}
                     </p>
                 </div>
-                <div className="flex items-center rounded-lg ring-1 ring-zinc-200 dark:ring-zinc-700 bg-white dark:bg-zinc-900">
-                    <button aria-label={t('overview.previousMonth')} onClick={() => goTo(month.subtract(1, "month"))}
-                            className="p-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:cursor-pointer">
-                        <ChevronLeftIcon className="size-4"/>
-                    </button>
-                    <button className="text-sm font-medium w-36 text-center text-zinc-950 dark:text-white hover:cursor-pointer"
-                            title={t('overview.currentMonth')} onClick={() => goTo(dayjs())}>
-                        {month.format("MMMM YYYY")}
-                    </button>
-                    <button aria-label={t('overview.nextMonth')} onClick={() => goTo(month.add(1, "month"))}
-                            className="p-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:cursor-pointer">
-                        <ChevronRightIcon className="size-4"/>
-                    </button>
-                </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 -mt-2">
                 <SegmentedControl
@@ -272,7 +238,7 @@ export default function OverviewPage() {
                 />
                 <SegmentedControl
                     value={mode}
-                    onChange={(value) => update({mode: value})}
+                    onChange={setMode}
                     options={[
                         {value: "average", label: t('overview.modeAverage')},
                         {value: "due", label: t('overview.modeDue')},
@@ -372,47 +338,8 @@ export default function OverviewPage() {
                                 {t('overview.newExpense')}
                             </button>
                         </div>
-                        <div className="overflow-x-auto -mx-2">
-                            <table className="w-full text-sm">
-                                <thead>
-                                <tr className="text-xs text-zinc-400 dark:text-zinc-500 text-left">
-                                    <th className="font-normal px-2 py-2">{t('common.name')}</th>
-                                    <th className="font-normal px-2 py-2 text-right">{t('entry.amount')}</th>
-                                    <th className="font-normal px-2 py-2 hidden md:table-cell">{t('overview.paidVia')}</th>
-                                    <th className="font-normal px-2 py-2 hidden lg:table-cell">{t('overview.split')}</th>
-                                    <th className="font-normal px-2 py-2 hidden sm:table-cell">{t('entry.category')}</th>
-                                </tr>
-                                </thead>
-                                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                                {recurring.map((c) => (
-                                    <tr key={c.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-                                        <td className="px-2 py-2">
-                                            <NavLink to={`/contracts/${c.id}`} className="flex items-center gap-3 min-w-0">
-                                                <EntryIcon name={c.name} icon={c.icon_source} className="size-7"/>
-                                                <span className="truncate text-zinc-950 dark:text-white">{c.name}</span>
-                                            </NavLink>
-                                        </td>
-                                        <td className="px-2 py-2 text-right tabular-nums whitespace-nowrap text-zinc-950 dark:text-white">
-                                            {format(c.costs ?? 0)}
-                                            <span className="text-xs text-zinc-400 dark:text-zinc-500 ml-1">{billingPeriodShorthand(c.billing_period)}</span>
-                                        </td>
-                                        <td className="px-2 py-2 hidden md:table-cell text-zinc-600 dark:text-zinc-300 whitespace-nowrap">
-                                            {accountName(c.account_id, accounts) ?? "–"}
-                                        </td>
-                                        <td className="px-2 py-2 hidden lg:table-cell text-zinc-600 dark:text-zinc-300">
-                                            {splitLabel(c, persons, accounts, t('common.shared'), i18n.language)}
-                                        </td>
-                                        <td className="px-2 py-2 hidden sm:table-cell">
-                                            <Badge color="zinc">{categoryLabel(c.category, c.category_key)}</Badge>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {recurring.length === 0 && (
-                                    <tr><td colSpan={5} className="px-2 py-6 text-center text-zinc-400 dark:text-zinc-500">{t('overview.nothing')}</td></tr>
-                                )}
-                                </tbody>
-                            </table>
-                        </div>
+                        <EntryTable entries={recurring} data={{contracts, persons, accounts, categories, goals}}
+                                    columns={["split", "category"]} emptyText={t('overview.nothing')}/>
                     </div>
                 </div>
 
@@ -429,7 +356,7 @@ export default function OverviewPage() {
                                 <li key={c.id}>
                                     <NavLink to={`/contracts/${c.id}`}
                                              className="flex items-center gap-3 py-1.5 -mx-2 px-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-                                        <EntryIcon name={c.name} icon={c.icon_source} className="size-7"/>
+                                        <EntryIcon name={c.name} icon={c.icon_source} category={categoryOf(c.category)} className="size-7"/>
                                         <span className="text-xs text-zinc-400 dark:text-zinc-500 w-14 shrink-0 tabular-nums">
                                             {shortDate(c.next_billing_date!)}
                                         </span>

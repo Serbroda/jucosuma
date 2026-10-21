@@ -2,9 +2,8 @@ import {
     BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime,
     EntryKindExpense, EntryKindIncome, EntryKindTransfer,
     type AccountDto, type CategoryDto, type CompanyDto, type ContractDto, type ContractHolderDto, type DocumentDto,
-    type PersonDto, type ShareDto
+    type PersonDto, type SavingsGoalDto, type ShareDto
 } from "../gen/types.gen.ts";
-import {Avatar} from "./catalyst/avatar.tsx";
 import {Field, Label} from "./catalyst/fieldset.tsx";
 import {Input} from "./catalyst/input.tsx";
 import {Select} from "./catalyst/select.tsx";
@@ -18,13 +17,13 @@ import {apiBasePath} from "../config.ts";
 import {apiFetch} from "../lib/fetch.ts";
 import {useAuth} from "../stores/useAuth.ts";
 import {classNames} from "../utils/dom.utils.ts";
-import image from "../assets/image.png";
 import {Textarea} from "./catalyst/textarea.tsx";
 import dayjs from "../lib/dayjs";
 import ConfirmDialog, {type ConfirmDialogProps} from "./dialogs/ConfirmDialog.tsx";
 import ChooseIconDialog from "./dialogs/ChooseIconDialog.tsx";
 import {CheckIcon, ChevronRightIcon, DocumentIcon, PencilIcon, XMarkIcon} from "@heroicons/react/16/solid";
 import SharesEditor from "./SharesEditor.tsx";
+import EntryIcon from "./EntryIcon.tsx";
 import {categoryLabel, defaultShares, entryKinds, entryPeriods} from "../utils/household.utils.ts";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
 import {formatDecimal} from "../utils/number.utils.ts";
@@ -38,11 +37,12 @@ export interface ContractFormProps {
     categories: CategoryDto[];
     persons: PersonDto[];
     accounts: AccountDto[];
+    goals?: SavingsGoalDto[];
     mode?: 'add' | 'edit';
     error?: string;
 }
 
-export default function ContractForm({contract, holders, companies, categories, persons, accounts, mode = 'add', error}: ContractFormProps) {
+export default function ContractForm({contract, holders, companies, categories, persons, accounts, goals = [], mode = 'add', error}: ContractFormProps) {
     const navigation = useNavigate();
     const {t} = useTranslation();
     const {state} = useNavigation();
@@ -60,6 +60,7 @@ export default function ContractForm({contract, holders, companies, categories, 
         }
     }, [error]);
     const [isChooseIconOpen, setChooseIconOpen] = useState(false);
+    const [iconSource, setIconSource] = useState(contract.icon_source ?? "");
     const [confirmDialogProps, setConfirmDialogProps] = useState<ConfirmDialogProps>({
         title: "",
         isOpen: false,
@@ -158,9 +159,8 @@ export default function ContractForm({contract, holders, companies, categories, 
             <ChooseIconDialog
                 isOpen={isChooseIconOpen}
                 onClose={() => setChooseIconOpen(false)}
-                onSubmit={(iconSource) => {
-                    console.log(iconSource);
-                    contract.icon_source = iconSource;
+                onSubmit={(source) => {
+                    setIconSource(source);
                     setChooseIconOpen(false);
                 }}
             />
@@ -210,20 +210,14 @@ export default function ContractForm({contract, holders, companies, categories, 
                         onClick={() => setChooseIconOpen(true)}
                         className="hover:cursor-pointer"
                     >
-                        <Avatar
-                            square
-                            className={classNames(
-                                "w-16 h-16",
-                                contract.icon_source ? "" : "dark:invert"
-                            )}
-                            src={contract.icon_source || image}
+                        <EntryIcon
+                            name={contract.name || "?"}
+                            icon={iconSource}
+                            category={categories.find((c) => c.name === contract.category)}
+                            className="size-16"
                         />
                     </Button>
-                    <Input
-                        type="hidden"
-                        name="icon_source"
-                        defaultValue={contract.icon_source ?? ""}
-                    />
+                    <input type="hidden" name="icon_source" value={iconSource}/>
                 </div>
 
                 <div className="grid grid-cols-3 rounded-lg bg-zinc-100 dark:bg-zinc-800 p-1 text-sm">
@@ -345,7 +339,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                                 name="category"
                                 defaultValue={contract.category ?? "Other"}
                             >
-                                {categories.map((cat) => (
+                                {categories.filter((cat) => cat.type === kind || cat.name === contract.category).map((cat) => (
                                     <option key={cat.id} value={cat.name}>
                                         {categoryLabel(cat.name, cat.key)}
                                     </option>
@@ -354,6 +348,16 @@ export default function ContractForm({contract, holders, companies, categories, 
                         </Field>
                     )}
                 </div>
+
+                {isTransfer && goals.length > 0 && (
+                    <Field>
+                        <Label>{t('goals.goal')}</Label>
+                        <Select name="goal_id" defaultValue={contract.goal_id ?? ""}>
+                            <option value="">{t('goals.noGoal')}</option>
+                            {goals.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                        </Select>
+                    </Field>
+                )}
 
                 {!isTransfer && (
                     <Field>

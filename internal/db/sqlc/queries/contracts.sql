@@ -23,7 +23,8 @@ INSERT INTO contracts (created_at,
                        split_between,
                        kind,
                        account_id,
-                       target_account_id)
+                       target_account_id,
+                       goal_id)
 VALUES (CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP,
         sqlc.arg('name'),
@@ -48,7 +49,8 @@ VALUES (CURRENT_TIMESTAMP,
         sqlc.arg('split_between'),
         sqlc.arg('kind'),
         sqlc.arg('account_id'),
-        sqlc.arg('target_account_id')) RETURNING *
+        sqlc.arg('target_account_id'),
+        sqlc.arg('goal_id')) RETURNING *
 ;
 
 -- name: FindContractById :one
@@ -98,6 +100,7 @@ SET name              = sqlc.arg('name'),
     kind              = sqlc.arg('kind'),
     account_id        = sqlc.arg('account_id'),
     target_account_id = sqlc.arg('target_account_id'),
+    goal_id           = sqlc.arg('goal_id'),
     updated_at        = CURRENT_TIMESTAMP
 WHERE id = sqlc.arg('id')
   AND deleted_at IS NULL

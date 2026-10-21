@@ -11,30 +11,43 @@ import {MagnifyingGlassIcon} from "@heroicons/react/16/solid";
 import {Tab, TabGroup, TabList, TabPanel, TabPanels} from "@headlessui/react";
 import {fileToBase64} from "../../utils/data.utils.ts";
 import {useTranslation} from "react-i18next";
-
+import {ColorPicker, IconPicker} from "../ui/ColorIconPicker.tsx";
+import IconTile from "../ui/IconTile.tsx";
+import {parseSymbol, symbolSource} from "../../lib/icons.ts";
 
 export interface ChooseIconDialogProps {
     isOpen: boolean;
     onClose: () => void;
+    /** Called with the chosen icon source; an empty string removes the icon. */
     onSubmit: (iconSource: string) => void;
 }
 
 const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}) => {
     const {t} = useTranslation();
-    const tabs = [t('icons.recent'), t('icons.search'), t('icons.upload')];
+    const tabs = [t('icons.symbols'), t('icons.recent'), t('icons.search'), t('icons.upload')];
     const [term, setTerm] = useState("");
     const [icons, setIcons] = useState<any[]>([]);
     const [recentIcons, setRecentIcons] = useState<string[]>([]);
     const [selectedIcon, setSelectedIcon] = useState<string>('');
+    const [symbol, setSymbol] = useState<string | undefined>();
+    const [symbolColor, setSymbolColor] = useState<number | undefined>(1);
 
     useEffect(() => {
         if (isOpen) {
+            setSelectedIcon('');
+            setSymbol(undefined);
             apiFetch(`${apiBasePath}/used_icons`)
                 .then((res) => res.json())
                 .then((data) => setRecentIcons(data ?? []))
                 .catch(console.error);
         }
     }, [isOpen]);
+
+    const chooseSymbol = (icon: string | undefined, color: number | undefined) => {
+        setSymbol(icon);
+        setSymbolColor(color);
+        if (icon) setSelectedIcon(symbolSource(icon, color));
+    };
 
     async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
@@ -66,34 +79,45 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
 
     const iconGrid = (items: string[]) => (
         <div className="flex flex-wrap gap-2 mt-4">
-            {items.map((icon, idx) => (
-                <Avatar
-                    key={idx}
-                    src={icon}
-                    square
-                    className={classNames(
-                        "w-11 h-11 hover:cursor-pointer",
-                        selectedIcon === icon ? "border-2 border-indigo-500" : ""
-                    )}
-                    onClick={() =>
-                        setSelectedIcon((prev) => prev === icon ? '' : icon)
-                    }
-                />
-            ))}
+            {items.map((icon, idx) => {
+                const parsed = parseSymbol(icon);
+                const selected = selectedIcon === icon;
+                const toggle = () => setSelectedIcon((prev) => prev === icon ? '' : icon);
+                return parsed ? (
+                    <button key={idx} type="button" onClick={toggle}
+                            className={classNames("rounded-lg hover:cursor-pointer", selected ? "ring-2 ring-indigo-500" : "")}>
+                        <IconTile icon={parsed.icon} color={parsed.color} className="size-11"/>
+                    </button>
+                ) : (
+                    <Avatar
+                        key={idx}
+                        src={icon}
+                        square
+                        className={classNames(
+                            "w-11 h-11 hover:cursor-pointer",
+                            selected ? "border-2 border-indigo-500" : ""
+                        )}
+                        onClick={toggle}
+                    />
+                );
+            })}
         </div>
     );
 
     const actions = (
         <DialogActions>
+            <Button plain onClick={() => onSubmit('')} className="hover:cursor-pointer sm:mr-auto">
+                {t('icons.remove')}
+            </Button>
+            <Button plain onClick={onClose} className="hover:cursor-pointer">
+                {t('common.cancel')}
+            </Button>
             <Button
                 disabled={!selectedIcon}
                 onClick={() => onSubmit(selectedIcon)}
                 className="hover:cursor-pointer"
             >
                 {t('common.apply')}
-            </Button>
-            <Button plain onClick={onClose} className="hover:cursor-pointer">
-                {t('common.cancel')}
             </Button>
         </DialogActions>
     );
@@ -121,6 +145,15 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
                 </TabList>
 
                 <TabPanels>
+                    <TabPanel className="focus:outline-none mt-4">
+                        <DialogTitle>{t('icons.symbolsTitle')}</DialogTitle>
+                        <DialogBody className="flex flex-col gap-4">
+                            <ColorPicker value={symbolColor} onChange={(color) => chooseSymbol(symbol, color)}/>
+                            <IconPicker value={symbol} color={symbolColor} onChange={(icon) => chooseSymbol(icon, symbolColor)}/>
+                        </DialogBody>
+                        {actions}
+                    </TabPanel>
+
                     <TabPanel className="focus:outline-none mt-4">
                         <DialogTitle>{t('icons.recentTitle')}</DialogTitle>
                         <DialogBody>

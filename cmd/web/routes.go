@@ -35,8 +35,17 @@ func (app *application) routes() *echo.Echo {
 	auth.PUT("/auth/change-password", app.changePassword)
 	auth.PUT("/auth/preferences", app.updatePreferences)
 
-	// Categories (all users can read)
+	// Categories (shared by the household, all users can manage them)
 	auth.GET("/categories", app.getCategories)
+	auth.POST("/categories", app.createCategory)
+	auth.PUT("/categories/:id", app.updateCategory)
+	auth.DELETE("/categories/:id", app.deleteCategory)
+
+	// Savings goals
+	auth.GET("/savings_goals", app.getSavingsGoals)
+	auth.POST("/savings_goals", app.createSavingsGoal)
+	auth.PUT("/savings_goals/:id", app.updateSavingsGoal)
+	auth.DELETE("/savings_goals/:id", app.deleteSavingsGoal)
 
 	// Contract routes
 	auth.GET("/contracts", app.getContracts)
@@ -73,11 +82,6 @@ func (app *application) routes() *echo.Echo {
 	admin.PUT("/users/:id", app.updateUser)
 	admin.DELETE("/users/:id", app.deleteUser)
 	admin.PUT("/users/:id/reset-password", app.resetUserPassword)
-
-	// Category management (admin only)
-	admin.POST("/categories", app.createCategory)
-	admin.PUT("/categories/:id", app.updateCategory)
-	admin.DELETE("/categories/:id", app.deleteCategory)
 
 	return e
 }

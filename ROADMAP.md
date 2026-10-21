@@ -40,6 +40,13 @@ Goal: a household finance overview — what comes in, what the household actuall
 - [x] **Overview redesign** — sidebar navigation; greeting + month picker; KPI cards (household costs with delta vs. previous month, costs per person, shared costs); category donut; money-flow sankey (income → categories / savings / free pocket money / unallocated); recurring expenses table with split and filter; upcoming charges; accounts; quick add. Charts are hand-written SVG (no chart library) using a validated colour palette.
 - [ ] Balance history per savings account (snapshots), interest/return assumptions.
 
+### Stage 2b — Management pages ✅
+
+- [x] Dedicated pages with tables and add/edit dialogs: income, expenses, transfers, savings & goals, accounts, categories, persons; global month picker in the top bar; import/export moved to settings.
+- [x] Categories with type (expense/income), colour and icon; colours follow the category in all charts.
+- [x] Savings goals (target, date, current amount, owner, account) funded by transfers; progress and projection.
+- [x] Accounts with IBAN (last 4 digits shown) and balance.
+
 ### Stage 3 — Actual bookings (Ist-Buchungen)
 
 - [ ] `transactions` table (date, amount, account, optional `contract_id` for planned entry, category) with `transaction_shares` analogous to `contract_shares`.

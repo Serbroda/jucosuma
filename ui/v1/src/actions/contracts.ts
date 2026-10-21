@@ -47,6 +47,7 @@ export const contractAction: ActionFunction = async ({request, params}) => {
         kind: form.get("kind") as string || "expense",
         account_id: optionalId(form.get("account_id")),
         target_account_id: optionalId(form.get("target_account_id")),
+        goal_id: optionalId(form.get("goal_id")),
         shares: parseShares(form.get("shares")),
     };
 

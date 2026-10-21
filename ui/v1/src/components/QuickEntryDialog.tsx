@@ -17,6 +17,7 @@ import {
     EntryKindTransfer,
     type AccountDto,
     type CategoryDto,
+    type SavingsGoalDto,
     type ContractDto,
     type PersonDto,
     type ShareDto,
@@ -36,11 +37,12 @@ export interface QuickEntryDialogProps {
     persons: PersonDto[];
     accounts: AccountDto[];
     categories: CategoryDto[];
+    goals?: SavingsGoalDto[];
     /** Entry kind preselected when the dialog opens (default: expense). */
     initialKind?: string;
 }
 
-export default function QuickEntryDialog({isOpen, onClose, persons, accounts, categories, initialKind}: QuickEntryDialogProps) {
+export default function QuickEntryDialog({isOpen, onClose, persons, accounts, categories, goals = [], initialKind}: QuickEntryDialogProps) {
     const navigate = useNavigate();
     const {t} = useTranslation();
     const revalidator = useRevalidator();
@@ -52,6 +54,7 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
     const [period, setPeriod] = useState<string>(BillingPeriodMonthly);
     const [startDate, setStartDate] = useState(dayjs().format("YYYY-MM-DD"));
     const [category, setCategory] = useState("Other");
+    const [goalId, setGoalId] = useState<number | undefined>();
     const [accountId, setAccountId] = useState<number | undefined>();
     const [targetAccountId, setTargetAccountId] = useState<number | undefined>();
     const [shares, setShares] = useState<ShareDto[]>([]);
@@ -70,8 +73,18 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
         forKind === EntryKindIncome ? (me ? [{person_id: me.id, weight: 1}] : [])
             : forKind === EntryKindExpense ? defaultShares(persons) : [];
 
+    /** Categories matching the entry kind; transfers have none. */
+    const categoriesFor = (forKind: string) => categories.filter((c) => c.type === forKind);
+    const defaultCategory = (forKind: string) => {
+        const options = categoriesFor(forKind);
+        const preferred = forKind === EntryKindIncome ? "salary" : "other";
+        return (options.find((c) => c.key === preferred) ?? options[0])?.name ?? "Other";
+    };
+
     const reset = (keepKind = kind) => {
         setName("");
+        setCategory(defaultCategory(keepKind));
+        setGoalId(undefined);
         setAmount("");
         setError("");
         setAccountId(recallAccount(keepKind, "from", accounts));
@@ -94,6 +107,8 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
         setAccountId(recallAccount(value, "from", accounts));
         setTargetAccountId(recallAccount(value, "to", accounts));
         setShares(initialShares(value));
+        setCategory(defaultCategory(value));
+        setGoalId(undefined);
     };
 
     const save = async (): Promise<ContractDto | null> => {
@@ -118,7 +133,8 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
             costs,
             billing_period: period,
             start_date: startDate,
-            category: isExpense ? category : "Other",
+            category: isTransfer ? defaultCategory(EntryKindExpense) : category,
+            goal_id: isTransfer ? goalId : undefined,
             currency: "EUR",
             account_id: accountId,
             target_account_id: isTransfer ? targetAccountId : undefined,
@@ -246,7 +262,7 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                         </Field>
                     </div>
 
-                    <div className={classNames("grid gap-2", isTransfer || isExpense ? "grid-cols-2" : "grid-cols-1")}>
+                    <div className="grid gap-2 grid-cols-2">
                         <Field>
                             <Label>{isExpense ? t('entry.paidFrom') : isTransfer ? t('entry.fromAccount') : t('entry.toAccount')}</Label>
                             <Select value={accountId ?? ""}
@@ -263,15 +279,25 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                                 </Select>
                             </Field>
                         )}
-                        {isExpense && (
+                        {!isTransfer && (
                             <Field>
                                 <Label>{t('entry.category')}</Label>
                                 <Select value={category} onChange={(e) => setCategory(e.target.value)}>
-                                    {categories.map((c) => <option key={c.id} value={c.name}>{categoryLabel(c.name, c.key)}</option>)}
+                                    {categoriesFor(kind).map((c) => <option key={c.id} value={c.name}>{categoryLabel(c.name, c.key)}</option>)}
                                 </Select>
                             </Field>
                         )}
                     </div>
+
+                    {isTransfer && goals.length > 0 && (
+                        <Field>
+                            <Label>{t('goals.goal')}</Label>
+                            <Select value={goalId ?? ""} onChange={(e) => setGoalId(e.target.value ? Number(e.target.value) : undefined)}>
+                                <option value="">{t('goals.noGoal')}</option>
+                                {goals.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                            </Select>
+                        </Field>
+                    )}
 
                     {!isTransfer && (
                         <Field>

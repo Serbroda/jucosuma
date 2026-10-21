@@ -2,8 +2,9 @@
 SELECT * FROM categories WHERE deleted_at IS NULL ORDER BY sort_order ASC, name ASC;
 
 -- name: InsertCategory :one
-INSERT INTO categories (name, sort_order, created_at, updated_at)
-VALUES (sqlc.arg('name'), sqlc.arg('sort_order'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+INSERT INTO categories (name, sort_order, type, color, icon, created_at, updated_at)
+VALUES (sqlc.arg('name'), sqlc.arg('sort_order'), sqlc.arg('type'), sqlc.arg('color'), sqlc.arg('icon'),
+        CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 RETURNING *;
 
 -- name: FindCategoryById :one
@@ -15,6 +16,9 @@ UPDATE categories
 SET key        = CASE WHEN name = sqlc.arg('name') THEN key ELSE NULL END,
     name       = sqlc.arg('name'),
     sort_order = sqlc.arg('sort_order'),
+    type       = sqlc.arg('type'),
+    color      = sqlc.arg('color'),
+    icon       = sqlc.arg('icon'),
     updated_at = CURRENT_TIMESTAMP
 WHERE id = sqlc.arg('id') AND deleted_at IS NULL;
 

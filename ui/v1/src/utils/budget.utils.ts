@@ -15,6 +15,7 @@ import {
     type AccountDto,
     type ContractDto,
     type PersonDto,
+    type SavingsGoalDto,
 } from "../gen/types.gen.ts";
 import i18n from "../i18n";
 import {categoryLabel} from "./household.utils.ts";
@@ -114,7 +115,7 @@ export type MonthSummary = {
     savings: number;           // transfers to savings / depot accounts
     freeBudgets: number;       // pocket money not planned for costs (household scope only)
     unallocated: number;
-    byCategory: [string, number][];
+    byCategory: { name: string; label: string; amount: number }[];
     byPerson: { key: string; label: string; amount: number }[];
     accounts: AccountFlow[];
     budgets: PersonalBudget[];
@@ -143,7 +144,7 @@ export function summarizeMonth(
             .filter((a) => !personal || a.person_id === personId)
             .map((a) => [a.id, {account: a, inflow: 0, outflow: 0}]),
     );
-    const byCategory: Record<string, number> = {};
+    const byCategory = new Map<string, { name: string; label: string; amount: number }>();
     const byPerson: Record<string, number> = {};
     const budgets = new Map<number, PersonalBudget>(
         persons.filter((p) => p.in_household && (!personal || p.id === personId))
@@ -167,7 +168,9 @@ export function summarizeMonth(
 
         const account = c.account_id != null ? accountById.get(c.account_id) : undefined;
         const target = c.target_account_id != null ? accountById.get(c.target_account_id) : undefined;
-        const isSaving = c.kind === EntryKindTransfer && isSavingsAccount(target) && !isSavingsAccount(account);
+        // transfers into a savings goal or a savings account (from a non-savings account) are savings
+        const isSaving = c.kind === EntryKindTransfer && !isSavingsAccount(account)
+            && (c.goal_id != null || isSavingsAccount(target));
         const own = c.kind === EntryKindTransfer && !isSaving
             ? (personal ? (target?.person_id === personId ? amount : 0) : amount)
             : amount * scopeFraction(c);
@@ -195,8 +198,9 @@ export function summarizeMonth(
             const household = amount * c.household_share;
             expenses += own;
             if (!personal) externalShare += amount - household;
-            const label = categoryLabel(c.category, c.category_key);
-            byCategory[label] = (byCategory[label] ?? 0) + own;
+            const cat = byCategory.get(c.category) ?? {name: c.category, label: categoryLabel(c.category, c.category_key), amount: 0};
+            cat.amount += own;
+            byCategory.set(c.category, cat);
 
             if (!personal) {
                 const parts = attribution(c, persons, accounts);
@@ -234,7 +238,7 @@ export function summarizeMonth(
         savings,
         freeBudgets,
         unallocated: income - expenses - savings - freeBudgets,
-        byCategory: Object.entries(byCategory).filter(([, v]) => v > 0).sort(([, a], [, b]) => b - a),
+        byCategory: [...byCategory.values()].filter((c) => c.amount > 0).sort((a, b) => b.amount - a.amount),
         byPerson: Object.entries(byPerson)
             .map(([key, amount]) => ({key, label: personLabel(key), amount}))
             .sort((a, b) => b.amount - a.amount),
@@ -245,47 +249,51 @@ export function summarizeMonth(
     };
 }
 
-export type SavingsAccount = {
-    account: AccountDto;
-    balance: number;
-    monthlyRate: number;          // net monthly transfers into the account
-    monthsToGoal?: number;        // at the current rate
-    goalReachedOn?: Dayjs;
-    requiredRate?: number;        // monthly rate needed to reach the goal by its date
-    progress?: number;            // 0..1
+export type GoalSummary = {
+    goal: SavingsGoalDto;
+    monthlyRate: number;     // recurring transfers into the goal
+    current: number;         // last entered amount plus planned transfers since then
+    progress?: number;       // 0..1
+    reachedOn?: Dayjs;       // at the current rate
+    requiredRate?: number;   // to reach the target by its date
+    transfers: ContractDto[];
 };
 
-/** Savings and depot accounts with their monthly rate and goal projection, as of `today`. */
-export function summarizeSavings(contracts: ContractDto[], accounts: AccountDto[], today: Dayjs = dayjs()): SavingsAccount[] {
+/** Savings goals with their monthly rate, estimated amount and projection, as of `today`. */
+export function summarizeGoals(contracts: ContractDto[], goals: SavingsGoalDto[], today: Dayjs = dayjs()): GoalSummary[] {
     const month = today.startOf("month");
-    return accounts.filter(isSavingsAccount).map((account) => {
-        const monthlyRate = contracts
-            .filter((c) => c.kind === EntryKindTransfer && c.billing_period !== BillingPeriodOneTime)
-            .reduce((sum, c) => {
-                const amount = amountInMonth(c, month, "average");
-                if (c.target_account_id === account.id) return sum + amount;
-                if (c.account_id === account.id) return sum - amount;
-                return sum;
-            }, 0);
+    return goals.map((goal) => {
+        const transfers = contracts.filter((c) => c.kind === EntryKindTransfer && c.goal_id === goal.id);
+        const monthlyRate = transfers
+            .filter((c) => c.billing_period !== BillingPeriodOneTime)
+            .reduce((sum, c) => sum + amountInMonth(c, month, "average"), 0);
 
-        const balance = account.balance ?? 0;
-        const result: SavingsAccount = {account, balance, monthlyRate};
-        const goal = account.goal_amount;
-        if (goal != null && goal > 0) {
-            const missing = goal - balance;
-            result.progress = Math.min(1, Math.max(0, balance / goal));
-            if (missing <= 0) {
-                result.monthsToGoal = 0;
-            } else if (monthlyRate > 0) {
-                result.monthsToGoal = Math.ceil(missing / monthlyRate);
-                const from = account.balance_date ? dayjs(account.balance_date) : today;
-                result.goalReachedOn = from.add(result.monthsToGoal, "month");
+        const since = goal.current_date ? dayjs(goal.current_date).startOf("month") : month;
+        const elapsed = Math.max(0, month.diff(since, "month"));
+        const current = (goal.current_amount ?? 0) + monthlyRate * elapsed;
+
+        const result: GoalSummary = {goal, monthlyRate, current, transfers};
+        const target = goal.target_amount;
+        if (target != null && target > 0) {
+            const missing = target - current;
+            result.progress = Math.min(1, Math.max(0, current / target));
+            if (missing > 0 && monthlyRate > 0) {
+                result.reachedOn = month.add(Math.ceil(missing / monthlyRate), "month");
             }
-            if (account.goal_date && missing > 0) {
-                const months = Math.max(1, dayjs(account.goal_date).startOf("month").diff(month, "month"));
+            if (goal.target_date && missing > 0) {
+                const months = Math.max(1, dayjs(goal.target_date).startOf("month").diff(month, "month"));
                 result.requiredRate = missing / months;
             }
         }
         return result;
     });
+}
+
+/** "Danny 50 % · Julia 50 %" for an entry, or the account owner, or `sharedLabel` when not attributed. */
+export function splitText(c: ContractDto, persons: PersonDto[], accounts: AccountDto[], sharedLabel: string, locale: string): string {
+    const parts = attribution(c, persons, accounts);
+    if (!parts) return sharedLabel;
+    return [...parts.entries()]
+        .map(([id, f]) => `${persons.find((p) => p.id === id)?.name ?? "?"} ${(Math.round(f * 1000) / 10).toLocaleString(locale)} %`)
+        .join(" · ");
 }

@@ -116,9 +116,9 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 	qtx := app.queries.WithTx(tx)
 
 	kind := normalizeKind(payload.Kind)
-	targetAccountID := payload.TargetAccountID
+	targetAccountID, goalID := payload.TargetAccountID, payload.GoalID
 	if payload.Kind != dtos.EntryKindTransfer {
-		targetAccountID = nil
+		targetAccountID, goalID = nil, nil
 	}
 
 	// 2) DB-Operation: Insert oder Update
@@ -148,6 +148,7 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			Kind:            kind,
 			AccountID:       payload.AccountID,
 			TargetAccountID: targetAccountID,
+			GoalID:          goalID,
 		})
 		if err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -189,6 +190,7 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			Kind:            kind,
 			AccountID:       payload.AccountID,
 			TargetAccountID: targetAccountID,
+			GoalID:          goalID,
 		})
 		if err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())

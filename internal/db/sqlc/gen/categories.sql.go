@@ -19,7 +19,7 @@ func (q *Queries) DeleteCategorySoft(ctx context.Context, id int64) error {
 }
 
 const findAllCategories = `-- name: FindAllCategories :many
-SELECT id, name, sort_order, created_at, updated_at, deleted_at, "key" FROM categories WHERE deleted_at IS NULL ORDER BY sort_order ASC, name ASC
+SELECT id, name, sort_order, created_at, updated_at, deleted_at, "key", type, color, icon FROM categories WHERE deleted_at IS NULL ORDER BY sort_order ASC, name ASC
 `
 
 func (q *Queries) FindAllCategories(ctx context.Context) ([]Category, error) {
@@ -39,6 +39,9 @@ func (q *Queries) FindAllCategories(ctx context.Context) ([]Category, error) {
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.Key,
+			&i.Type,
+			&i.Color,
+			&i.Icon,
 		); err != nil {
 			return nil, err
 		}
@@ -54,7 +57,7 @@ func (q *Queries) FindAllCategories(ctx context.Context) ([]Category, error) {
 }
 
 const findCategoryById = `-- name: FindCategoryById :one
-SELECT id, name, sort_order, created_at, updated_at, deleted_at, "key" FROM categories WHERE id = ? AND deleted_at IS NULL LIMIT 1
+SELECT id, name, sort_order, created_at, updated_at, deleted_at, "key", type, color, icon FROM categories WHERE id = ? AND deleted_at IS NULL LIMIT 1
 `
 
 func (q *Queries) FindCategoryById(ctx context.Context, id int64) (Category, error) {
@@ -68,23 +71,36 @@ func (q *Queries) FindCategoryById(ctx context.Context, id int64) (Category, err
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.Key,
+		&i.Type,
+		&i.Color,
+		&i.Icon,
 	)
 	return i, err
 }
 
 const insertCategory = `-- name: InsertCategory :one
-INSERT INTO categories (name, sort_order, created_at, updated_at)
-VALUES (?1, ?2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-RETURNING id, name, sort_order, created_at, updated_at, deleted_at, "key"
+INSERT INTO categories (name, sort_order, type, color, icon, created_at, updated_at)
+VALUES (?1, ?2, ?3, ?4, ?5,
+        CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+RETURNING id, name, sort_order, created_at, updated_at, deleted_at, "key", type, color, icon
 `
 
 type InsertCategoryParams struct {
-	Name      string `db:"name"`
-	SortOrder int64  `db:"sort_order"`
+	Name      string  `db:"name"`
+	SortOrder int64   `db:"sort_order"`
+	Type      string  `db:"type"`
+	Color     *int64  `db:"color"`
+	Icon      *string `db:"icon"`
 }
 
 func (q *Queries) InsertCategory(ctx context.Context, arg InsertCategoryParams) (Category, error) {
-	row := q.db.QueryRowContext(ctx, insertCategory, arg.Name, arg.SortOrder)
+	row := q.db.QueryRowContext(ctx, insertCategory,
+		arg.Name,
+		arg.SortOrder,
+		arg.Type,
+		arg.Color,
+		arg.Icon,
+	)
 	var i Category
 	err := row.Scan(
 		&i.ID,
@@ -94,6 +110,9 @@ func (q *Queries) InsertCategory(ctx context.Context, arg InsertCategoryParams) 
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.Key,
+		&i.Type,
+		&i.Color,
+		&i.Icon,
 	)
 	return i, err
 }
@@ -118,18 +137,31 @@ UPDATE categories
 SET key        = CASE WHEN name = ?1 THEN key ELSE NULL END,
     name       = ?1,
     sort_order = ?2,
+    type       = ?3,
+    color      = ?4,
+    icon       = ?5,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = ?3 AND deleted_at IS NULL
+WHERE id = ?6 AND deleted_at IS NULL
 `
 
 type UpdateCategoryByIdParams struct {
-	Name      string `db:"name"`
-	SortOrder int64  `db:"sort_order"`
-	ID        int64  `db:"id"`
+	Name      string  `db:"name"`
+	SortOrder int64   `db:"sort_order"`
+	Type      string  `db:"type"`
+	Color     *int64  `db:"color"`
+	Icon      *string `db:"icon"`
+	ID        int64   `db:"id"`
 }
 
 // A renamed predefined category becomes a custom one (its key and translation no longer apply).
 func (q *Queries) UpdateCategoryById(ctx context.Context, arg UpdateCategoryByIdParams) error {
-	_, err := q.db.ExecContext(ctx, updateCategoryById, arg.Name, arg.SortOrder, arg.ID)
+	_, err := q.db.ExecContext(ctx, updateCategoryById,
+		arg.Name,
+		arg.SortOrder,
+		arg.Type,
+		arg.Color,
+		arg.Icon,
+		arg.ID,
+	)
 	return err
 }

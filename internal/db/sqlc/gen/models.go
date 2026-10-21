@@ -22,6 +22,7 @@ type Account struct {
 	GoalAmount  *float64   `db:"goal_amount"`
 	GoalDate    *time.Time `db:"goal_date"`
 	IsSavings   int64      `db:"is_savings"`
+	Iban        *string    `db:"iban"`
 }
 
 type Category struct {
@@ -32,6 +33,9 @@ type Category struct {
 	UpdatedAt *time.Time `db:"updated_at"`
 	DeletedAt *time.Time `db:"deleted_at"`
 	Key       *string    `db:"key"`
+	Type      string     `db:"type"`
+	Color     *int64     `db:"color"`
+	Icon      *string    `db:"icon"`
 }
 
 type Contract struct {
@@ -62,6 +66,7 @@ type Contract struct {
 	Kind            string     `db:"kind"`
 	AccountID       *int64     `db:"account_id"`
 	TargetAccountID *int64     `db:"target_account_id"`
+	GoalID          *int64     `db:"goal_id"`
 }
 
 type ContractShare struct {
@@ -89,6 +94,24 @@ type Person struct {
 	CreatedAt   *time.Time `db:"created_at"`
 	UpdatedAt   *time.Time `db:"updated_at"`
 	DeletedAt   *time.Time `db:"deleted_at"`
+}
+
+type SavingsGoal struct {
+	ID            int64      `db:"id"`
+	Name          string     `db:"name"`
+	Kind          string     `db:"kind"`
+	Icon          *string    `db:"icon"`
+	Color         *int64     `db:"color"`
+	PersonID      *int64     `db:"person_id"`
+	AccountID     *int64     `db:"account_id"`
+	TargetAmount  *float64   `db:"target_amount"`
+	TargetDate    *time.Time `db:"target_date"`
+	CurrentAmount *float64   `db:"current_amount"`
+	CurrentDate   *time.Time `db:"current_date"`
+	SortOrder     int64      `db:"sort_order"`
+	CreatedAt     *time.Time `db:"created_at"`
+	UpdatedAt     *time.Time `db:"updated_at"`
+	DeletedAt     *time.Time `db:"deleted_at"`
 }
 
 type Session struct {

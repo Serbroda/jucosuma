@@ -33,6 +33,7 @@ func MapContractToContractDto(item sqlc.Contract) ContractDto {
 		Kind:            EntryKind(strings.ToLower(item.Kind)),
 		AccountID:       item.AccountID,
 		TargetAccountID: item.TargetAccountID,
+		GoalID:          item.GoalID,
 		Shares:          []ShareDto{},
 		CreatedAt:       item.CreatedAt,
 		UpdatedAt:       item.UpdatedAt,
@@ -219,6 +220,9 @@ func MapCategoryToCategoryDto(c sqlc.Category) CategoryDto {
 		ID:        c.ID,
 		Key:       c.Key,
 		Name:      c.Name,
+		Type:      EntryKind(strings.ToLower(c.Type)),
+		Color:     c.Color,
+		Icon:      c.Icon,
 		SortOrder: c.SortOrder,
 		CreatedAt: c.CreatedAt,
 		UpdatedAt: c.UpdatedAt,
@@ -257,11 +261,31 @@ func MapAccountToAccountDto(a sqlc.Account) AccountDto {
 		PersonID:    a.PersonID,
 		SortOrder:   a.SortOrder,
 		IsSavings:   a.IsSavings == 1,
+		Iban:        a.Iban,
 		Balance:     a.Balance,
 		BalanceDate: (*DateOnly)(a.BalanceDate),
 		GoalAmount:  a.GoalAmount,
 		GoalDate:    (*DateOnly)(a.GoalDate),
 		CreatedAt:   a.CreatedAt,
 		UpdatedAt:   a.UpdatedAt,
+	}
+}
+
+func MapSavingsGoalToDto(g sqlc.SavingsGoal) SavingsGoalDto {
+	return SavingsGoalDto{
+		ID:            g.ID,
+		Name:          g.Name,
+		Kind:          GoalKind(strings.ToLower(g.Kind)),
+		Icon:          g.Icon,
+		Color:         g.Color,
+		PersonID:      g.PersonID,
+		AccountID:     g.AccountID,
+		TargetAmount:  g.TargetAmount,
+		TargetDate:    (*DateOnly)(g.TargetDate),
+		CurrentAmount: g.CurrentAmount,
+		CurrentDate:   (*DateOnly)(g.CurrentDate),
+		SortOrder:     g.SortOrder,
+		CreatedAt:     g.CreatedAt,
+		UpdatedAt:     g.UpdatedAt,
 	}
 }

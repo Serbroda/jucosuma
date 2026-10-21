@@ -134,6 +134,7 @@ func (app *application) createAccount(c echo.Context) error {
 		PersonID:    payload.PersonID,
 		SortOrder:   payload.SortOrder,
 		IsSavings:   boolToInt64(isSavings(payload)),
+		Iban:        normalizeIban(payload.Iban),
 		Balance:     payload.Balance,
 		BalanceDate: (*time.Time)(payload.BalanceDate),
 		GoalAmount:  payload.GoalAmount,
@@ -164,6 +165,7 @@ func (app *application) updateAccount(c echo.Context) error {
 		PersonID:    payload.PersonID,
 		SortOrder:   payload.SortOrder,
 		IsSavings:   boolToInt64(isSavings(payload)),
+		Iban:        normalizeIban(payload.Iban),
 		Balance:     payload.Balance,
 		BalanceDate: (*time.Time)(payload.BalanceDate),
 		GoalAmount:  payload.GoalAmount,
@@ -189,12 +191,100 @@ func (app *application) deleteAccount(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
+// normalizeIban removes spaces and upper-cases an IBAN; empty input becomes nil.
+func normalizeIban(iban *string) *string {
+	if iban == nil {
+		return nil
+	}
+	normalized := strings.ToUpper(strings.Join(strings.Fields(*iban), ""))
+	return utils.TrimToNil(&normalized)
+}
+
 // isSavings defaults the savings flag from the account type when it is not given.
 func isSavings(payload dtos.SaveAccountDto) bool {
 	if payload.IsSavings != nil {
 		return *payload.IsSavings
 	}
 	return payload.Type == string(dtos.AccountTypeSavings) || payload.Type == string(dtos.AccountTypeDepot)
+}
+
+func (app *application) getSavingsGoals(c echo.Context) error {
+	goals, err := app.queries.FindAllSavingsGoals(c.Request().Context())
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(http.StatusOK, utils.MapSlice(goals, dtos.MapSavingsGoalToDto))
+}
+
+func (app *application) createSavingsGoal(c echo.Context) error {
+	var payload dtos.SaveSavingsGoalDto
+	if err := BindAndValidate(c, &payload); err != nil {
+		return err
+	}
+	goal, err := app.queries.InsertSavingsGoal(c.Request().Context(), sqlc.InsertSavingsGoalParams{
+		Name:          strings.TrimSpace(payload.Name),
+		Kind:          goalKind(payload.Kind),
+		Icon:          utils.TrimToNil(payload.Icon),
+		Color:         payload.Color,
+		PersonID:      payload.PersonID,
+		AccountID:     payload.AccountID,
+		TargetAmount:  payload.TargetAmount,
+		TargetDate:    (*time.Time)(payload.TargetDate),
+		CurrentAmount: payload.CurrentAmount,
+		CurrentDate:   (*time.Time)(payload.CurrentDate),
+		SortOrder:     payload.SortOrder,
+	})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to create goal: "+err.Error())
+	}
+	return c.JSON(http.StatusCreated, dtos.MapSavingsGoalToDto(goal))
+}
+
+func (app *application) updateSavingsGoal(c echo.Context) error {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+	}
+	var payload dtos.SaveSavingsGoalDto
+	if err := BindAndValidate(c, &payload); err != nil {
+		return err
+	}
+	err = app.queries.UpdateSavingsGoalById(c.Request().Context(), sqlc.UpdateSavingsGoalByIdParams{
+		ID:            id,
+		Name:          strings.TrimSpace(payload.Name),
+		Kind:          goalKind(payload.Kind),
+		Icon:          utils.TrimToNil(payload.Icon),
+		Color:         payload.Color,
+		PersonID:      payload.PersonID,
+		AccountID:     payload.AccountID,
+		TargetAmount:  payload.TargetAmount,
+		TargetDate:    (*time.Time)(payload.TargetDate),
+		CurrentAmount: payload.CurrentAmount,
+		CurrentDate:   (*time.Time)(payload.CurrentDate),
+		SortOrder:     payload.SortOrder,
+	})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to update goal: "+err.Error())
+	}
+	return c.NoContent(http.StatusOK)
+}
+
+func (app *application) deleteSavingsGoal(c echo.Context) error {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+	}
+	if err := app.queries.DeleteSavingsGoalSoft(c.Request().Context(), id); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to delete goal: "+err.Error())
+	}
+	return c.NoContent(http.StatusOK)
+}
+
+func goalKind(kind string) string {
+	if kind == string(dtos.GoalKindInvesting) {
+		return strings.ToUpper(kind)
+	}
+	return strings.ToUpper(string(dtos.GoalKindSaving))
 }
 
 // mapContracts maps contracts to DTOs including their cost shares.

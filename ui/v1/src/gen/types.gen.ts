@@ -59,6 +59,7 @@ export interface ContractDto {
   kind: EntryKind;
   account_id?: number /* int64 */;
   target_account_id?: number /* int64 */;
+  goal_id?: number /* int64 */;
   shares: ShareDto[];
   household_share: number /* float64 */;
   monthly_amount?: number /* float64 */;
@@ -90,6 +91,7 @@ export interface CreateContractDto {
   kind: EntryKind;
   account_id?: number /* int64 */;
   target_account_id?: number /* int64 */;
+  goal_id?: number /* int64 */;
   shares: ShareDto[];
 }
 export interface UpdateContractDto {
@@ -116,6 +118,7 @@ export interface UpdateContractDto {
   kind: EntryKind;
   account_id?: number /* int64 */;
   target_account_id?: number /* int64 */;
+  goal_id?: number /* int64 */;
   shares: ShareDto[];
 }
 export interface DocumentDto {
@@ -171,6 +174,9 @@ export interface CategoryDto {
   id: number /* int64 */;
   key?: string;
   name: string;
+  type: EntryKind;
+  color?: number /* int64 */;
+  icon?: string;
   sort_order: number /* int64 */;
   created_at?: string /* RFC3339 */;
   updated_at?: string /* RFC3339 */;
@@ -178,10 +184,16 @@ export interface CategoryDto {
 export interface CreateCategoryDto {
   name: string;
   sort_order: number /* int64 */;
+  type: string;
+  color?: number /* int64 */;
+  icon?: string;
 }
 export interface UpdateCategoryDto {
   name: string;
   sort_order: number /* int64 */;
+  type: string;
+  color?: number /* int64 */;
+  icon?: string;
 }
 export interface ShareDto {
   person_id: number /* int64 */;
@@ -209,6 +221,7 @@ export interface AccountDto {
   person_id?: number /* int64 */;
   sort_order: number /* int64 */;
   is_savings: boolean;
+  iban?: string;
   balance?: number /* float64 */;
   balance_date?: DateOnly;
   goal_amount?: number /* float64 */;
@@ -222,6 +235,7 @@ export interface SaveAccountDto {
   person_id?: number /* int64 */;
   sort_order: number /* int64 */;
   is_savings?: boolean;
+  iban?: string;
   balance?: number /* float64 */;
   balance_date?: DateOnly;
   goal_amount?: number /* float64 */;
@@ -230,4 +244,36 @@ export interface SaveAccountDto {
 export interface UserOptionDto {
   id: number /* int64 */;
   username: string;
+}
+export type GoalKind = string;
+export const GoalKindSaving: GoalKind = "saving";
+export const GoalKindInvesting: GoalKind = "investing";
+export interface SavingsGoalDto {
+  id: number /* int64 */;
+  name: string;
+  kind: GoalKind;
+  icon?: string;
+  color?: number /* int64 */;
+  person_id?: number /* int64 */;
+  account_id?: number /* int64 */;
+  target_amount?: number /* float64 */;
+  target_date?: DateOnly;
+  current_amount?: number /* float64 */;
+  current_date?: DateOnly;
+  sort_order: number /* int64 */;
+  created_at?: string /* RFC3339 */;
+  updated_at?: string /* RFC3339 */;
+}
+export interface SaveSavingsGoalDto {
+  name: string;
+  kind: string;
+  icon?: string;
+  color?: number /* int64 */;
+  person_id?: number /* int64 */;
+  account_id?: number /* int64 */;
+  target_amount?: number /* float64 */;
+  target_date?: DateOnly;
+  current_amount?: number /* float64 */;
+  current_date?: DateOnly;
+  sort_order: number /* int64 */;
 }

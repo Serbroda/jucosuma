@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/Serbroda/contracts/cmd/web/dtos"
 	sqlc "github.com/Serbroda/contracts/internal/db/sqlc/gen"
@@ -27,6 +28,9 @@ func (app *application) createCategory(c echo.Context) error {
 	cat, err := app.queries.InsertCategory(c.Request().Context(), sqlc.InsertCategoryParams{
 		Name:      payload.Name,
 		SortOrder: payload.SortOrder,
+		Type:      categoryType(payload.Type),
+		Color:     payload.Color,
+		Icon:      utils.TrimToNil(payload.Icon),
 	})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to create category: "+err.Error())
@@ -63,6 +67,9 @@ func (app *application) updateCategory(c echo.Context) error {
 		ID:        id,
 		Name:      payload.Name,
 		SortOrder: payload.SortOrder,
+		Type:      categoryType(payload.Type),
+		Color:     payload.Color,
+		Icon:      utils.TrimToNil(payload.Icon),
 	})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to update category: "+err.Error())
@@ -95,4 +102,12 @@ func (app *application) deleteCategory(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusOK)
+}
+
+// categoryType converts the API category type to its database value (default: expense).
+func categoryType(t string) string {
+	if t == string(dtos.EntryKindIncome) {
+		return strings.ToUpper(t)
+	}
+	return strings.ToUpper(string(dtos.EntryKindExpense))
 }

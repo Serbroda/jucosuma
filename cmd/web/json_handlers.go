@@ -71,9 +71,9 @@ func (app *application) importContractsJSON(c echo.Context) error {
 			billingPeriod = "NONE"
 		}
 
-		targetAccountID := p.TargetAccountID
+		targetAccountID, goalID := p.TargetAccountID, p.GoalID
 		if p.Kind != dtos.EntryKindTransfer {
-			targetAccountID = nil
+			targetAccountID, goalID = nil, nil
 		}
 
 		inserted, err := qtx.InsertContract(ctx, sqlc.InsertContractParams{
@@ -100,6 +100,7 @@ func (app *application) importContractsJSON(c echo.Context) error {
 			Kind:            normalizeKind(p.Kind),
 			AccountID:       p.AccountID,
 			TargetAccountID: targetAccountID,
+			GoalID:          goalID,
 		})
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to import contract '"+p.Name+"': "+err.Error())
