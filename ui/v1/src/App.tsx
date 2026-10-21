@@ -13,6 +13,9 @@ import LoginPage from "./pages/LoginPage.tsx";
 import ChangePasswordPage from "./pages/ChangePasswordPage.tsx";
 import UsersPage from "./pages/UsersPage.tsx";
 import AuthGuard from "./components/AuthGuard.tsx";
+import OverviewPage from "./pages/OverviewPage.tsx";
+import HouseholdPage from "./pages/HouseholdPage.tsx";
+import SavingsPage from "./pages/SavingsPage.tsx";
 
 const router = createHashRouter([
     {
@@ -30,7 +33,10 @@ const router = createHashRouter([
             {
                 errorElement: <ErrorPage/>,
                 children: [
-                    {path: '/', element: <HomePage/>, loader: contractsLoader},
+                    {path: '/', element: <OverviewPage/>, loader: contractsLoader},
+                    {path: '/entries', element: <HomePage/>, loader: contractsLoader},
+                    {path: '/savings', element: <SavingsPage/>, loader: contractsLoader},
+                    {path: '/household', element: <HouseholdPage/>},
                     {path: '/settings', element: <SettingsPage/>},
                     {path: '/users', element: <UsersPage/>},
                     {path: '/contracts/add', element: <ContractFormPage mode="add"/>, loader: contractFormLoader, action: contractAction},

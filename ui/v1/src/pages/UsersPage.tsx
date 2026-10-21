@@ -12,9 +12,11 @@ import {apiBasePath} from "../config.ts";
 import {apiFetch} from "../lib/fetch.ts";
 import {useAuth} from "../stores/useAuth.ts";
 import ConfirmDialog from "../components/dialogs/ConfirmDialog.tsx";
+import {useTranslation} from "react-i18next";
 
 export default function UsersPage() {
     const {user: currentUser} = useAuth();
+    const {t} = useTranslation();
     const [users, setUsers] = useState<UserDto[]>([]);
     const [showAddForm, setShowAddForm] = useState(false);
     const [newUsername, setNewUsername] = useState('');
@@ -46,8 +48,8 @@ export default function UsersPage() {
                 body: JSON.stringify({username: newUsername, password: newPassword, role: newRole}),
             });
             if (!res.ok) {
-                const err = await res.json().catch(() => ({message: 'Failed to create user'}));
-                throw new Error(err.message || 'Failed to create user');
+                const err = await res.json().catch(() => ({message: t('users.createFailed')}));
+                throw new Error(err.message || t('users.createFailed'));
             }
             setShowAddForm(false);
             setNewUsername('');
@@ -82,10 +84,10 @@ export default function UsersPage() {
         <>
             <ConfirmDialog
                 isOpen={confirmDelete !== null}
-                title="Delete User"
-                message="Are you sure you want to delete this user?"
-                submitLabel="Delete"
-                cancelLabel="Cancel"
+                title={t('users.deleteTitle')}
+                message={t('users.deleteMessage')}
+                submitLabel={t('common.delete')}
+                cancelLabel={t('common.cancel')}
                 onClose={() => setConfirmDelete(null)}
                 onSubmit={async () => {
                     if (confirmDelete) await handleDelete(confirmDelete);
@@ -93,10 +95,10 @@ export default function UsersPage() {
             />
 
             <div className="flex items-center justify-between">
-                <Heading>Users</Heading>
+                <Heading>{t('users.title')}</Heading>
                 <Button onClick={() => setShowAddForm(!showAddForm)} className="hover:cursor-pointer">
                     <PlusIcon/>
-                    Add User
+                    {t('users.addUser')}
                 </Button>
             </div>
             <Divider className="mt-4 mb-6"/>
@@ -109,30 +111,30 @@ export default function UsersPage() {
 
             {showAddForm && (
                 <form onSubmit={handleCreate} className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-4 mb-6 flex flex-col gap-3">
-                    <div className="text-sm font-medium text-zinc-950 dark:text-white">New User</div>
+                    <div className="text-sm font-medium text-zinc-950 dark:text-white">{t('users.newUser')}</div>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                         <Field>
-                            <Label>Username</Label>
+                            <Label>{t('auth.username')}</Label>
                             <Input value={newUsername} onChange={(e) => setNewUsername(e.target.value)} autoFocus/>
                         </Field>
                         <Field>
-                            <Label>Password</Label>
+                            <Label>{t('auth.password')}</Label>
                             <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}/>
                         </Field>
                         <Field>
-                            <Label>Role</Label>
+                            <Label>{t('users.role')}</Label>
                             <Select value={newRole} onChange={(e) => setNewRole(e.target.value)}>
-                                <option value="user">User</option>
-                                <option value="admin">Admin</option>
+                                <option value="user">{t('users.roleUser')}</option>
+                                <option value="admin">{t('users.roleAdmin')}</option>
                             </Select>
                         </Field>
                     </div>
                     <div className="flex gap-2">
                         <Button type="submit" disabled={loading} className="hover:cursor-pointer">
-                            {loading ? 'Creating...' : 'Create'}
+                            {loading ? t('users.creating') : t('users.create')}
                         </Button>
                         <Button type="button" outline onClick={() => setShowAddForm(false)} className="hover:cursor-pointer">
-                            Cancel
+                            {t('common.cancel')}
                         </Button>
                     </div>
                 </form>
@@ -152,22 +154,22 @@ export default function UsersPage() {
                             <div className="flex items-center gap-2">
                                 <Input
                                     type="password"
-                                    placeholder="New password (min 8)"
+                                    placeholder={t('users.resetPlaceholder')}
                                     value={resetPassword}
                                     onChange={(e) => setResetPassword(e.target.value)}
                                     className="!w-48"
                                     autoFocus
                                 />
                                 <Button onClick={() => handleResetPassword(u.id)} disabled={resetPassword.length < 8} className="hover:cursor-pointer">
-                                    Set
+                                    {t('common.set')}
                                 </Button>
                                 <Button outline onClick={() => {setResetPasswordId(null); setResetPassword('');}} className="hover:cursor-pointer">
-                                    Cancel
+                                    {t('common.cancel')}
                                 </Button>
                             </div>
                         ) : (
                             <div className="flex gap-1">
-                                <Button plain onClick={() => setResetPasswordId(u.id)} className="hover:cursor-pointer">
+                                <Button plain onClick={() => setResetPasswordId(u.id)} className="hover:cursor-pointer" aria-label={t('users.resetPassword')}>
                                     <KeyIcon className="size-4"/>
                                 </Button>
                                 {currentUser?.id !== u.id && u.username !== 'admin' && (

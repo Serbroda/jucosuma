@@ -9,17 +9,20 @@ import (
 
 	"github.com/Serbroda/contracts/cmd/web/dtos"
 	sqlc "github.com/Serbroda/contracts/internal/db/sqlc/gen"
-	"github.com/Serbroda/contracts/internal/utils"
 	"github.com/labstack/echo/v4"
 )
 
 func (app *application) exportContractsJSON(ctx echo.Context) error {
-	contracts, err := app.queries.FindAllContracts(ctx.Request().Context())
+	user := ctx.Get("user").(sqlc.User)
+	contracts, err := app.queries.FindContractsForUser(ctx.Request().Context(), &user.ID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	contractDtos := utils.MapSlice(contracts, dtos.MapContractToContractDto)
+	contractDtos, err := app.mapContracts(ctx.Request().Context(), contracts)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
 
 	ctx.Response().Header().Set("Content-Type", "application/json")
 	ctx.Response().Header().Set("Content-Disposition", "attachment; filename=contracts.json")
@@ -56,6 +59,11 @@ func (app *application) importContractsJSON(c echo.Context) error {
 
 	qtx := app.queries.WithTx(tx)
 
+	persons, err := app.personsById(ctx, qtx)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
 	imported := 0
 	for _, p := range contracts {
 		billingPeriod := strings.ToUpper(p.BillingPeriod)
@@ -63,7 +71,12 @@ func (app *application) importContractsJSON(c echo.Context) error {
 			billingPeriod = "NONE"
 		}
 
-		_, err := qtx.InsertContract(ctx, sqlc.InsertContractParams{
+		targetAccountID := p.TargetAccountID
+		if p.Kind != dtos.EntryKindTransfer {
+			targetAccountID = nil
+		}
+
+		inserted, err := qtx.InsertContract(ctx, sqlc.InsertContractParams{
 			Name:            p.Name,
 			Company:         p.Company,
 			Category:        p.Category,
@@ -84,9 +97,15 @@ func (app *application) importContractsJSON(c echo.Context) error {
 			Notes:           p.Notes,
 			OwnerID:         p.OwnerID,
 			SplitBetween:    maxInt64(p.SplitBetween, 1),
+			Kind:            normalizeKind(p.Kind),
+			AccountID:       p.AccountID,
+			TargetAccountID: targetAccountID,
 		})
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to import contract '"+p.Name+"': "+err.Error())
+		}
+		if err := replaceContractShares(ctx, qtx, inserted.ID, p.Shares, persons); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "failed to import shares of '"+p.Name+"': "+err.Error())
 		}
 		imported++
 	}

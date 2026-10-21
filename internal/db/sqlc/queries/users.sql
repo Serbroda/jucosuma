@@ -26,3 +26,10 @@ DELETE FROM users WHERE id = ?;
 
 -- name: CountUsers :one
 SELECT COUNT(*) FROM users;
+
+-- name: UpdateUserLanguage :exec
+UPDATE users SET language = sqlc.arg('language'), updated_at = CURRENT_TIMESTAMP
+WHERE id = sqlc.arg('id');
+
+-- name: FindUserOptions :many
+SELECT id, username FROM users ORDER BY username ASC;

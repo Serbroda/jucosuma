@@ -1,6 +1,7 @@
 import {Dialog, DialogActions, DialogBody, DialogTitle} from "../catalyst/dialog.tsx";
 import {Button} from "../catalyst/button.tsx";
 import type {FC} from "react";
+import {useTranslation} from "react-i18next";
 
 export interface ConfirmDialogProps {
     isOpen: boolean;
@@ -21,6 +22,7 @@ const ConfirmDialog: FC<ConfirmDialogProps> = ({
                                                    onClose,
                                                    onSubmit
                                                }) => {
+    const {t} = useTranslation();
     return (
         <Dialog open={isOpen} onClose={onClose}>
             <DialogTitle>{title}</DialogTitle>
@@ -32,14 +34,14 @@ const ConfirmDialog: FC<ConfirmDialogProps> = ({
                     onClick={() => onSubmit()}
                     className="hover:cursor-pointer"
                 >
-                    {submitLabel || "Ok"}
+                    {submitLabel || t("common.ok")}
                 </Button>
                 <Button
                     plain
                     onClick={onClose}
                     className="hover:cursor-pointer"
                 >
-                    {cancelLabel || "Cancel"}
+                    {cancelLabel || t("common.cancel")}
                 </Button>
             </DialogActions>
         </Dialog>

@@ -1,6 +1,7 @@
 import {Heading, Subheading} from "../components/catalyst/heading.tsx";
 import {Divider} from "../components/catalyst/divider.tsx";
-import {Field, Label} from "../components/catalyst/fieldset.tsx";
+import {Description, Field, Label} from "../components/catalyst/fieldset.tsx";
+import {categoryLabel} from "../utils/household.utils.ts";
 import {Select} from "../components/catalyst/select.tsx";
 import {Input} from "../components/catalyst/input.tsx";
 import {Button} from "../components/catalyst/button.tsx";
@@ -11,10 +12,12 @@ import type {CategoryDto} from "../gen/types.gen.ts";
 import {apiBasePath} from "../config.ts";
 import {apiFetch} from "../lib/fetch.ts";
 import {PlusIcon, TrashIcon} from "@heroicons/react/16/solid";
+import {useTranslation} from "react-i18next";
 
 export default function SettingsPage() {
     const {mainCurrency, setMainCurrency} = usePreferences();
-    const {user} = useAuth();
+    const {user, updateLanguage} = useAuth();
+    const {t} = useTranslation();
     const isAdmin = user?.role === 'admin';
 
     const [categories, setCategories] = useState<CategoryDto[]>([]);
@@ -60,12 +63,24 @@ export default function SettingsPage() {
 
     return (
         <>
-            <Heading>Settings</Heading>
+            <Heading>{t('settings.title')}</Heading>
             <Divider className="mt-4"/>
 
             <div className="mt-6 grid grid-cols-1 gap-6 max-w-md">
                 <Field>
-                    <Label>Main Currency</Label>
+                    <Label>{t('settings.language')}</Label>
+                    <Description>{t('settings.languageHint')}</Description>
+                    <Select
+                        value={user?.language ?? ''}
+                        onChange={(e) => updateLanguage(e.target.value || null)}
+                    >
+                        <option value="">{t('settings.languageAuto')}</option>
+                        <option value="de">Deutsch</option>
+                        <option value="en">English</option>
+                    </Select>
+                </Field>
+                <Field>
+                    <Label>{t('settings.mainCurrency')}</Label>
                     <Select
                         value={mainCurrency}
                         onChange={(e) => setMainCurrency(e.target.value)}
@@ -80,13 +95,13 @@ export default function SettingsPage() {
 
             {isAdmin && (
                 <>
-                    <Subheading className="mt-10">Categories</Subheading>
+                    <Subheading className="mt-10">{t('settings.categories')}</Subheading>
                     <Divider className="mt-4"/>
 
                     <div className="mt-4 max-w-md">
                         <div className="flex gap-2 mb-4">
                             <Input
-                                placeholder="New category name"
+                                placeholder={t('settings.newCategory')}
                                 value={newCatName}
                                 onChange={(e) => setNewCatName(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && addCategory()}
@@ -94,7 +109,7 @@ export default function SettingsPage() {
                             />
                             <Button onClick={addCategory} disabled={loading || !newCatName.trim()} className="hover:cursor-pointer">
                                 <PlusIcon/>
-                                Add
+                                {t('common.add')}
                             </Button>
                         </div>
 
@@ -113,7 +128,10 @@ export default function SettingsPage() {
                                             }
                                         }}
                                     />
-                                    <span className="text-sm text-zinc-950 dark:text-white grow">{cat.name}</span>
+                                    <span className="text-sm text-zinc-950 dark:text-white grow">
+                                        {categoryLabel(cat.name, cat.key)}
+                                        {cat.key && <span className="ml-2 text-xs text-zinc-400 dark:text-zinc-500">{t('settings.predefined')}</span>}
+                                    </span>
                                     <Button plain onClick={() => deleteCategory(cat.id)} className="hover:cursor-pointer text-red-500">
                                         <TrashIcon className="size-4"/>
                                     </Button>

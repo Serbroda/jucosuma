@@ -33,6 +33,7 @@ func (app *application) routes() *echo.Echo {
 	auth.POST("/auth/logout", app.logout)
 	auth.GET("/auth/me", app.me)
 	auth.PUT("/auth/change-password", app.changePassword)
+	auth.PUT("/auth/preferences", app.updatePreferences)
 
 	// Categories (all users can read)
 	auth.GET("/categories", app.getCategories)
@@ -53,6 +54,17 @@ func (app *application) routes() *echo.Echo {
 	auth.GET("/companies", app.getCompanies)
 	auth.GET("/used_icons", app.getUsedIcons)
 	auth.GET("/search_logos", app.searchLogos)
+
+	// Household: persons and accounts (all users can manage)
+	auth.GET("/user_options", app.getUserOptions)
+	auth.GET("/persons", app.getPersons)
+	auth.POST("/persons", app.createPerson)
+	auth.PUT("/persons/:id", app.updatePerson)
+	auth.DELETE("/persons/:id", app.deletePerson)
+	auth.GET("/accounts", app.getAccounts)
+	auth.POST("/accounts", app.createAccount)
+	auth.PUT("/accounts/:id", app.updateAccount)
+	auth.DELETE("/accounts/:id", app.deleteAccount)
 
 	// Admin-only routes
 	admin := auth.Group("", app.requireAdmin)

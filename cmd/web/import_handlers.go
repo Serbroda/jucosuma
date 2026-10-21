@@ -217,6 +217,8 @@ func (app *application) importContractsCSV(c echo.Context) error {
 			ContactEmail:   contactEmail,
 			IconSource:     nil,
 			Notes:          notes,
+			SplitBetween:   1,
+			Kind:           "EXPENSE",
 		})
 		if err != nil {
 			row.Error = "insert failed: " + err.Error()

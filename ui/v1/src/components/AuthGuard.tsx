@@ -1,8 +1,10 @@
 import {useEffect, type ReactNode} from "react";
 import {useAuth} from "../stores/useAuth.ts";
+import {useTranslation} from "react-i18next";
 
 export default function AuthGuard({children}: { children: ReactNode }) {
     const {isAuthenticated, isLoading, user, checkAuth} = useAuth();
+    const {t} = useTranslation();
 
     useEffect(() => {
         checkAuth();
@@ -11,7 +13,7 @@ export default function AuthGuard({children}: { children: ReactNode }) {
     if (isLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-white dark:bg-zinc-900">
-                <div className="text-zinc-400 dark:text-zinc-500 text-sm">Loading...</div>
+                <div className="text-zinc-400 dark:text-zinc-500 text-sm">{t('common.loading')}</div>
             </div>
         );
     }

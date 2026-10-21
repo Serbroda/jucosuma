@@ -17,6 +17,16 @@ export const BillingPeriodQuarterly: BillingPeriod = "quarterly";
 export const BillingPeriodSemiannual: BillingPeriod = "semiannually";
 export const BillingPeriodAnnually: BillingPeriod = "annually";
 export const BillingPeriodEveryTwoYears: BillingPeriod = "every_two_years";
+export type EntryKind = string;
+export const EntryKindExpense: EntryKind = "expense";
+export const EntryKindIncome: EntryKind = "income";
+export const EntryKindTransfer: EntryKind = "transfer";
+export type AccountType = string;
+export const AccountTypeChecking: AccountType = "checking";
+export const AccountTypeSavings: AccountType = "savings";
+export const AccountTypeDepot: AccountType = "depot";
+export const AccountTypeCash: AccountType = "cash";
+export const AccountTypeOther: AccountType = "other";
 export type ContractStatus = string;
 export const ContractStatusActive: ContractStatus = "active";
 export const ContractStatusCancelled: ContractStatus = "cancelled";
@@ -26,6 +36,7 @@ export interface ContractDto {
   name: string;
   company?: string;
   category: string;
+  category_key?: string;
   start_date: DateOnly;
   end_date?: DateOnly;
   contract_number?: string;
@@ -45,6 +56,12 @@ export interface ContractDto {
   notes?: string;
   owner_id?: number /* int64 */;
   split_between: number /* int64 */;
+  kind: EntryKind;
+  account_id?: number /* int64 */;
+  target_account_id?: number /* int64 */;
+  shares: ShareDto[];
+  household_share: number /* float64 */;
+  monthly_amount?: number /* float64 */;
   created_at?: string /* RFC3339 */;
   updated_at?: string /* RFC3339 */;
   documents: DocumentDto[];
@@ -70,6 +87,10 @@ export interface CreateContractDto {
   notes?: string;
   owner_id?: number /* int64 */;
   split_between: number /* int64 */;
+  kind: EntryKind;
+  account_id?: number /* int64 */;
+  target_account_id?: number /* int64 */;
+  shares: ShareDto[];
 }
 export interface UpdateContractDto {
   name: string;
@@ -92,6 +113,10 @@ export interface UpdateContractDto {
   notes?: string;
   owner_id?: number /* int64 */;
   split_between: number /* int64 */;
+  kind: EntryKind;
+  account_id?: number /* int64 */;
+  target_account_id?: number /* int64 */;
+  shares: ShareDto[];
 }
 export interface DocumentDto {
   id: number /* int64 */;
@@ -114,6 +139,9 @@ export interface LoginDto {
   username: string;
   password: string;
 }
+export interface UpdatePreferencesDto {
+  language?: string;
+}
 export interface ChangePasswordDto {
   current_password: string;
   new_password: string;
@@ -123,6 +151,7 @@ export interface UserDto {
   username: string;
   role: string;
   must_change_password: boolean;
+  language?: string;
   created_at?: string /* RFC3339 */;
   updated_at?: string /* RFC3339 */;
 }
@@ -140,6 +169,7 @@ export interface ResetPasswordDto {
 }
 export interface CategoryDto {
   id: number /* int64 */;
+  key?: string;
   name: string;
   sort_order: number /* int64 */;
   created_at?: string /* RFC3339 */;
@@ -152,4 +182,52 @@ export interface CreateCategoryDto {
 export interface UpdateCategoryDto {
   name: string;
   sort_order: number /* int64 */;
+}
+export interface ShareDto {
+  person_id: number /* int64 */;
+  weight: number /* float64 */;
+}
+export interface PersonDto {
+  id: number /* int64 */;
+  name: string;
+  in_household: boolean;
+  user_id?: number /* int64 */;
+  sort_order: number /* int64 */;
+  created_at?: string /* RFC3339 */;
+  updated_at?: string /* RFC3339 */;
+}
+export interface SavePersonDto {
+  name: string;
+  in_household: boolean;
+  user_id?: number /* int64 */;
+  sort_order: number /* int64 */;
+}
+export interface AccountDto {
+  id: number /* int64 */;
+  name: string;
+  type: AccountType;
+  person_id?: number /* int64 */;
+  sort_order: number /* int64 */;
+  is_savings: boolean;
+  balance?: number /* float64 */;
+  balance_date?: DateOnly;
+  goal_amount?: number /* float64 */;
+  goal_date?: DateOnly;
+  created_at?: string /* RFC3339 */;
+  updated_at?: string /* RFC3339 */;
+}
+export interface SaveAccountDto {
+  name: string;
+  type: string;
+  person_id?: number /* int64 */;
+  sort_order: number /* int64 */;
+  is_savings?: boolean;
+  balance?: number /* float64 */;
+  balance_date?: DateOnly;
+  goal_amount?: number /* float64 */;
+  goal_date?: DateOnly;
+}
+export interface UserOptionDto {
+  id: number /* int64 */;
+  username: string;
 }

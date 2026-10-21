@@ -10,35 +10,85 @@ import (
 
 func MapContractToContractDto(item sqlc.Contract) ContractDto {
 	dto := ContractDto{
-		ID:             item.ID,
-		Name:           item.Name,
-		Company:        item.Company,
-		Category:       item.Category,
-		StartDate:      DateOnly(item.StartDate),
-		EndDate:        (*DateOnly)(item.EndDate),
-		ContractNumber: item.ContractNumber,
-		CustomerNumber: item.CustomerNumber,
-		ContractHolder: item.ContractHolder,
-		BillingPeriod:  strings.ToLower(item.BillingPeriod),
-		Costs:          item.Costs,
-		Currency:       item.Currency,
-		ContactPerson:  item.ContactPerson,
-		ContactAddress: item.ContactAddress,
-		ContactPhone:   item.ContactPhone,
-		ContactEmail:   item.ContactEmail,
-		IconSource:     item.IconSource,
-		Notes:          item.Notes,
-		OwnerID:        item.OwnerID,
-		SplitBetween:   item.SplitBetween,
-		CreatedAt:      item.CreatedAt,
-		UpdatedAt:      item.UpdatedAt,
+		ID:              item.ID,
+		Name:            item.Name,
+		Company:         item.Company,
+		Category:        item.Category,
+		StartDate:       DateOnly(item.StartDate),
+		EndDate:         (*DateOnly)(item.EndDate),
+		ContractNumber:  item.ContractNumber,
+		CustomerNumber:  item.CustomerNumber,
+		ContractHolder:  item.ContractHolder,
+		BillingPeriod:   strings.ToLower(item.BillingPeriod),
+		Costs:           item.Costs,
+		Currency:        item.Currency,
+		ContactPerson:   item.ContactPerson,
+		ContactAddress:  item.ContactAddress,
+		ContactPhone:    item.ContactPhone,
+		ContactEmail:    item.ContactEmail,
+		IconSource:      item.IconSource,
+		Notes:           item.Notes,
+		OwnerID:         item.OwnerID,
+		SplitBetween:    item.SplitBetween,
+		Kind:            EntryKind(strings.ToLower(item.Kind)),
+		AccountID:       item.AccountID,
+		TargetAccountID: item.TargetAccountID,
+		Shares:          []ShareDto{},
+		CreatedAt:       item.CreatedAt,
+		UpdatedAt:       item.UpdatedAt,
 	}
 
 	dto.Status = computeStatus(item.EndDate)
 	dto.NextBillingDate = computeNextBillingDate(item.NextBillingDate, item.StartDate, item.BillingPeriod)
-	dto.MonthlyCosts = computeMonthlyCosts(item.Costs, item.BillingPeriod, item.SplitBetween)
+	dto.MonthlyAmount = computeMonthlyAmount(item.Costs, item.BillingPeriod)
+	applyHouseholdShare(&dto, nil, nil)
 
 	return dto
+}
+
+// MapContractWithShares maps a contract including its cost shares. persons must contain all
+// non-deleted persons; shares of unknown (deleted) persons are ignored.
+func MapContractWithShares(item sqlc.Contract, shares []sqlc.ContractShare, persons map[int64]sqlc.Person) ContractDto {
+	dto := MapContractToContractDto(item)
+	applyHouseholdShare(&dto, shares, persons)
+	return dto
+}
+
+// applyHouseholdShare computes which fraction of an expense is borne by the household
+// (as opposed to external persons) and derives the household's monthly costs from it.
+// Without explicit shares the legacy split_between is used.
+func applyHouseholdShare(dto *ContractDto, shares []sqlc.ContractShare, persons map[int64]sqlc.Person) {
+	dto.Shares = []ShareDto{}
+	var total, household float64
+	for _, s := range shares {
+		p, ok := persons[s.PersonID]
+		if !ok {
+			continue
+		}
+		dto.Shares = append(dto.Shares, ShareDto{PersonID: s.PersonID, Weight: s.Weight})
+		total += s.Weight
+		if p.InHousehold == 1 {
+			household += s.Weight
+		}
+	}
+
+	switch {
+	case dto.Kind != EntryKindExpense:
+		dto.HouseholdShare = 1
+	case total > 0:
+		dto.HouseholdShare = household / total
+	case dto.SplitBetween > 1:
+		dto.HouseholdShare = 1 / float64(dto.SplitBetween)
+	default:
+		dto.HouseholdShare = 1
+	}
+
+	if dto.MonthlyAmount == nil {
+		dto.MonthlyCosts = nil
+		return
+	}
+	monthly := *dto.MonthlyAmount * dto.HouseholdShare
+	dto.MonthlyCosts = &monthly
 }
 
 func computeStatus(endDate *time.Time) ContractStatus {
@@ -104,7 +154,7 @@ func addBillingPeriod(t time.Time, period string) time.Time {
 	}
 }
 
-func computeMonthlyCosts(costs *float64, billingPeriod string, splitBetween int64) *float64 {
+func computeMonthlyAmount(costs *float64, billingPeriod string) *float64 {
 	if costs == nil || *costs == 0 {
 		return nil
 	}
@@ -134,9 +184,6 @@ func computeMonthlyCosts(costs *float64, billingPeriod string, splitBetween int6
 	}
 
 	monthly := *costs * factor
-	if splitBetween > 1 {
-		monthly = monthly / float64(splitBetween)
-	}
 	return &monthly
 }
 
@@ -170,6 +217,7 @@ func MapCompanyToCompanyDto(item *string) CompanyDto {
 func MapCategoryToCategoryDto(c sqlc.Category) CategoryDto {
 	return CategoryDto{
 		ID:        c.ID,
+		Key:       c.Key,
 		Name:      c.Name,
 		SortOrder: c.SortOrder,
 		CreatedAt: c.CreatedAt,
@@ -183,7 +231,37 @@ func MapUserToUserDto(u sqlc.User) UserDto {
 		Username:           u.Username,
 		Role:               u.Role,
 		MustChangePassword: u.MustChangePassword == 1,
+		Language:           u.Language,
 		CreatedAt:          u.CreatedAt,
 		UpdatedAt:          u.UpdatedAt,
+	}
+}
+
+func MapPersonToPersonDto(p sqlc.Person) PersonDto {
+	return PersonDto{
+		ID:          p.ID,
+		Name:        p.Name,
+		InHousehold: p.InHousehold == 1,
+		UserID:      p.UserID,
+		SortOrder:   p.SortOrder,
+		CreatedAt:   p.CreatedAt,
+		UpdatedAt:   p.UpdatedAt,
+	}
+}
+
+func MapAccountToAccountDto(a sqlc.Account) AccountDto {
+	return AccountDto{
+		ID:          a.ID,
+		Name:        a.Name,
+		Type:        AccountType(strings.ToLower(a.Type)),
+		PersonID:    a.PersonID,
+		SortOrder:   a.SortOrder,
+		IsSavings:   a.IsSavings == 1,
+		Balance:     a.Balance,
+		BalanceDate: (*DateOnly)(a.BalanceDate),
+		GoalAmount:  a.GoalAmount,
+		GoalDate:    (*DateOnly)(a.GoalDate),
+		CreatedAt:   a.CreatedAt,
+		UpdatedAt:   a.UpdatedAt,
 	}
 }

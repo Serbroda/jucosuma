@@ -5,9 +5,11 @@ import {Input} from "../components/catalyst/input.tsx";
 import {Button} from "../components/catalyst/button.tsx";
 import {Heading} from "../components/catalyst/heading.tsx";
 import ThemeToggle from "../components/ThemeToggle.tsx";
+import {useTranslation} from "react-i18next";
 
 export default function LoginPage() {
     const {login} = useAuth();
+    const {t} = useTranslation();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -25,7 +27,7 @@ export default function LoginPage() {
                 window.location.hash = '#/';
             }
         } catch (err: any) {
-            setError(err.message || 'Login failed');
+            setError(err.message || t('auth.loginFailed'));
         } finally {
             setLoading(false);
         }
@@ -45,7 +47,7 @@ export default function LoginPage() {
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                     <Field>
-                        <Label>Username</Label>
+                        <Label>{t('auth.username')}</Label>
                         <Input
                             name="username"
                             autoComplete="username"
@@ -55,7 +57,7 @@ export default function LoginPage() {
                         />
                     </Field>
                     <Field>
-                        <Label>Password</Label>
+                        <Label>{t('auth.password')}</Label>
                         <Input
                             type="password"
                             name="password"
@@ -65,7 +67,7 @@ export default function LoginPage() {
                         />
                     </Field>
                     <Button type="submit" disabled={loading} className="w-full mt-2 hover:cursor-pointer">
-                        {loading ? 'Signing in...' : 'Sign in'}
+                        {loading ? t('auth.signingIn') : t('auth.signIn')}
                     </Button>
                 </form>
             </div>

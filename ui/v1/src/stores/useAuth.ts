@@ -2,6 +2,7 @@ import {create} from 'zustand';
 import type {UserDto} from '../gen/types.gen.ts';
 import {apiBasePath} from '../config.ts';
 import {apiFetch} from '../lib/fetch.ts';
+import i18n, {setLanguage} from '../i18n';
 
 export type AuthState = {
     user: UserDto | null;
@@ -11,6 +12,7 @@ export type AuthState = {
     login: (username: string, password: string) => Promise<UserDto>;
     logout: () => Promise<void>;
     changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+    updateLanguage: (language: string | null) => Promise<void>;
 };
 
 export const useAuth = create<AuthState>((set) => ({
@@ -22,7 +24,8 @@ export const useAuth = create<AuthState>((set) => ({
         try {
             const res = await apiFetch(`${apiBasePath}/auth/me`);
             if (res.ok) {
-                const user = await res.json();
+                const user: UserDto = await res.json();
+                await setLanguage(user.language);
                 set({user, isAuthenticated: true, isLoading: false});
             } else {
                 set({user: null, isAuthenticated: false, isLoading: false});
@@ -39,10 +42,11 @@ export const useAuth = create<AuthState>((set) => ({
             body: JSON.stringify({username, password}),
         });
         if (!res.ok) {
-            const err = await res.json().catch(() => ({message: 'Login failed'}));
-            throw new Error(err.message || 'Login failed');
+            const err = await res.json().catch(() => ({message: i18n.t('auth.loginFailed')}));
+            throw new Error(err.message || i18n.t('auth.loginFailed'));
         }
-        const user = await res.json();
+        const user: UserDto = await res.json();
+        await setLanguage(user.language);
         set({user, isAuthenticated: true});
         return user;
     },
@@ -59,8 +63,8 @@ export const useAuth = create<AuthState>((set) => ({
             body: JSON.stringify({current_password: currentPassword, new_password: newPassword}),
         });
         if (!res.ok) {
-            const err = await res.json().catch(() => ({message: 'Failed to change password'}));
-            throw new Error(err.message || 'Failed to change password');
+            const err = await res.json().catch(() => ({message: i18n.t('auth.changeFailed')}));
+            throw new Error(err.message || i18n.t('auth.changeFailed'));
         }
         // Refresh user state
         const meRes = await apiFetch(`${apiBasePath}/auth/me`);
@@ -68,5 +72,19 @@ export const useAuth = create<AuthState>((set) => ({
             const user = await meRes.json();
             set({user});
         }
+    },
+
+    updateLanguage: async (language: string | null) => {
+        const res = await apiFetch(`${apiBasePath}/auth/preferences`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({language}),
+        });
+        if (!res.ok) {
+            throw new Error('Failed to save language');
+        }
+        const user: UserDto = await res.json();
+        await setLanguage(user.language);
+        set({user});
     },
 }));

@@ -31,37 +31,47 @@ async function categoriesLoader() {
     return {categories: res ?? []};
 }
 
+async function householdLoader() {
+    const [persons, accounts, {categories}] = await Promise.all([
+        fetchJSON(`${apiBasePath}/persons`),
+        fetchJSON(`${apiBasePath}/accounts`),
+        categoriesLoader(),
+    ]);
+    return {persons: persons ?? [], accounts: accounts ?? [], categories};
+}
+
 async function contractsLoader() {
-    const [contracts, {holders}] = await Promise.all([
+    const [contracts, {holders}, household] = await Promise.all([
         fetchJSON(`${apiBasePath}/contracts`),
         contractHoldersLoader(),
+        householdLoader(),
     ]);
     if (!contracts) {
         throw new Response("Not Found", {status: 404});
     }
-    return {contracts, holders};
+    return {contracts, holders, ...household};
 }
 
 async function contractLoader({params}: { params: any }) {
-    const [contract, {holders}, {companies}, {categories}] = await Promise.all([
+    const [contract, {holders}, {companies}, household] = await Promise.all([
         fetchJSON(`${apiBasePath}/contracts/${params.id}`),
         contractHoldersLoader(),
         companiesLoader(),
-        categoriesLoader(),
+        householdLoader(),
     ]);
     if (!contract) {
         throw new Response("Not Found", {status: 404});
     }
-    return {contract, holders, companies, categories};
+    return {contract, holders, companies, ...household};
 }
 
 async function contractFormLoader() {
-    const [{holders}, {companies}, {categories}] = await Promise.all([
+    const [{holders}, {companies}, household] = await Promise.all([
         contractHoldersLoader(),
         companiesLoader(),
-        categoriesLoader(),
+        householdLoader(),
     ]);
-    return {holders, companies, categories};
+    return {holders, companies, ...household};
 }
 
-export {contractsLoader, contractLoader, contractHoldersLoader, categoriesLoader, contractFormLoader};
+export {contractsLoader, contractLoader, contractHoldersLoader, categoriesLoader, contractFormLoader, householdLoader};

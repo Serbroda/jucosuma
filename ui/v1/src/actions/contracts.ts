@@ -1,17 +1,21 @@
 // src/actions/contractAction.ts
 import type {ActionFunction} from "react-router";
-import type {ContractDto} from "../gen/types.gen";
+import type {ContractDto, ShareDto} from "../gen/types.gen";
+import {parseAmount} from "../utils/number.utils.ts";
+import i18n from "../i18n";
 import {apiBasePath} from "../config.ts";
 import {apiFetch} from "../lib/fetch.ts";
 
-const formatCurrency = (input: string | FormDataEntryValue | null): number | undefined => {
-    if (!input) {
-        return undefined;
+const optionalId = (input: FormDataEntryValue | null): number | undefined =>
+    input ? Number(input) : undefined;
+
+const parseShares = (input: FormDataEntryValue | null): ShareDto[] => {
+    if (!input) return [];
+    try {
+        return JSON.parse(input.toString()) as ShareDto[];
+    } catch {
+        return [];
     }
-    const value = input.toString()
-        .replace(/[^0-9,.-]/g, "")
-        .replace(/,/g, ".");
-    return parseFloat(value);
 }
 
 export const contractAction: ActionFunction = async ({request, params}) => {
@@ -22,13 +26,13 @@ export const contractAction: ActionFunction = async ({request, params}) => {
     const meta: Partial<ContractDto> = {
         name: form.get("name") as string,
         company: form.get("company") as string || undefined,
-        category: form.get("category") as string,
+        category: form.get("category") as string || "Other",
         start_date: form.get("start_date") as string,
         end_date: form.get("end_date") as string || undefined,
         contract_number: form.get("contract_number") as string || undefined,
         customer_number: form.get("customer_number") as string || undefined,
         contract_holder: form.get("contract_holder") as string || undefined,
-        costs: formatCurrency(form.get("costs")),
+        costs: parseAmount(form.get("costs")),
         billing_period: form.get("billing_period") as string,
         currency: form.get("currency") as string || undefined,
         next_billing_date: form.get("next_billing_date") as string || undefined,
@@ -40,6 +44,10 @@ export const contractAction: ActionFunction = async ({request, params}) => {
         notes: form.get("notes") as string || undefined,
         owner_id: form.get("owner_id") ? Number(form.get("owner_id")) : undefined,
         split_between: Number(form.get("split_between")) || 1,
+        kind: form.get("kind") as string || "expense",
+        account_id: optionalId(form.get("account_id")),
+        target_account_id: optionalId(form.get("target_account_id")),
+        shares: parseShares(form.get("shares")),
     };
 
     // 3) Neues FormData für den Backend-Request
@@ -72,7 +80,7 @@ export const contractAction: ActionFunction = async ({request, params}) => {
 
     if (!res.ok) {
         const errorText = await res.text();
-        let message = "An error occurred while saving.";
+        let message = i18n.t('entryForm.saveError');
         try {
             const parsed = JSON.parse(errorText);
             message = parsed.message || message;
@@ -85,6 +93,6 @@ export const contractAction: ActionFunction = async ({request, params}) => {
     // Auf Erfolg weiterleiten
     return new Response(null, {
         status: 303,
-        headers: {Location: id ? `/contracts/${id}` : `/`},
+        headers: {Location: id ? `/contracts/${id}` : `/entries`},
     });
 };

@@ -102,3 +102,22 @@ func (app *application) changePassword(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, map[string]string{"message": "password changed"})
 }
+
+func (app *application) updatePreferences(c echo.Context) error {
+	var payload dtos.UpdatePreferencesDto
+	if err := BindAndValidate(c, &payload); err != nil {
+		return err
+	}
+
+	user := c.Get("user").(sqlc.User)
+	err := app.queries.UpdateUserLanguage(c.Request().Context(), sqlc.UpdateUserLanguageParams{
+		ID:       user.ID,
+		Language: payload.Language,
+	})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to update preferences")
+	}
+
+	user.Language = payload.Language
+	return c.JSON(http.StatusOK, dtos.MapUserToUserDto(user))
+}

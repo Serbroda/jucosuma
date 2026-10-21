@@ -1,60 +1,17 @@
-import {
-    BillingPeriodAnnually,
-    BillingPeriodEveryTwoYears,
-    BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime,
-    BillingPeriodQuarterly, BillingPeriodSemiannual,
-    BillingPeriodWeekly
-} from "../gen/types.gen.ts";
+import {BillingPeriodNone} from "../gen/types.gen.ts";
+import i18n from "../i18n";
 
 function billingPeriodLabel(period: string | undefined | null): string {
     if (!period) return '';
-    switch (period) {
-        case BillingPeriodNone:
-            return 'None';
-        case BillingPeriodOneTime:
-            return 'One Time';
-        case BillingPeriodWeekly:
-            return 'Weekly';
-        case BillingPeriodMonthly:
-            return 'Monthly';
-        case BillingPeriodQuarterly:
-            return 'Quarterly';
-        case BillingPeriodSemiannual:
-            return 'Semiannually';
-        case BillingPeriodAnnually:
-            return 'Annually';
-        case BillingPeriodEveryTwoYears:
-            return 'Every Two Years';
-        default:
-            return period;
-    }
+    if (period === BillingPeriodNone) return i18n.t('periods.none');
+    const key = `periods.${period}`;
+    return i18n.exists(key) ? i18n.t(key as 'periods.monthly') : period;
 }
 
 function billingPeriodShorthand(period: string | undefined | null): string {
-    if (!period) {
-        return '';
-    }
-
-    switch (period) {
-        case BillingPeriodNone:
-            return '';
-        case BillingPeriodOneTime:
-            return 'Once';
-        case BillingPeriodWeekly:
-            return 'Wk';
-        case BillingPeriodMonthly:
-            return 'Mth';
-        case BillingPeriodQuarterly:
-            return 'Qtr';
-        case BillingPeriodSemiannual:
-            return 'Semi-Ann.';
-        case BillingPeriodAnnually:
-            return 'Ann.';
-        case BillingPeriodEveryTwoYears:
-            return 'Biennial';
-        default:
-            return '';
-    }
+    if (!period || period === BillingPeriodNone) return '';
+    const key = `periodsShort.${period}`;
+    return i18n.exists(key) ? i18n.t(key as 'periodsShort.monthly') : '';
 }
 
 // fileToBase64.ts

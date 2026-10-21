@@ -14,21 +14,31 @@ import {
 } from "@heroicons/react/16/solid";
 import {Badge} from "../components/catalyst/badge.tsx";
 import {classNames} from "../utils/dom.utils.ts";
-import image from "../assets/image.png";
-import {Avatar} from "../components/catalyst/avatar.tsx";
 import {Input, InputGroup} from "../components/catalyst/input.tsx";
 import {useCallback, useEffect, useMemo, useState} from "react";
 import {startWithAnyIgnoreCase} from "../utils/string.utils.ts";
 import {formatCurrency} from "../utils/number.utils.ts";
 import {billingPeriodShorthand} from "../utils/data.utils.ts";
-import type {ContractDto, ContractHolderDto} from "../gen/types.gen.ts";
-import {ContractStatusActive, ContractStatusCancelled, ContractStatusExpired} from "../gen/types.gen.ts";
+import type {AccountDto, CategoryDto, ContractDto, ContractHolderDto, PersonDto} from "../gen/types.gen.ts";
+import {
+    ContractStatusActive,
+    ContractStatusCancelled,
+    ContractStatusExpired,
+    EntryKindExpense,
+    EntryKindIncome,
+} from "../gen/types.gen.ts";
+import QuickEntryDialog from "../components/QuickEntryDialog.tsx";
+import {accountName, categoryLabel, categoryLabelByName, entryKinds} from "../utils/household.utils.ts";
+import {useTranslation} from "react-i18next";
 import {Select} from "../components/catalyst/select.tsx";
 import {usePreferences} from "../stores/usePreferences.ts";
 import {useAuth} from "../stores/useAuth.ts";
 import {apiBasePath} from "../config.ts";
 import dayjs from "../lib/dayjs";
 import ImportDialog from "../components/ImportDialog.tsx";
+import EntryIcon from "../components/EntryIcon.tsx";
+import {Heading} from "../components/catalyst/heading.tsx";
+import {card, cardTitle, statLabel, statValue} from "../utils/ui.ts";
 
 const statusColor = (status: string): "green" | "yellow" | "zinc" => {
     switch (status) {
@@ -89,7 +99,8 @@ function computeCosts(contracts: ContractDto[], mainCurrency: string) {
     const byCategory: Record<string, number> = {};
     for (const c of contracts) {
         if (c.monthly_costs && (!c.currency || c.currency === mainCurrency)) {
-            byCategory[c.category] = (byCategory[c.category] ?? 0) + c.monthly_costs;
+            const label = categoryLabel(c.category, c.category_key);
+            byCategory[label] = (byCategory[label] ?? 0) + c.monthly_costs;
         }
     }
     const categorySorted = Object.entries(byCategory).sort(([, a], [, b]) => b - a);
@@ -98,8 +109,17 @@ function computeCosts(contracts: ContractDto[], mainCurrency: string) {
 }
 
 export default function HomePage() {
-    const {contracts, holders} = useLoaderData() as { contracts: ContractDto[]; holders: ContractHolderDto[] };
+    const {contracts, holders, persons, accounts, categories: allCategories} = useLoaderData() as {
+        contracts: ContractDto[];
+        holders: ContractHolderDto[];
+        persons: PersonDto[];
+        accounts: AccountDto[];
+        categories: CategoryDto[];
+    };
+    const [showQuickEntry, setShowQuickEntry] = useState(false);
+    const [filterKind, setFilterKind] = useState<string>("all");
     const {mainCurrency} = usePreferences();
+    const {t, i18n} = useTranslation();
     const {user: currentUser} = useAuth();
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -122,11 +142,14 @@ export default function HomePage() {
         return Array.from(cats).sort();
     }, [contracts]);
 
-    const hasActiveFilters = filterStatus !== "all" || filterCategory !== "all" || filterHolder !== "all" || filterVisibility !== "all";
+    const hasActiveFilters = filterKind !== "all" || filterStatus !== "all" || filterCategory !== "all" || filterHolder !== "all" || filterVisibility !== "all";
 
     const filteredContracts = useMemo(() => {
         if (!contracts) return [];
         let result = contracts.filter((c) => startWithAnyIgnoreCase(search, c.name, c.company ?? ''));
+        if (filterKind !== "all") {
+            result = result.filter((c) => c.kind === filterKind);
+        }
         if (filterStatus !== "all") {
             result = result.filter((c) => c.status === filterStatus);
         }
@@ -142,11 +165,11 @@ export default function HomePage() {
             result = result.filter((c) => c.owner_id === currentUser?.id);
         }
         return sortContracts(result, sortKey, sortDir);
-    }, [contracts, search, filterStatus, filterCategory, filterHolder, filterVisibility, currentUser, sortKey, sortDir]);
+    }, [contracts, search, filterKind, filterStatus, filterCategory, filterHolder, filterVisibility, currentUser, sortKey, sortDir]);
 
     // Costs based on filtered contracts (excluding expired)
     const filteredActive = useMemo(() => {
-        return filteredContracts.filter((c) => c.status !== ContractStatusExpired);
+        return filteredContracts.filter((c) => c.status !== ContractStatusExpired && c.kind === EntryKindExpense);
     }, [filteredContracts]);
 
     const filtered = useMemo(() => computeCosts(filteredActive, mainCurrency), [filteredActive, mainCurrency]);
@@ -154,7 +177,7 @@ export default function HomePage() {
     // Global costs for reference (all non-expired contracts)
     const globalActive = useMemo(() => {
         if (!contracts) return [];
-        return contracts.filter((c) => c.status !== ContractStatusExpired);
+        return contracts.filter((c) => c.status !== ContractStatusExpired && c.kind === EntryKindExpense);
     }, [contracts]);
 
     const global = useMemo(() => computeCosts(globalActive, mainCurrency), [globalActive, mainCurrency]);
@@ -188,6 +211,7 @@ export default function HomePage() {
     }, [sortKey]);
 
     const clearFilters = () => {
+        setFilterKind("all");
         setFilterStatus("all");
         setFilterCategory("all");
         setFilterHolder("all");
@@ -215,14 +239,15 @@ export default function HomePage() {
 
     return (
         <div className="flex flex-col gap-6">
+            <Heading>{t('nav.entries')}</Heading>
 
             {/* Cost Summary */}
             {(filtered.mainTotal > 0 || Object.keys(filtered.otherCurrencies).length > 0) && (
                 <div className="flex flex-col gap-4">
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
-                            <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Monthly</div>
-                            <div className="text-2xl font-semibold text-zinc-950 dark:text-white mt-1">
+                        <div className={card}>
+                            <div className={statLabel}>{t('entries.monthly')}</div>
+                            <div className={statValue}>
                                 {formatCurrency(filtered.mainTotal, mainCurrency)}
                             </div>
                             {Object.entries(filtered.otherCurrencies).map(([cur, amount]) => (
@@ -232,13 +257,13 @@ export default function HomePage() {
                             ))}
                             {hasActiveFilters && global.mainTotal !== filtered.mainTotal && (
                                 <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-2">
-                                    of {formatCurrency(global.mainTotal, mainCurrency)} total
+                                    {t('entries.ofTotal', {amount: formatCurrency(global.mainTotal, mainCurrency)})}
                                 </div>
                             )}
                         </div>
-                        <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
-                            <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Yearly</div>
-                            <div className="text-2xl font-semibold text-zinc-950 dark:text-white mt-1">
+                        <div className={card}>
+                            <div className={statLabel}>{t('entries.yearly')}</div>
+                            <div className={statValue}>
                                 {formatCurrency(filtered.mainTotal * 12, mainCurrency)}
                             </div>
                             {Object.entries(filtered.otherCurrencies).map(([cur, amount]) => (
@@ -248,7 +273,7 @@ export default function HomePage() {
                             ))}
                             {hasActiveFilters && global.mainTotal !== filtered.mainTotal && (
                                 <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-2">
-                                    of {formatCurrency(global.mainTotal * 12, mainCurrency)} total
+                                    {t('entries.ofTotal', {amount: formatCurrency(global.mainTotal * 12, mainCurrency)})}
                                 </div>
                             )}
                         </div>
@@ -258,8 +283,8 @@ export default function HomePage() {
                     {(filtered.categorySorted.length > 1 || upcomingBilling.length > 0) && (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                             {filtered.categorySorted.length > 1 && (
-                                <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
-                                    <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-3">By Category</div>
+                                <div className={card}>
+                                    <div className={cardTitle + " mb-3"}>{t('entries.byCategory')}</div>
                                     <div className={classNames("flex flex-col gap-2", filtered.categorySorted.length > 4 ? "max-h-40 overflow-y-auto overflow-x-hidden" : "")}>
                                         {filtered.categorySorted.map(([category, amount]) => {
                                             const percentage = filtered.mainTotal > 0 ? (amount / filtered.mainTotal) * 100 : 0;
@@ -268,8 +293,8 @@ export default function HomePage() {
                                                     <span className="text-sm text-zinc-950 dark:text-white w-28 sm:w-40 truncate">{category}</span>
                                                     <div className="hidden sm:block flex-1 h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
                                                         <div
-                                                            className="h-full rounded-full bg-zinc-400 dark:bg-zinc-500 transition-all"
-                                                            style={{width: `${percentage}%`}}
+                                                            className="h-full rounded-full transition-all"
+                                                            style={{width: `${percentage}%`, background: "var(--chart-series-1)"}}
                                                         />
                                                     </div>
                                                     <span className="text-sm tabular-nums text-zinc-500 dark:text-zinc-400 w-24 text-right">
@@ -282,14 +307,13 @@ export default function HomePage() {
                                 </div>
                             )}
                             {upcomingBilling.length > 0 && (
-                                <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
-                                    <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-3">Next Billing</div>
+                                <div className={card}>
+                                    <div className={cardTitle + " mb-3"}>{t('entries.nextBilling')}</div>
                                     <div className={classNames("flex flex-col gap-2", upcomingBilling.length > 4 ? "max-h-40 overflow-y-auto overflow-x-hidden" : "")}>
                                         {upcomingBilling.map((c) => (
                                             <NavLink key={c.id} to={`/contracts/${c.id}`}
                                                      className="flex items-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded -mx-1 px-1 py-0.5 transition-colors">
-                                                <Avatar square className={classNames("size-6", c.icon_source ? '' : 'dark:invert')}
-                                                        src={c.icon_source || image}/>
+                                                <EntryIcon name={c.name} icon={c.icon_source} className="size-6"/>
                                                 <span className="text-sm text-zinc-950 dark:text-white truncate grow">{c.name}</span>
                                                 <span className="text-xs tabular-nums text-zinc-400 dark:text-zinc-500 shrink-0">
                                                     {dayjs(c.next_billing_date).format('DD.MM.')}
@@ -309,8 +333,8 @@ export default function HomePage() {
 
                     {/* Expiring Soon */}
                     {expiringSoon.length > 0 && (
-                        <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
-                            <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-3">Expiring Soon</div>
+                        <div className={card}>
+                            <div className={cardTitle + " mb-3"}>{t('entries.expiringSoon')}</div>
                             <div className="flex flex-col gap-2">
                                 {expiringSoon.map((c) => {
                                     const daysLeft = dayjs(c.end_date).diff(dayjs(), 'day');
@@ -318,11 +342,10 @@ export default function HomePage() {
                                     return (
                                         <NavLink key={c.id} to={`/contracts/${c.id}`}
                                                  className="flex items-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded -mx-1 px-1 py-0.5 transition-colors">
-                                            <Avatar square className={classNames("size-6", c.icon_source ? '' : 'dark:invert')}
-                                                    src={c.icon_source || image}/>
+                                            <EntryIcon name={c.name} icon={c.icon_source} className="size-6"/>
                                             <span className="text-sm text-zinc-950 dark:text-white truncate grow">{c.name}</span>
                                             <span className={classNames("text-xs tabular-nums shrink-0", urgency)}>
-                                                {daysLeft}d left
+                                                {t('entries.daysLeft', {count: daysLeft})}
                                             </span>
                                             <span className="text-xs tabular-nums text-zinc-400 dark:text-zinc-500 shrink-0">
                                                 {dayjs(c.end_date).format('DD.MM.YY')}
@@ -345,13 +368,13 @@ export default function HomePage() {
                             <Input
                                 type="search"
                                 name="term"
-                                placeholder="Search"
+                                placeholder={t('common.search')}
                                 onChange={(e) => setSearch(e.target.value)}
                             />
                         </InputGroup>
                     </div>
                     {/* Mobile only: Add button next to search */}
-                    <Button className="hover:cursor-pointer sm:hidden" to="/contracts/add">
+                    <Button className="hover:cursor-pointer sm:hidden" onClick={() => setShowQuickEntry(true)}>
                         <PlusIcon/>
                     </Button>
                 </div>
@@ -395,9 +418,9 @@ export default function HomePage() {
                         )}
                     </div>
                     <span className="hidden sm:inline-flex ml-auto">
-                        <Button className="hover:cursor-pointer" to="/contracts/add">
+                        <Button className="hover:cursor-pointer" onClick={() => setShowQuickEntry(true)}>
                             <PlusIcon/>
-                            <span className="hidden lg:block">Add Contract</span>
+                            <span className="hidden lg:block">{t('entries.addEntry')}</span>
                         </Button>
                     </span>
                 </div>
@@ -408,22 +431,30 @@ export default function HomePage() {
                 <div className="flex flex-wrap items-center gap-2 -mt-3 px-1">
                     <Select
                         className="w-full sm:w-auto text-sm !py-1"
+                        value={filterKind}
+                        onChange={(e) => setFilterKind(e.target.value)}
+                    >
+                        <option value="all">{t('entries.allTypes')}</option>
+                        {entryKinds().map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
+                    </Select>
+                    <Select
+                        className="w-full sm:w-auto text-sm !py-1"
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
                     >
-                        <option value="all">All Status</option>
-                        <option value={ContractStatusActive}>Active</option>
-                        <option value={ContractStatusCancelled}>Cancelled</option>
-                        <option value={ContractStatusExpired}>Expired</option>
+                        <option value="all">{t('entries.allStatus')}</option>
+                        <option value={ContractStatusActive}>{t('status.active')}</option>
+                        <option value={ContractStatusCancelled}>{t('status.cancelled')}</option>
+                        <option value={ContractStatusExpired}>{t('status.expired')}</option>
                     </Select>
                     <Select
                         className="w-full sm:w-auto text-sm !py-1"
                         value={filterCategory}
                         onChange={(e) => setFilterCategory(e.target.value)}
                     >
-                        <option value="all">All Categories</option>
+                        <option value="all">{t('entries.allCategories')}</option>
                         {categories.map((cat) => (
-                            <option key={cat} value={cat}>{cat}</option>
+                            <option key={cat} value={cat}>{categoryLabelByName(cat, allCategories)}</option>
                         ))}
                     </Select>
                     <Select
@@ -431,7 +462,7 @@ export default function HomePage() {
                         value={filterHolder}
                         onChange={(e) => setFilterHolder(e.target.value)}
                     >
-                        <option value="all">All Holders</option>
+                        <option value="all">{t('entries.allHolders')}</option>
                         {holders?.map((h) => (
                             <option key={h.name} value={h.name}>{h.name}</option>
                         ))}
@@ -441,9 +472,9 @@ export default function HomePage() {
                         value={filterVisibility}
                         onChange={(e) => setFilterVisibility(e.target.value)}
                     >
-                        <option value="all">All Contracts</option>
-                        <option value="shared">Shared</option>
-                        <option value="mine">My Personal</option>
+                        <option value="all">{t('entries.allEntries')}</option>
+                        <option value="shared">{t('entries.sharedOnly')}</option>
+                        <option value="mine">{t('entries.myPersonal')}</option>
                     </Select>
                     {hasActiveFilters && (
                         <button
@@ -451,7 +482,7 @@ export default function HomePage() {
                             className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
                         >
                             <XMarkIcon className="size-3"/>
-                            Clear
+                            {t('common.clear')}
                         </button>
                     )}
                 </div>
@@ -460,7 +491,7 @@ export default function HomePage() {
             {/* List Header: Count + Sort */}
             <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-2 -mb-2">
                 <span className="text-xs text-zinc-400 dark:text-zinc-500">
-                    {filteredContracts.length} {filteredContracts.length === 1 ? 'contract' : 'contracts'}
+                    {t('entries.count', {count: filteredContracts.length})}
                 </span>
 
                 {/* Mobile sort */}
@@ -474,25 +505,25 @@ export default function HomePage() {
                         }}
                         className="text-xs bg-transparent text-zinc-500 dark:text-zinc-400 border-none pr-6 py-0 focus:ring-0"
                     >
-                        <option value="name:asc">Name A-Z</option>
-                        <option value="name:desc">Name Z-A</option>
-                        <option value="company:asc">Company A-Z</option>
-                        <option value="company:desc">Company Z-A</option>
-                        <option value="costs:desc">Costs high-low</option>
-                        <option value="costs:asc">Costs low-high</option>
-                        <option value="next_billing_date:asc">Billing soonest</option>
-                        <option value="next_billing_date:desc">Billing latest</option>
-                        <option value="status:asc">Status</option>
+                        <option value="name:asc">{t('entries.sort.nameAsc')}</option>
+                        <option value="name:desc">{t('entries.sort.nameDesc')}</option>
+                        <option value="company:asc">{t('entries.sort.companyAsc')}</option>
+                        <option value="company:desc">{t('entries.sort.companyDesc')}</option>
+                        <option value="costs:desc">{t('entries.sort.costsDesc')}</option>
+                        <option value="costs:asc">{t('entries.sort.costsAsc')}</option>
+                        <option value="next_billing_date:asc">{t('entries.sort.billingAsc')}</option>
+                        <option value="next_billing_date:desc">{t('entries.sort.billingDesc')}</option>
+                        <option value="status:asc">{t('entries.sort.statusAsc')}</option>
                     </select>
                 </div>
 
                 {/* Desktop sort */}
                 <div className="hidden lg:flex items-center gap-0.5">
-                    <SortButton field="name" label="Name"/>
-                    <SortButton field="company" label="Company"/>
-                    <SortButton field="costs" label="Costs"/>
-                    <SortButton field="next_billing_date" label="Billing"/>
-                    <SortButton field="status" label="Status"/>
+                    <SortButton field="name" label={t('entries.sort.name')}/>
+                    <SortButton field="company" label={t('entries.sort.company')}/>
+                    <SortButton field="costs" label={t('entries.sort.costs')}/>
+                    <SortButton field="next_billing_date" label={t('entries.sort.billing')}/>
+                    <SortButton field="status" label={t('entries.sort.status')}/>
                 </div>
             </div>
 
@@ -504,38 +535,44 @@ export default function HomePage() {
                             to={"/contracts/" + contract.id}
                             className="p-2 py-3 sm:py-2 flex gap-2 items-center border-b border-zinc-200 dark:border-zinc-800 hover:cursor-pointer hover:bg-zinc-950/5 dark:hover:bg-white/5">
 
-                            <Avatar
-                                square={true}
-                                className={classNames("w-10 h-10 shrink-0", contract?.icon_source ? '' : 'dark:invert')}
-                                src={contract?.icon_source || image}/>
+                            <EntryIcon name={contract.name} icon={contract.icon_source} className="size-10"/>
 
                             <div className="flex flex-col grow min-w-0">
                                 <div className="flex items-center gap-1.5">
                                     <span className="truncate text-base/6 sm:text-sm/6 font-semibold text-zinc-950 dark:text-white">
                                         {contract.name}
                                     </span>
-                                    <span className="hidden sm:inline-flex">
-                                        <Badge color={statusColor(contract.status)} className="shrink-0 text-xs">
-                                            {contract.status}
-                                        </Badge>
-                                    </span>
+                                    {contract.status !== ContractStatusActive && (
+                                        <span className="hidden sm:inline-flex">
+                                            <Badge color={statusColor(contract.status)} className="shrink-0 text-xs">
+                                                {t(`status.${contract.status}` as 'status.active')}
+                                            </Badge>
+                                        </span>
+                                    )}
                                     {contract.owner_id && (
-                                        <LockClosedIcon className="size-3 shrink-0 text-zinc-400 dark:text-zinc-500" title="Personal"/>
+                                        <LockClosedIcon className="size-3 shrink-0 text-zinc-400 dark:text-zinc-500" title={t('entries.personal')}/>
                                     )}
                                 </div>
                                 <div className="text-xs sm:text-sm/6 text-zinc-500 dark:text-zinc-400 truncate">
-                                    {[contract.company, contract.contract_holder].filter(Boolean).join(' · ')}
+                                    {[
+                                        contract.company,
+                                        accountName(contract.account_id, accounts),
+                                        contract.kind === EntryKindExpense && contract.household_share < 1
+                                            ? t('entries.householdPercent', {percent: (Math.round(contract.household_share * 1000) / 10).toLocaleString(i18n.language)}) : undefined,
+                                    ].filter(Boolean).join(' · ')}
                                 </div>
                                 {/* Mobile: status + costs under subtitle */}
                                 <div className="flex items-center gap-1.5 mt-0.5 sm:hidden">
-                                    <Badge color={statusColor(contract.status)} className="text-xs">
-                                        {contract.status}
-                                    </Badge>
+                                    {contract.status !== ContractStatusActive && (
+                                        <Badge color={statusColor(contract.status)} className="text-xs">
+                                            {t(`status.${contract.status}` as 'status.active')}
+                                        </Badge>
+                                    )}
                                     {contract.costs && (
                                         <span className="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
                                             {formatCurrency(contract.costs, contract.currency)}
                                             {contract.billing_period ? ` ${billingPeriodShorthand(contract.billing_period)}` : ''}
-                                            {contract.split_between > 1 ? ` ÷${contract.split_between}` : ''}
+
                                         </span>
                                     )}
                                 </div>
@@ -544,8 +581,8 @@ export default function HomePage() {
                             {/* Desktop: costs badge */}
                             {contract.costs &&
                                 <span className="hidden sm:inline-flex">
-                                    <Badge className="shrink-0">
-                                        {formatCurrency(contract.costs, contract.currency) + (contract.billing_period ? ` ${billingPeriodShorthand(contract.billing_period)}` : '') + (contract.split_between > 1 ? ` ÷${contract.split_between}` : '')}
+                                    <Badge className="shrink-0" color={contract.kind === EntryKindIncome ? "green" : "zinc"}>
+                                        {formatCurrency(contract.costs, contract.currency) + (contract.billing_period ? ` ${billingPeriodShorthand(contract.billing_period)}` : '')}
                                     </Badge>
                                 </span>
                             }
@@ -557,11 +594,18 @@ export default function HomePage() {
 
             {filteredContracts.length === 0 && contracts?.length > 0 && (
                 <div className="text-center text-sm text-zinc-500 dark:text-zinc-400 py-8">
-                    No contracts match your filters.
+                    {t('entries.noMatch')}
                 </div>
             )}
 
             <ImportDialog isOpen={showImport} onClose={() => setShowImport(false)}/>
+            <QuickEntryDialog
+                isOpen={showQuickEntry}
+                onClose={() => setShowQuickEntry(false)}
+                persons={persons}
+                accounts={accounts}
+                categories={allCategories}
+            />
         </div>
     )
 }

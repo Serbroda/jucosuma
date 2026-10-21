@@ -10,12 +10,8 @@ import {Dialog, DialogActions, DialogBody, DialogTitle} from "../catalyst/dialog
 import {MagnifyingGlassIcon} from "@heroicons/react/16/solid";
 import {Tab, TabGroup, TabList, TabPanel, TabPanels} from "@headlessui/react";
 import {fileToBase64} from "../../utils/data.utils.ts";
+import {useTranslation} from "react-i18next";
 
-const tabs = [
-    {label: 'Recent'},
-    {label: 'Search'},
-    {label: 'Upload'},
-];
 
 export interface ChooseIconDialogProps {
     isOpen: boolean;
@@ -24,6 +20,8 @@ export interface ChooseIconDialogProps {
 }
 
 const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}) => {
+    const {t} = useTranslation();
+    const tabs = [t('icons.recent'), t('icons.search'), t('icons.upload')];
     const [term, setTerm] = useState("");
     const [icons, setIcons] = useState<any[]>([]);
     const [recentIcons, setRecentIcons] = useState<string[]>([]);
@@ -92,10 +90,10 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
                 onClick={() => onSubmit(selectedIcon)}
                 className="hover:cursor-pointer"
             >
-                Apply
+                {t('common.apply')}
             </Button>
             <Button plain onClick={onClose} className="hover:cursor-pointer">
-                Cancel
+                {t('common.cancel')}
             </Button>
         </DialogActions>
     );
@@ -104,7 +102,7 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
         <Dialog open={isOpen} onClose={onClose}>
             <TabGroup defaultIndex={0}>
                 <TabList className="flex gap-1 dark:bg-zinc-800 rounded-lg p-1 transition-all">
-                    {tabs.map((t, idx) => (
+                    {tabs.map((label, idx) => (
                         <Tab key={idx} as={Fragment}>
                             {({selected}) => (
                                 <button
@@ -115,7 +113,7 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
                                             : "hover:bg-zinc-100 dark:hover:dark:bg-zinc-900"
                                     )}
                                 >
-                                    {t.label}
+                                    {label}
                                 </button>
                             )}
                         </Tab>
@@ -124,21 +122,21 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
 
                 <TabPanels>
                     <TabPanel className="focus:outline-none mt-4">
-                        <DialogTitle>Recent Icons</DialogTitle>
+                        <DialogTitle>{t('icons.recentTitle')}</DialogTitle>
                         <DialogBody>
                             {recentIcons.length > 0
                                 ? iconGrid(recentIcons)
-                                : <p className="text-sm text-zinc-500 dark:text-zinc-400">No icons used yet.</p>
+                                : <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('icons.noneUsed')}</p>
                             }
                         </DialogBody>
                         {actions}
                     </TabPanel>
 
                     <TabPanel className="focus:outline-none mt-4">
-                        <DialogTitle>Search Icon</DialogTitle>
+                        <DialogTitle>{t('icons.searchTitle')}</DialogTitle>
                         <DialogBody>
                             <Field>
-                                <Label>Search</Label>
+                                <Label>{t('common.search')}</Label>
                                 <InputGroup>
                                     <MagnifyingGlassIcon/>
                                     <Input
@@ -155,10 +153,10 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
                     </TabPanel>
 
                     <TabPanel className="focus:outline-none mt-4">
-                        <DialogTitle>Upload Icon</DialogTitle>
+                        <DialogTitle>{t('icons.uploadTitle')}</DialogTitle>
                         <DialogBody>
                             <Field>
-                                <Label>Icon</Label>
+                                <Label>{t('icons.icon')}</Label>
                                 <Input
                                     type="file"
                                     name="file"

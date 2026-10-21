@@ -5,6 +5,7 @@ import {Input} from "./catalyst/input.tsx";
 import {apiBasePath} from "../config.ts";
 import {apiFetch} from "../lib/fetch.ts";
 import {useNavigate} from "react-router";
+import {useTranslation} from "react-i18next";
 
 type ImportRow = {
     name: string;
@@ -22,6 +23,7 @@ type ImportResult = {
 
 export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClose: () => void }) {
     const navigate = useNavigate();
+    const {t} = useTranslation();
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<ImportResult | null>(null);
     const [result, setResult] = useState<ImportResult | null>(null);
@@ -42,7 +44,7 @@ export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClo
         reset();
         onClose();
         if (didImport) {
-            navigate('/');
+            navigate('/entries');
         }
     };
 
@@ -68,8 +70,8 @@ export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClo
                 });
             }
             if (!res.ok) {
-                const err = await res.json().catch(() => ({message: 'Preview failed'}));
-                throw new Error(err.message || 'Preview failed');
+                const err = await res.json().catch(() => ({message: t('import.previewFailed')}));
+                throw new Error(err.message || t('import.previewFailed'));
             }
             setPreview(await res.json());
         } catch (err: any) {
@@ -101,8 +103,8 @@ export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClo
                 });
             }
             if (!res.ok) {
-                const err = await res.json().catch(() => ({message: 'Import failed'}));
-                throw new Error(err.message || 'Import failed');
+                const err = await res.json().catch(() => ({message: t('import.importFailed')}));
+                throw new Error(err.message || t('import.importFailed'));
             }
             setResult(await res.json());
             setPreview(null);
@@ -117,7 +119,7 @@ export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClo
 
     return (
         <Dialog open={isOpen} onClose={handleClose}>
-            <DialogTitle>Import Contracts</DialogTitle>
+            <DialogTitle>{t('import.title')}</DialogTitle>
             <DialogBody>
                 {error && (
                     <div className="rounded-lg border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-3 text-sm text-red-700 dark:text-red-400 mb-4">
@@ -128,25 +130,25 @@ export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClo
                 {result ? (
                     <div className="text-sm">
                         <div className="text-green-600 dark:text-green-400 font-medium">
-                            {result.imported} contract{result.imported !== 1 ? 's' : ''} imported successfully.
+                            {t('import.imported', {count: result.imported ?? 0})}
                         </div>
                         {result.errors != null && result.errors > 0 && (
-                            <div className="text-red-500 mt-1">{result.errors} row{result.errors !== 1 ? 's' : ''} had errors.</div>
+                            <div className="text-red-500 mt-1">{t('import.rowErrors', {count: result.errors})}</div>
                         )}
                     </div>
                 ) : preview && rows.length > 0 ? (
                     <div>
                         <div className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
-                            {rows.length} row{rows.length !== 1 ? 's' : ''} found. Review before importing:
+                            {t('import.rowsFound', {count: rows.length})}
                         </div>
                         <div className="max-h-64 overflow-y-auto border border-zinc-200 dark:border-zinc-800 rounded-lg">
                             <table className="w-full text-xs">
                                 <thead className="bg-zinc-50 dark:bg-zinc-800/50 sticky top-0">
                                     <tr>
-                                        <th className="text-left p-2">Name</th>
-                                        <th className="text-left p-2 hidden sm:table-cell">Company</th>
-                                        <th className="text-left p-2 hidden sm:table-cell">Category</th>
-                                        <th className="text-left p-2">Status</th>
+                                        <th className="text-left p-2">{t('common.name')}</th>
+                                        <th className="text-left p-2 hidden sm:table-cell">{t('entryForm.company')}</th>
+                                        <th className="text-left p-2 hidden sm:table-cell">{t('entry.category')}</th>
+                                        <th className="text-left p-2">{t('import.status')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -170,7 +172,7 @@ export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClo
                 ) : (
                     <div>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
-                            Upload a CSV or JSON file.
+                            {t('import.upload')}
                         </p>
                         <Input
                             type="file"
@@ -182,19 +184,19 @@ export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClo
             </DialogBody>
             <DialogActions>
                 {result ? (
-                    <Button onClick={handleClose} className="hover:cursor-pointer">Close</Button>
+                    <Button onClick={handleClose} className="hover:cursor-pointer">{t('common.close')}</Button>
                 ) : preview ? (
                     <>
-                        <Button outline onClick={() => setPreview(null)} className="hover:cursor-pointer">Back</Button>
+                        <Button outline onClick={() => setPreview(null)} className="hover:cursor-pointer">{t('common.back')}</Button>
                         <Button onClick={handleImport} disabled={loading} className="hover:cursor-pointer">
-                            {loading ? 'Importing...' : 'Import'}
+                            {loading ? t('import.importing') : t('import.import')}
                         </Button>
                     </>
                 ) : (
                     <>
-                        <Button outline onClick={handleClose} className="hover:cursor-pointer">Cancel</Button>
+                        <Button outline onClick={handleClose} className="hover:cursor-pointer">{t('common.cancel')}</Button>
                         <Button onClick={handlePreview} disabled={loading || !file} className="hover:cursor-pointer">
-                            {loading ? 'Loading...' : 'Preview'}
+                            {loading ? t('common.loading') : t('import.preview')}
                         </Button>
                     </>
                 )}

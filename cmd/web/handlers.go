@@ -21,20 +21,15 @@ import (
 func (app *application) getContracts(ctx echo.Context) error {
 	user := ctx.Get("user").(sqlc.User)
 
-	var contracts []sqlc.Contract
-	var err error
-	if user.Role == "admin" {
-		contracts, err = app.queries.FindAllContracts(ctx.Request().Context())
-	} else {
-		contracts, err = app.queries.FindContractsForUser(ctx.Request().Context(), &user.ID)
-	}
+	contracts, err := app.queries.FindContractsForUser(ctx.Request().Context(), &user.ID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	contractDtos := utils.MapSlice(contracts, func(item sqlc.Contract) dtos.ContractDto {
-		return dtos.MapContractToContractDto(item)
-	})
+	contractDtos, err := app.mapContracts(ctx.Request().Context(), contracts)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
 
 	return ctx.JSON(http.StatusOK, contractDtos)
 }
@@ -52,12 +47,14 @@ func (app *application) getContractById(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
-	// Check access: admins see everything, users see shared + own
-	if user.Role != "admin" && contract.OwnerID != nil && *contract.OwnerID != user.ID {
-		return echo.NewHTTPError(http.StatusForbidden, "access denied")
+	if !canAccess(user, contract) {
+		return echo.NewHTTPError(http.StatusNotFound, "contract not found")
 	}
 
-	contractDto := dtos.MapContractToContractDto(contract)
+	contractDto, err := app.mapContract(ctx.Request().Context(), contract)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
 	documents, err := app.queries.FindDocumentsByContractId(ctx.Request().Context(), contract.ID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -72,7 +69,11 @@ func (app *application) createContract(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	return c.JSON(http.StatusOK, dtos.MapContractToContractDto(*contract))
+	dto, err := app.mapContract(c.Request().Context(), *contract)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(http.StatusOK, dto)
 }
 
 func (app *application) updateContract(c echo.Context) error {
@@ -85,7 +86,11 @@ func (app *application) updateContract(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	return c.JSON(http.StatusOK, dtos.MapContractToContractDto(*contract))
+	dto, err := app.mapContract(c.Request().Context(), *contract)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(http.StatusOK, dto)
 }
 
 // upsertContract übernimmt sowohl Insert als auch Update,
@@ -109,6 +114,12 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 	defer tx.Rollback()
 
 	qtx := app.queries.WithTx(tx)
+
+	kind := normalizeKind(payload.Kind)
+	targetAccountID := payload.TargetAccountID
+	if payload.Kind != dtos.EntryKindTransfer {
+		targetAccountID = nil
+	}
 
 	// 2) DB-Operation: Insert oder Update
 	var contract *sqlc.Contract
@@ -134,6 +145,9 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			Notes:           payload.Notes,
 			OwnerID:         payload.OwnerID,
 			SplitBetween:    maxInt64(payload.SplitBetween, 1),
+			Kind:            kind,
+			AccountID:       payload.AccountID,
+			TargetAccountID: targetAccountID,
 		})
 		if err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -146,8 +160,8 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			return nil, echo.NewHTTPError(http.StatusNotFound, "contract not found")
 		}
 		user := c.Get("user").(sqlc.User)
-		if user.Role != "admin" && existing.OwnerID != nil && *existing.OwnerID != user.ID {
-			return nil, echo.NewHTTPError(http.StatusForbidden, "access denied")
+		if !canAccess(user, existing) {
+			return nil, echo.NewHTTPError(http.StatusNotFound, "contract not found")
 		}
 
 		err = qtx.UpdateContractById(ctx, sqlc.UpdateContractByIdParams{
@@ -172,6 +186,9 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			Notes:           payload.Notes,
 			OwnerID:         payload.OwnerID,
 			SplitBetween:    maxInt64(payload.SplitBetween, 1),
+			Kind:            kind,
+			AccountID:       payload.AccountID,
+			TargetAccountID: targetAccountID,
 		})
 		if err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -181,6 +198,19 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 		contract = &updated
+	}
+
+	// Anteile für Ausgaben (wer trägt) und Einnahmen (wessen Einnahme) speichern
+	persons, err := app.personsById(ctx, qtx)
+	if err != nil {
+		return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	var shares []dtos.ShareDto
+	if payload.Kind != dtos.EntryKindTransfer {
+		shares = payload.Shares
+	}
+	if err := replaceContractShares(ctx, qtx, contract.ID, shares, persons); err != nil {
+		return nil, echo.NewHTTPError(http.StatusInternalServerError, "cannot save shares: "+err.Error())
 	}
 
 	// 3) Optional: Datei-Upload verarbeiten
@@ -234,7 +264,8 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 }
 
 func (app *application) exportContractsCSV(ctx echo.Context) error {
-	contracts, err := app.queries.FindAllContracts(ctx.Request().Context())
+	user := ctx.Get("user").(sqlc.User)
+	contracts, err := app.queries.FindContractsForUser(ctx.Request().Context(), &user.ID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -271,6 +302,26 @@ func (app *application) exportContractsCSV(ctx echo.Context) error {
 		)))
 	}
 
+	return nil
+}
+
+// canAccess reports whether a user may see a contract: shared contracts and the user's own
+// private ones. Admins have no exception — private entries stay private.
+func canAccess(user sqlc.User, contract sqlc.Contract) bool {
+	return contract.OwnerID == nil || *contract.OwnerID == user.ID
+}
+
+// checkDocumentAccess ensures the document belongs to a contract the current user may access.
+func (app *application) checkDocumentAccess(ctx echo.Context, documentID int64) error {
+	user := ctx.Get("user").(sqlc.User)
+	doc, err := app.queries.FindDocumentById(ctx.Request().Context(), documentID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "document not found")
+	}
+	contract, err := app.queries.FindContractById(ctx.Request().Context(), doc.ContractID)
+	if err != nil || !canAccess(user, contract) {
+		return echo.NewHTTPError(http.StatusNotFound, "document not found")
+	}
 	return nil
 }
 
@@ -325,8 +376,8 @@ func (app *application) deleteContract(ctx echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "contract not found")
 	}
-	if user.Role != "admin" && contract.OwnerID != nil && *contract.OwnerID != user.ID {
-		return echo.NewHTTPError(http.StatusForbidden, "access denied")
+	if !canAccess(user, contract) {
+		return echo.NewHTTPError(http.StatusNotFound, "contract not found")
 	}
 
 	err = app.queries.DeleteContractSoft(ctx.Request().Context(), id)
@@ -341,6 +392,9 @@ func (app *application) deleteDocument(ctx echo.Context) error {
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	if err := app.checkDocumentAccess(ctx, id); err != nil {
+		return err
 	}
 	err = app.queries.DeleteDocumentSoft(ctx.Request().Context(), id)
 	if err != nil {
@@ -360,6 +414,9 @@ func (app *application) updateDocument(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
+	if err := app.checkDocumentAccess(ctx, id); err != nil {
+		return err
+	}
 	doc, err := app.queries.FindDocumentById(ctx.Request().Context(), id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -377,7 +434,8 @@ func (app *application) updateDocument(ctx echo.Context) error {
 }
 
 func (app *application) getUsedIcons(ctx echo.Context) error {
-	icons, err := app.queries.FindUsedIcons(ctx.Request().Context())
+	user := ctx.Get("user").(sqlc.User)
+	icons, err := app.queries.FindUsedIcons(ctx.Request().Context(), &user.ID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -392,7 +450,8 @@ func (app *application) getUsedIcons(ctx echo.Context) error {
 }
 
 func (app *application) getCompanies(ctx echo.Context) error {
-	entities, err := app.queries.FindCompanies(ctx.Request().Context())
+	user := ctx.Get("user").(sqlc.User)
+	entities, err := app.queries.FindCompanies(ctx.Request().Context(), &user.ID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -401,7 +460,8 @@ func (app *application) getCompanies(ctx echo.Context) error {
 }
 
 func (app *application) getContractHolders(ctx echo.Context) error {
-	entities, err := app.queries.FindContractHolders(ctx.Request().Context())
+	user := ctx.Get("user").(sqlc.User)
+	entities, err := app.queries.FindContractHolders(ctx.Request().Context(), &user.ID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}

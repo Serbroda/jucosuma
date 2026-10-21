@@ -1,10 +1,8 @@
 import {
-    BillingPeriodAnnually,
-    BillingPeriodEveryTwoYears,
     BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime,
-    BillingPeriodQuarterly, BillingPeriodSemiannual,
-    BillingPeriodWeekly,
-    type CategoryDto, type CompanyDto, type ContractDto, type ContractHolderDto, type DocumentDto
+    EntryKindExpense, EntryKindIncome, EntryKindTransfer,
+    type AccountDto, type CategoryDto, type CompanyDto, type ContractDto, type ContractHolderDto, type DocumentDto,
+    type PersonDto, type ShareDto
 } from "../gen/types.gen.ts";
 import {Avatar} from "./catalyst/avatar.tsx";
 import {Field, Label} from "./catalyst/fieldset.tsx";
@@ -25,21 +23,28 @@ import {Textarea} from "./catalyst/textarea.tsx";
 import dayjs from "../lib/dayjs";
 import ConfirmDialog, {type ConfirmDialogProps} from "./dialogs/ConfirmDialog.tsx";
 import ChooseIconDialog from "./dialogs/ChooseIconDialog.tsx";
-import {CheckIcon, DocumentIcon, PencilIcon, XMarkIcon} from "@heroicons/react/16/solid";
+import {CheckIcon, ChevronRightIcon, DocumentIcon, PencilIcon, XMarkIcon} from "@heroicons/react/16/solid";
+import SharesEditor from "./SharesEditor.tsx";
+import {categoryLabel, defaultShares, entryKinds, entryPeriods} from "../utils/household.utils.ts";
+import {billingPeriodLabel} from "../utils/data.utils.ts";
 import {formatDecimal} from "../utils/number.utils.ts";
 import {Combobox, ComboboxLabel, ComboboxOption} from "./catalyst/combobox.tsx";
+import {useTranslation} from "react-i18next";
 
 export interface ContractFormProps {
     contract: Partial<ContractDto>;
     holders: ContractHolderDto[];
     companies: CompanyDto[];
     categories: CategoryDto[];
+    persons: PersonDto[];
+    accounts: AccountDto[];
     mode?: 'add' | 'edit';
     error?: string;
 }
 
-export default function ContractForm({contract, holders, companies, categories, mode = 'add', error}: ContractFormProps) {
+export default function ContractForm({contract, holders, companies, categories, persons, accounts, mode = 'add', error}: ContractFormProps) {
     const navigation = useNavigate();
+    const {t} = useTranslation();
     const {state} = useNavigation();
     const {user: currentUser} = useAuth();
     const isEdit = mode === 'edit';
@@ -68,9 +73,18 @@ export default function ContractForm({contract, holders, companies, categories, 
     });
     const [holdersWithInput, setHoldersWithInput] = useState<ContractHolderDto[]>(holders);
     const [companiesWithInput, setCompaniesWithInput] = useState<CompanyDto[]>(companies);
-    const [billingPeriod, setBillingPeriod] = useState(contract.billing_period ?? "none");
+    const [billingPeriod, setBillingPeriod] = useState(contract.billing_period ?? BillingPeriodMonthly);
     const [showNextBillingOverride, setShowNextBillingOverride] = useState(false);
+    const [kind, setKind] = useState<string>(contract.kind ?? EntryKindExpense);
+    const [shares, setShares] = useState<ShareDto[]>(
+        contract.shares ?? (isEdit ? [] : defaultShares(persons)));
+    const [showDetails, setShowDetails] = useState(Boolean(
+        contract.company || contract.contract_number || contract.customer_number || contract.contract_holder
+        || contract.contact_person || contract.contact_email || contract.contact_phone || contract.notes
+        || contract.documents?.length));
 
+    const isExpense = kind === EntryKindExpense;
+    const isTransfer = kind === EntryKindTransfer;
     const hasBilling = billingPeriod !== BillingPeriodNone;
     const hasRecurringBilling = hasBilling && billingPeriod !== BillingPeriodOneTime;
 
@@ -110,7 +124,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                 method: "DELETE",
             });
             if (res.ok) {
-                navigation("/");
+                navigation("/entries");
             }
         } finally {
             setIsDeleting(false);
@@ -174,7 +188,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                     const name = (formData.get('name') as string)?.trim();
                     if (!name) {
                         e.preventDefault();
-                        setNameError('Name is required.');
+                        setNameError(t('entryForm.nameRequired'));
                         return;
                     }
                     const startDate = (formData.get('start_date') as string)?.trim();
@@ -212,11 +226,30 @@ export default function ContractForm({contract, holders, companies, categories, 
                     />
                 </div>
 
+                <div className="grid grid-cols-3 rounded-lg bg-zinc-100 dark:bg-zinc-800 p-1 text-sm">
+                    {entryKinds().map((k) => (
+                        <button
+                            key={k.value}
+                            type="button"
+                            onClick={() => setKind(k.value)}
+                            className={classNames(
+                                "rounded-md py-1.5 transition-colors hover:cursor-pointer",
+                                kind === k.value
+                                    ? "bg-white dark:bg-zinc-950 shadow-sm font-medium text-zinc-950 dark:text-white"
+                                    : "text-zinc-500 dark:text-zinc-400",
+                            )}
+                        >
+                            {k.label}
+                        </button>
+                    ))}
+                </div>
+                <input type="hidden" name="kind" value={kind}/>
+
                 <Field>
-                    <Label>Name *</Label>
+                    <Label>{t('common.name')} *</Label>
                     <Input
                         name="name"
-                        placeholder="Enter contract name"
+                        placeholder={t('entry.placeholderExpense')}
                         defaultValue={contract.name ?? ""}
                         invalid={!!nameError}
                         onChange={() => nameError && setNameError('')}
@@ -224,8 +257,148 @@ export default function ContractForm({contract, holders, companies, categories, 
                     {nameError && <ErrorMessage>{nameError}</ErrorMessage>}
                 </Field>
 
+                <div className="grid grid-cols-[1fr_5.5rem] sm:grid-cols-[1fr_5.5rem_1fr] gap-2">
+                    <Field>
+                        <Label>{t('entry.amount')}</Label>
+                        <Input
+                            type="text"
+                            inputMode="decimal"
+                            name="costs"
+                            defaultValue={formatDecimal(contract.costs) ?? ""}
+                            pattern="^-?[0-9.]*[0-9]([,.][0-9]{1,2})?$"
+                            placeholder="0,00"
+                        />
+                    </Field>
+                    <Field>
+                        <Label>{t('entry.currency')}</Label>
+                        <Select
+                            name="currency"
+                            defaultValue={contract.currency ?? "EUR"}
+                        >
+                            <option value="EUR">EUR</option>
+                            <option value="USD">USD</option>
+                            <option value="GBP">GBP</option>
+                            <option value="CHF">CHF</option>
+                        </Select>
+                    </Field>
+                    <Field className="col-span-2 sm:col-span-1">
+                        <Label>{t('entry.interval')}</Label>
+                        <Select
+                            name="billing_period"
+                            defaultValue={contract.billing_period ?? BillingPeriodMonthly}
+                            onChange={(e) => setBillingPeriod(e.target.value)}
+                        >
+                            {entryPeriods.map((p) => <option key={p} value={p}>{billingPeriodLabel(p)}</option>)}
+                            <option value={BillingPeriodNone}>{t('periods.noCosts')}</option>
+                        </Select>
+                    </Field>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                    <Field>
+                        <Label>{billingPeriod === BillingPeriodOneTime ? t('entry.date') : t('entry.startDate')} *</Label>
+                        <Input
+                            type="date"
+                            name="start_date"
+                            required
+                            defaultValue={
+                                contract.start_date
+                                    ? dayjs(contract.start_date).format("YYYY-MM-DD")
+                                    : dayjs().format("YYYY-MM-DD")
+                            }
+                        />
+                    </Field>
+                    <Field>
+                        <Label>{t('entry.endDate')}</Label>
+                        <Input
+                            type="date"
+                            name="end_date"
+                            defaultValue={
+                                contract.end_date
+                                    ? dayjs(contract.end_date).format("YYYY-MM-DD")
+                                    : ""
+                            }
+                        />
+                    </Field>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                    <Field>
+                        <Label>{isExpense ? t('entry.paidFrom') : isTransfer ? t('entry.fromAccount') : t('entry.toAccount')}</Label>
+                        <Select name="account_id" defaultValue={contract.account_id ?? ""}>
+                            <option value="">{t('common.noAccount')}</option>
+                            {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                        </Select>
+                    </Field>
+                    {isTransfer ? (
+                        <Field>
+                            <Label>{t('entry.toAccount')}</Label>
+                            <Select name="target_account_id" defaultValue={contract.target_account_id ?? ""}>
+                                <option value="">{t('common.noAccount')}</option>
+                                {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                            </Select>
+                        </Field>
+                    ) : (
+                        <Field>
+                            <Label>{t('entry.category')}</Label>
+                            <Select
+                                name="category"
+                                defaultValue={contract.category ?? "Other"}
+                            >
+                                {categories.map((cat) => (
+                                    <option key={cat.id} value={cat.name}>
+                                        {categoryLabel(cat.name, cat.key)}
+                                    </option>
+                                ))}
+                            </Select>
+                        </Field>
+                    )}
+                </div>
+
+                {!isTransfer && (
+                    <Field>
+                        <Label>{kind === EntryKindIncome ? t('entry.whoseIncome') : t('entry.whoCarries')}</Label>
+                        <div className="mt-2">
+                            <SharesEditor persons={persons} value={shares} onChange={setShares}/>
+                        </div>
+                        <input type="hidden" name="shares" value={JSON.stringify(shares)}/>
+                        {shares.length === 0 && (contract.split_between ?? 1) > 1 && (
+                            <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-2">
+                                {t('entryForm.legacySplit', {count: contract.split_between})}
+                            </p>
+                        )}
+                    </Field>
+                )}
+                <input type="hidden" name="split_between" value={contract.split_between ?? 1}/>
+
                 <Field>
-                    <Label>Company</Label>
+                    <Label>{t('entryForm.visibility')}</Label>
+                    <Select
+                        value={isPersonal ? "personal" : "shared"}
+                        onChange={(e) => setIsPersonal(e.target.value === "personal")}
+                    >
+                        <option value="shared">{t('entryForm.visibilityShared')}</option>
+                        <option value="personal">{t('entryForm.visibilityPersonal')}</option>
+                    </Select>
+                    <Input
+                        type="hidden"
+                        name="owner_id"
+                        value={isPersonal ? String(currentUser?.id ?? "") : ""}
+                    />
+                </Field>
+
+                <button
+                    type="button"
+                    onClick={() => setShowDetails(!showDetails)}
+                    className="flex items-center gap-1 mt-4 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:cursor-pointer"
+                >
+                    <ChevronRightIcon className={classNames("size-4 transition-transform", showDetails ? "rotate-90" : "")}/>
+                    {t('entryForm.detailsToggle')}
+                </button>
+
+                <div className={classNames("grid grid-cols-1 gap-4", showDetails ? "" : "hidden")}>
+                <Field>
+                    <Label>{t('entryForm.company')}</Label>
                     <Combobox
                         name="company"
                         options={companiesWithInput}
@@ -243,66 +416,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                 </Field>
 
                 <Field>
-                    <Label>Category</Label>
-                    <Select
-                        name="category"
-                        defaultValue={contract.category ?? "Other"}
-                    >
-                        {categories.map((cat) => (
-                            <option key={cat.id} value={cat.name}>
-                                {cat.name}
-                            </option>
-                        ))}
-                    </Select>
-                </Field>
-
-                <Field>
-                    <Label>Visibility</Label>
-                    <Select
-                        value={isPersonal ? "personal" : "shared"}
-                        onChange={(e) => setIsPersonal(e.target.value === "personal")}
-                    >
-                        <option value="shared">Shared (Household)</option>
-                        <option value="personal">Personal (Only me)</option>
-                    </Select>
-                    <Input
-                        type="hidden"
-                        name="owner_id"
-                        value={isPersonal ? String(currentUser?.id ?? "") : ""}
-                    />
-                </Field>
-
-                <Divider className="mt-6"/>
-                <Subheading>Details</Subheading>
-                <Field>
-                    <Label>Start Date *</Label>
-                    <Input
-                        type="date"
-                        name="start_date"
-                        required
-                        defaultValue={
-                            contract.start_date
-                                ? dayjs(contract.start_date).format("YYYY-MM-DD")
-                                : dayjs().format("YYYY-MM-DD")
-                        }
-                    />
-                </Field>
-
-                <Field>
-                    <Label>End Date</Label>
-                    <Input
-                        type="date"
-                        name="end_date"
-                        defaultValue={
-                            contract.end_date
-                                ? dayjs(contract.end_date).format("YYYY-MM-DD")
-                                : ""
-                        }
-                    />
-                </Field>
-
-                <Field>
-                    <Label>Contract Number</Label>
+                    <Label>{t('entryForm.contractNumber')}</Label>
                     <Input
                         name="contract_number"
                         defaultValue={contract.contract_number ?? ""}
@@ -310,7 +424,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                 </Field>
 
                 <Field>
-                    <Label>Customer Number</Label>
+                    <Label>{t('entryForm.customerNumber')}</Label>
                     <Input
                         name="customer_number"
                         defaultValue={contract.customer_number ?? ""}
@@ -318,7 +432,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                 </Field>
 
                 <Field>
-                    <Label>Contract Holder</Label>
+                    <Label>{t('entryForm.contractHolder')}</Label>
                     {holders && <Combobox
                         name="contract_holder"
                         options={holdersWithInput}
@@ -335,62 +449,6 @@ export default function ContractForm({contract, holders, companies, categories, 
                     </Combobox>}
                 </Field>
 
-                <Divider className="mt-6"/>
-                <Subheading>Billing</Subheading>
-                <Field>
-                    <Label>Billing Period</Label>
-                    <Select
-                        name="billing_period"
-                        defaultValue={contract.billing_period ?? "none"}
-                        onChange={(e) => setBillingPeriod(e.target.value)}
-                    >
-                        <option value={BillingPeriodNone}>None</option>
-                        <option value={BillingPeriodOneTime}>One Time</option>
-                        <option value={BillingPeriodWeekly}>Weekly</option>
-                        <option value={BillingPeriodMonthly}>Monthly</option>
-                        <option value={BillingPeriodQuarterly}>Quarterly</option>
-                        <option value={BillingPeriodSemiannual}>Semiannually</option>
-                        <option value={BillingPeriodAnnually}>Annually</option>
-                        <option value={BillingPeriodEveryTwoYears}>Every two years</option>
-                    </Select>
-                </Field>
-
-                {hasBilling && (
-                    <div className="grid grid-cols-[1fr_5.5rem_4rem] gap-2">
-                        <Field>
-                            <Label>Costs</Label>
-                            <Input
-                                type="text"
-                                name="costs"
-                                defaultValue={formatDecimal(contract.costs) ?? ""}
-                                pattern="^-?\d+(.\d{1,2})?$"
-                                placeholder="0,00"
-                            />
-                        </Field>
-                        <Field>
-                            <Label>Currency</Label>
-                            <Select
-                                name="currency"
-                                defaultValue={contract.currency ?? "EUR"}
-                            >
-                                <option value="EUR">EUR</option>
-                                <option value="USD">USD</option>
-                                <option value="GBP">GBP</option>
-                                <option value="CHF">CHF</option>
-                            </Select>
-                        </Field>
-                        <Field>
-                            <Label>Split</Label>
-                            <Input
-                                type="number"
-                                name="split_between"
-                                min="1"
-                                defaultValue={contract.split_between ?? 1}
-                            />
-                        </Field>
-                    </div>
-                )}
-
                 {hasRecurringBilling && (
                     <div>
                         {!showNextBillingOverride && !contract.next_billing_date ? (
@@ -399,11 +457,11 @@ export default function ContractForm({contract, holders, companies, categories, 
                                 onClick={() => setShowNextBillingOverride(true)}
                                 className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
                             >
-                                Set next billing date manually
+                                {t('entryForm.setNextBilling')}
                             </button>
                         ) : (
                             <Field>
-                                <Label>Next Billing Date</Label>
+                                <Label>{t('entryForm.nextBillingDate')}</Label>
                                 <Input
                                     type="date"
                                     name="next_billing_date"
@@ -414,7 +472,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                                     }
                                 />
                                 <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
-                                    Leave empty to auto-calculate from start date.
+                                    {t('entryForm.nextBillingHint')}
                                 </p>
                             </Field>
                         )}
@@ -422,30 +480,30 @@ export default function ContractForm({contract, holders, companies, categories, 
                 )}
 
                 <Divider className="mt-6"/>
-                <Subheading>Contact Information</Subheading>
+                <Subheading>{t('entryForm.contactInformation')}</Subheading>
                 <Field>
-                    <Label>Contact Person</Label>
+                    <Label>{t('entryForm.contactPerson')}</Label>
                     <Input
                         name="contact_person"
                         defaultValue={contract.contact_person ?? ""}
                     />
                 </Field>
                 <Field>
-                    <Label>Address</Label>
+                    <Label>{t('entryForm.address')}</Label>
                     <Textarea
                         name="contact_address"
                         defaultValue={contract.contact_address ?? ""}
                     />
                 </Field>
                 <Field>
-                    <Label>Phone</Label>
+                    <Label>{t('entryForm.phone')}</Label>
                     <Input
                         name="contact_phone"
                         defaultValue={contract.contact_phone ?? ""}
                     />
                 </Field>
                 <Field>
-                    <Label>Email</Label>
+                    <Label>{t('entryForm.email')}</Label>
                     <Input
                         name="contact_email"
                         defaultValue={contract.contact_email ?? ""}
@@ -453,9 +511,9 @@ export default function ContractForm({contract, holders, companies, categories, 
                 </Field>
 
                 <Divider className="mt-6"/>
-                <Subheading>Documents & Notes</Subheading>
+                <Subheading>{t('entryForm.documentsAndNotes')}</Subheading>
                 <Field>
-                    <Label>Documents</Label>
+                    <Label>{t('entryForm.documents')}</Label>
                     <Input
                         type="file"
                         name="file"
@@ -511,10 +569,10 @@ export default function ContractForm({contract, holders, companies, categories, 
                                     className="my-1 ml-1 lg:size-6 hover:cursor-pointer"
                                     onClick={() =>
                                         openConfirmDialog({
-                                            title: "Delete Document",
-                                            message: "Are you sure you want to delete this document?",
-                                            submitLabel: "Delete",
-                                            cancelLabel: "Cancel",
+                                            title: t('entryForm.deleteDocumentTitle'),
+                                            message: t('entryForm.deleteDocumentMessage'),
+                                            submitLabel: t('common.delete'),
+                                            cancelLabel: t('common.cancel'),
                                             onSubmit: deleteDocument.bind(null, doc.id),
                                         })
                                     }
@@ -526,12 +584,14 @@ export default function ContractForm({contract, holders, companies, categories, 
                 </div>
 
                 <Field>
-                    <Label>Notes</Label>
+                    <Label>{t('entryForm.notes')}</Label>
                     <Textarea
                         name="notes"
                         defaultValue={contract.notes ?? ""}
                     />
                 </Field>
+
+                </div>
 
                 {/* Actions */}
                 <div className="flex mt-6 gap-4 lg:gap-2 flex-wrap">
@@ -540,16 +600,16 @@ export default function ContractForm({contract, holders, companies, categories, 
                         disabled={isBusy}
                         className="w-full lg:w-auto hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {state === 'submitting' ? 'Saving...' : 'Save'}
+                        {state === 'submitting' ? t('common.saving') : t('common.save')}
                     </Button>
                     <Button
                         type="button"
                         outline
                         disabled={isBusy}
-                        onClick={() => navigation(isEdit ? `/contracts/${contract.id}` : "/")}
+                        onClick={() => navigation(isEdit ? `/contracts/${contract.id}` : "/entries")}
                         className="w-full lg:w-auto hover:cursor-pointer"
                     >
-                        Cancel
+                        {t('common.cancel')}
                     </Button>
                     {isEdit && <>
                         <div className="hidden lg:block lg:grow"/>
@@ -558,15 +618,15 @@ export default function ContractForm({contract, holders, companies, categories, 
                             color="red"
                             disabled={isBusy}
                             onClick={() => openConfirmDialog({
-                                title: "Delete Contract",
-                                message: "Are you sure you want to delete this contract?",
-                                submitLabel: "Delete",
-                                cancelLabel: "Cancel",
+                                title: t('entryForm.deleteEntryTitle'),
+                                message: t('entryForm.deleteEntryMessage'),
+                                submitLabel: t('common.delete'),
+                                cancelLabel: t('common.cancel'),
                                 onSubmit: deleteContract.bind(null),
                             })}
                             className="w-full lg:w-auto hover:cursor-pointer"
                         >
-                            Delete
+                            {t('common.delete')}
                         </Button>
                     </>}
                 </div>

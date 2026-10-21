@@ -1,33 +1,40 @@
-import {StackedLayout} from "../components/catalyst/stacked-layout.tsx";
+import {Outlet, useLocation} from "react-router";
+import {useTranslation} from "react-i18next";
 import {
-    Navbar,
-    NavbarDivider,
-    NavbarItem,
-    NavbarLabel,
-    NavbarSection,
-    NavbarSpacer
-} from "../components/catalyst/navbar.tsx";
-import {Sidebar, SidebarBody, SidebarHeader, SidebarItem, SidebarSection} from "../components/catalyst/sidebar.tsx";
-import {href, NavLink, Outlet} from "react-router";
+    ArrowRightStartOnRectangleIcon,
+    BanknotesIcon,
+    Cog6ToothIcon,
+    HomeIcon,
+    MoonIcon,
+    QueueListIcon,
+    SunIcon,
+    UserGroupIcon,
+    UsersIcon,
+} from "@heroicons/react/20/solid";
+import {SidebarLayout} from "../components/catalyst/sidebar-layout.tsx";
+import {Navbar, NavbarItem, NavbarSection, NavbarSpacer} from "../components/catalyst/navbar.tsx";
+import {
+    Sidebar,
+    SidebarBody,
+    SidebarFooter,
+    SidebarHeader,
+    SidebarItem,
+    SidebarLabel,
+    SidebarSection,
+    SidebarSpacer,
+} from "../components/catalyst/sidebar.tsx";
 import {Avatar} from "../components/catalyst/avatar.tsx";
-
-import logo from '../assets/logo.svg'
-import githubLogo from '../assets/github.svg'
 import {usePreferences} from "../stores/usePreferences.ts";
 import {useAuth} from "../stores/useAuth.ts";
-import {useEffect, useState} from "react";
-import Swap from "../components/Swap.tsx";
-import {ArrowRightStartOnRectangleIcon, MoonIcon, SunIcon} from "@heroicons/react/16/solid";
+import logo from '../assets/logo.svg'
 
 function MainLayout() {
     const {theme, setTheme} = usePreferences()
     const {user, logout} = useAuth()
-    const [darkMode, setDarkMode] = useState<boolean>(theme == "dark")
+    const {t} = useTranslation()
+    const {pathname} = useLocation()
     const isAdmin = user?.role === 'admin'
-
-    useEffect(() => {
-        setDarkMode(theme == "dark")
-    }, [theme])
+    const dark = theme === "dark"
 
     const handleLogout = async () => {
         await logout()
@@ -35,111 +42,81 @@ function MainLayout() {
     }
 
     const navItems = [
-        {label: 'Contracts', url: '/'},
-        ...(isAdmin ? [{label: 'Users', url: '/users'}] : []),
-        {label: 'Settings', url: '/settings'},
+        {label: t('nav.overview'), url: '/', icon: HomeIcon},
+        {label: t('nav.entries'), url: '/entries', icon: QueueListIcon},
+        {label: t('nav.savings'), url: '/savings', icon: BanknotesIcon},
+        {label: t('nav.household'), url: '/household', icon: UserGroupIcon},
+        ...(isAdmin ? [{label: t('nav.users'), url: '/users', icon: UsersIcon}] : []),
     ]
+    const isCurrent = (url: string) =>
+        url === '/' ? pathname === '/' : pathname.startsWith(url) || (url === '/entries' && pathname.startsWith('/contracts'))
+
+    const ThemeIcon = dark ? SunIcon : MoonIcon
 
     return (
         <div className="text-black dark:text-white">
-            <StackedLayout
+            <SidebarLayout
                 navbar={
                     <Navbar>
-                        <NavbarSection className="max-lg:hidden">
-                            <div className="flex gap-x-2 m-2">
-                                <Avatar
-                                    src={logo}
-                                    square
-                                    className="!size-10 pr-2 outline-0 dark:invert"
-                                />
-
-                                <div className="flex flex-col">
-                                    <NavLink to="/" className="text-lg font-bold">Jucosuma</NavLink>
-                                    <a href="https://github.com/Serbroda/jucosuma/releases"
-                                       target="_blank"
-                                       className="text-2xs text-zinc-500 dark:text-zinc-400 hover:underline"
-                                    >
-                                        <small>
-                                            <pre>v{__APP_VERSION__}</pre>
-                                        </small>
-                                    </a>
-                                </div>
-                            </div>
-                        </NavbarSection>
-                        <NavbarDivider className="max-lg:hidden"/>
-                        <NavbarSection className="max-lg:hidden">
-                            {navItems.map(({label, url}) => (
-                                <NavbarItem key={label} href={url}>
-                                    {label}
-                                </NavbarItem>
-                            ))}
-                        </NavbarSection>
                         <NavbarSpacer/>
-                        <NavbarSection className="gap-x-6">
-                            <span className="hidden lg:block text-sm text-zinc-500 dark:text-zinc-400">
-                                {user?.username}
-                            </span>
-                            <a href="https://github.com/Serbroda/jucosuma"
-                               target="_blank"
-                               className="hidden lg:block hover:opacity-75"
-                            >
-                                <img
-                                    src={githubLogo}
-                                    alt="Github"
-                                    className="size-5 dark:invert"
-                                />
-                            </a>
-                            <Swap
-                                isActive={darkMode}
-                                activeNode={<SunIcon className="size-5 hover:opacity-75"/>}
-                                inactiveNode={<MoonIcon className="size-5 hover:opacity-75"/>}
-                                onChange={(val) => {
-                                    setTheme(val ? "dark" : "light")
-                                    setDarkMode(val)
-                                }}
-                                className="hover:cursor-pointer transition duration-300 ease-in-out"
-                            />
-                            <button onClick={handleLogout} className="hover:opacity-75 hover:cursor-pointer mr-5">
-                                <ArrowRightStartOnRectangleIcon className="size-5"/>
-                            </button>
+                        <NavbarSection>
+                            <NavbarItem onClick={() => setTheme(dark ? "light" : "dark")} aria-label={t('nav.toggleTheme')}>
+                                <ThemeIcon/>
+                            </NavbarItem>
+                            <NavbarItem onClick={handleLogout} aria-label={t('nav.logout')}>
+                                <ArrowRightStartOnRectangleIcon/>
+                            </NavbarItem>
                         </NavbarSection>
                     </Navbar>
                 }
                 sidebar={
                     <Sidebar>
                         <SidebarHeader>
-                            <SidebarItem>
-                                <NavLink to="/" className="flex">
-                                    <Avatar
-                                        src={logo}
-                                        square
-                                        className="w-10 h-10 pr-2 outline-0 dark:invert"/>
-                                    <NavbarLabel className="flex flex-col">
-                                        <b className="text-lg">Jucosuma</b>
-                                        <small className="text-2xs text-zinc-500 dark:text-zinc-400">
-                                            <pre>v{__APP_VERSION__}</pre>
-                                        </small>
-                                    </NavbarLabel>
-                                </NavLink>
-                            </SidebarItem>
+                            <div className="flex items-center gap-3 px-2 py-1">
+                                <Avatar src={logo} square className="size-9 outline-0 dark:invert"/>
+                                <div className="flex flex-col">
+                                    <span className="text-base font-semibold text-zinc-950 dark:text-white">Jucosuma</span>
+                                    <a href="https://github.com/Serbroda/jucosuma/releases" target="_blank"
+                                       className="text-xs text-zinc-500 dark:text-zinc-400 hover:underline font-mono">
+                                        v{__APP_VERSION__}
+                                    </a>
+                                </div>
+                            </div>
                         </SidebarHeader>
                         <SidebarBody>
                             <SidebarSection>
-                                {navItems.map(({label, url}) => (
-                                    <SidebarItem key={label} href={href(url)}>
-                                        {label}
+                                {navItems.map(({label, url, icon: Icon}) => (
+                                    <SidebarItem key={url} href={url} current={isCurrent(url)}>
+                                        <Icon/>
+                                        <SidebarLabel>{label}</SidebarLabel>
                                     </SidebarItem>
                                 ))}
-                                <SidebarItem onClick={handleLogout}>
-                                    Logout
+                            </SidebarSection>
+                            <SidebarSpacer/>
+                            <SidebarSection>
+                                <SidebarItem href="/settings" current={isCurrent('/settings')}>
+                                    <Cog6ToothIcon/>
+                                    <SidebarLabel>{t('nav.settings')}</SidebarLabel>
+                                </SidebarItem>
+                                <SidebarItem onClick={() => setTheme(dark ? "light" : "dark")}>
+                                    <ThemeIcon/>
+                                    <SidebarLabel>{dark ? t('nav.lightMode') : t('nav.darkMode')}</SidebarLabel>
                                 </SidebarItem>
                             </SidebarSection>
                         </SidebarBody>
+                        <SidebarFooter>
+                            <SidebarItem onClick={handleLogout}>
+                                <Avatar initials={user?.username?.slice(0, 2) ?? "?"}
+                                        className="size-6 bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200"/>
+                                <SidebarLabel className="grow">{user?.username}</SidebarLabel>
+                                <ArrowRightStartOnRectangleIcon/>
+                            </SidebarItem>
+                        </SidebarFooter>
                     </Sidebar>
                 }
             >
                 <Outlet/>
-            </StackedLayout>
+            </SidebarLayout>
         </div>
     );
 }

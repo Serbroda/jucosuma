@@ -46,13 +46,38 @@ func (app *application) updateCategory(c echo.Context) error {
 		return err
 	}
 
-	err = app.queries.UpdateCategoryById(c.Request().Context(), sqlc.UpdateCategoryByIdParams{
+	ctx := c.Request().Context()
+	existing, err := app.queries.FindCategoryById(ctx, id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "category not found")
+	}
+
+	tx, err := app.db.BeginTx(ctx, nil)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	defer tx.Rollback()
+	qtx := app.queries.WithTx(tx)
+
+	err = qtx.UpdateCategoryById(ctx, sqlc.UpdateCategoryByIdParams{
 		ID:        id,
 		Name:      payload.Name,
 		SortOrder: payload.SortOrder,
 	})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to update category: "+err.Error())
+	}
+	// Entries reference categories by name, so they follow a rename.
+	if existing.Name != payload.Name {
+		if err := qtx.RenameContractCategory(ctx, sqlc.RenameContractCategoryParams{
+			NewName: payload.Name,
+			OldName: existing.Name,
+		}); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "failed to update entries: "+err.Error())
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	return c.NoContent(http.StatusOK)

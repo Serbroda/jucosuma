@@ -6,9 +6,11 @@ import {Button} from "../components/catalyst/button.tsx";
 import {Heading} from "../components/catalyst/heading.tsx";
 import {ErrorMessage} from "../components/catalyst/fieldset.tsx";
 import ThemeToggle from "../components/ThemeToggle.tsx";
+import {useTranslation} from "react-i18next";
 
 export default function ChangePasswordPage() {
     const {changePassword, user} = useAuth();
+    const {t} = useTranslation();
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -22,11 +24,11 @@ export default function ChangePasswordPage() {
         setFieldError('');
 
         if (newPassword.length < 8) {
-            setFieldError('Password must be at least 8 characters.');
+            setFieldError(t('auth.tooShort'));
             return;
         }
         if (newPassword !== confirmPassword) {
-            setFieldError('Passwords do not match.');
+            setFieldError(t('auth.mismatch'));
             return;
         }
 
@@ -35,7 +37,7 @@ export default function ChangePasswordPage() {
             await changePassword(currentPassword, newPassword);
             window.location.hash = '#/';
         } catch (err: any) {
-            setError(err.message || 'Failed to change password');
+            setError(err.message || t('auth.changeFailed'));
         } finally {
             setLoading(false);
         }
@@ -45,10 +47,10 @@ export default function ChangePasswordPage() {
         <div className="flex min-h-screen items-center justify-center bg-white dark:bg-zinc-900 px-4">
             <ThemeToggle/>
             <div className="w-full max-w-sm">
-                <Heading className="text-center mb-2">Change Password</Heading>
+                <Heading className="text-center mb-2">{t('auth.changePassword')}</Heading>
                 {user?.must_change_password && (
                     <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center mb-6">
-                        You must change your password before continuing.
+                        {t('auth.mustChange')}
                     </p>
                 )}
 
@@ -60,7 +62,7 @@ export default function ChangePasswordPage() {
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                     <Field>
-                        <Label>Current Password</Label>
+                        <Label>{t('auth.currentPassword')}</Label>
                         <Input
                             type="password"
                             autoComplete="current-password"
@@ -70,7 +72,7 @@ export default function ChangePasswordPage() {
                         />
                     </Field>
                     <Field>
-                        <Label>New Password</Label>
+                        <Label>{t('auth.newPassword')}</Label>
                         <Input
                             type="password"
                             autoComplete="new-password"
@@ -83,7 +85,7 @@ export default function ChangePasswordPage() {
                         />
                     </Field>
                     <Field>
-                        <Label>Confirm New Password</Label>
+                        <Label>{t('auth.confirmPassword')}</Label>
                         <Input
                             type="password"
                             autoComplete="new-password"
@@ -97,7 +99,7 @@ export default function ChangePasswordPage() {
                         {fieldError && <ErrorMessage>{fieldError}</ErrorMessage>}
                     </Field>
                     <Button type="submit" disabled={loading} className="w-full mt-2 hover:cursor-pointer">
-                        {loading ? 'Changing...' : 'Change Password'}
+                        {loading ? t('auth.changing') : t('auth.changePassword')}
                     </Button>
                 </form>
             </div>

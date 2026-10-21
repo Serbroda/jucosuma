@@ -20,7 +20,10 @@ INSERT INTO contracts (created_at,
                        icon_source,
                        notes,
                        owner_id,
-                       split_between)
+                       split_between,
+                       kind,
+                       account_id,
+                       target_account_id)
 VALUES (CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP,
         sqlc.arg('name'),
@@ -42,7 +45,10 @@ VALUES (CURRENT_TIMESTAMP,
         sqlc.arg('icon_source'),
         sqlc.arg('notes'),
         sqlc.arg('owner_id'),
-        sqlc.arg('split_between')) RETURNING *
+        sqlc.arg('split_between'),
+        sqlc.arg('kind'),
+        sqlc.arg('account_id'),
+        sqlc.arg('target_account_id')) RETURNING *
 ;
 
 -- name: FindContractById :one
@@ -89,6 +95,9 @@ SET name              = sqlc.arg('name'),
     notes             = sqlc.arg('notes'),
     owner_id          = sqlc.arg('owner_id'),
     split_between     = sqlc.arg('split_between'),
+    kind              = sqlc.arg('kind'),
+    account_id        = sqlc.arg('account_id'),
+    target_account_id = sqlc.arg('target_account_id'),
     updated_at        = CURRENT_TIMESTAMP
 WHERE id = sqlc.arg('id')
   AND deleted_at IS NULL
@@ -104,6 +113,7 @@ WHERE id = ?
 SELECT DISTINCT contract_holder
 FROM contracts
 WHERE deleted_at IS NULL
+  AND (owner_id IS NULL OR owner_id = sqlc.arg('user_id'))
   AND contract_holder IS NOT NULL
 ORDER BY contract_holder ASC
 ;
@@ -112,6 +122,7 @@ ORDER BY contract_holder ASC
 SELECT DISTINCT icon_source
 FROM contracts
 WHERE deleted_at IS NULL
+  AND (owner_id IS NULL OR owner_id = sqlc.arg('user_id'))
   AND icon_source IS NOT NULL
   AND icon_source != ''
 ORDER BY name ASC
@@ -121,6 +132,7 @@ ORDER BY name ASC
 SELECT DISTINCT company
 FROM contracts
 WHERE deleted_at IS NULL
+  AND (owner_id IS NULL OR owner_id = sqlc.arg('user_id'))
   AND company IS NOT NULL
 ORDER BY company ASC
 ;
