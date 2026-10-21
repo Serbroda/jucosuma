@@ -23,7 +23,7 @@ import {
     type ShareDto,
 } from "../gen/types.gen.ts";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
-import {categoryLabel, defaultShares, entryKinds, entryPeriods, recallAccount, rememberAccount} from "../utils/household.utils.ts";
+import {categoryLabel, isContractCategory, defaultShares, entryKinds, entryPeriods, recallAccount, rememberAccount} from "../utils/household.utils.ts";
 import {parseAmount} from "../utils/number.utils.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import {apiBasePath} from "../config.ts";
@@ -53,7 +53,9 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
     const [amount, setAmount] = useState("");
     const [period, setPeriod] = useState<string>(BillingPeriodMonthly);
     const [startDate, setStartDate] = useState(dayjs().format("YYYY-MM-DD"));
-    const [category, setCategory] = useState("Other");
+    const [categoryId, setCategoryId] = useState<number | undefined>();
+    const [isContract, setIsContract] = useState(false);
+    const [contractTouched, setContractTouched] = useState(false);
     const [goalId, setGoalId] = useState<number | undefined>();
     const [accountId, setAccountId] = useState<number | undefined>();
     const [targetAccountId, setTargetAccountId] = useState<number | undefined>();
@@ -78,12 +80,19 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
     const defaultCategory = (forKind: string) => {
         const options = categoriesFor(forKind);
         const preferred = forKind === EntryKindIncome ? "salary" : "other";
-        return (options.find((c) => c.key === preferred) ?? options[0])?.name ?? "Other";
+        return (options.find((c) => c.key === preferred) ?? options[0])?.id;
+    };
+
+    /** Picks a category and, unless set by hand, the matching "is contract" default. */
+    const chooseCategory = (id: number | undefined, touched = contractTouched) => {
+        setCategoryId(id);
+        if (!touched) setIsContract(isContractCategory(categories.find((c) => c.id === id)));
     };
 
     const reset = (keepKind = kind) => {
         setName("");
-        setCategory(defaultCategory(keepKind));
+        setContractTouched(false);
+        chooseCategory(defaultCategory(keepKind), false);
         setGoalId(undefined);
         setAmount("");
         setError("");
@@ -107,7 +116,7 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
         setAccountId(recallAccount(value, "from", accounts));
         setTargetAccountId(recallAccount(value, "to", accounts));
         setShares(initialShares(value));
-        setCategory(defaultCategory(value));
+        chooseCategory(defaultCategory(value));
         setGoalId(undefined);
     };
 
@@ -133,7 +142,9 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
             costs,
             billing_period: period,
             start_date: startDate,
-            category: isTransfer ? defaultCategory(EntryKindExpense) : category,
+            // transfers get the server's default category
+            category_id: isTransfer ? undefined : categoryId,
+            is_contract: isExpense && isContract,
             goal_id: isTransfer ? goalId : undefined,
             currency: "EUR",
             account_id: accountId,
@@ -282,8 +293,8 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                         {!isTransfer && (
                             <Field>
                                 <Label>{t('entry.category')}</Label>
-                                <Select value={category} onChange={(e) => setCategory(e.target.value)}>
-                                    {categoriesFor(kind).map((c) => <option key={c.id} value={c.name}>{categoryLabel(c.name, c.key)}</option>)}
+                                <Select value={categoryId ?? ""} onChange={(e) => chooseCategory(e.target.value ? Number(e.target.value) : undefined)}>
+                                    {categoriesFor(kind).map((c) => <option key={c.id} value={c.id}>{categoryLabel(c.name, c.key)}</option>)}
                                 </Select>
                             </Field>
                         )}
@@ -308,10 +319,21 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                         </Field>
                     )}
 
-                    <CheckboxField>
-                        <Checkbox checked={onlyMe} onChange={setOnlyMe}/>
-                        <Label>{t('entry.onlyMe')}</Label>
-                    </CheckboxField>
+                    <div className="flex flex-wrap gap-x-6 gap-y-2">
+                        {isExpense && (
+                            <CheckboxField>
+                                <Checkbox checked={isContract} onChange={(v) => {
+                                    setIsContract(v);
+                                    setContractTouched(true);
+                                }}/>
+                                <Label>{t('contracts.isContract')}</Label>
+                            </CheckboxField>
+                        )}
+                        <CheckboxField>
+                            <Checkbox checked={onlyMe} onChange={setOnlyMe}/>
+                            <Label>{t('entry.onlyMe')}</Label>
+                        </CheckboxField>
+                    </div>
 
                     {accounts.length === 0 && (
                         <p className="text-xs text-zinc-500 dark:text-zinc-400">

@@ -115,7 +115,7 @@ export type MonthSummary = {
     savings: number;           // transfers to savings / depot accounts
     freeBudgets: number;       // pocket money not planned for costs (household scope only)
     unallocated: number;
-    byCategory: { name: string; label: string; amount: number }[];
+    byCategory: { id?: number; name: string; label: string; amount: number }[];
     byPerson: { key: string; label: string; amount: number }[];
     accounts: AccountFlow[];
     budgets: PersonalBudget[];
@@ -144,7 +144,7 @@ export function summarizeMonth(
             .filter((a) => !personal || a.person_id === personId)
             .map((a) => [a.id, {account: a, inflow: 0, outflow: 0}]),
     );
-    const byCategory = new Map<string, { name: string; label: string; amount: number }>();
+    const byCategory = new Map<string, { id?: number; name: string; label: string; amount: number }>();
     const byPerson: Record<string, number> = {};
     const budgets = new Map<number, PersonalBudget>(
         persons.filter((p) => p.in_household && (!personal || p.id === personId))
@@ -198,9 +198,11 @@ export function summarizeMonth(
             const household = amount * c.household_share;
             expenses += own;
             if (!personal) externalShare += amount - household;
-            const cat = byCategory.get(c.category) ?? {name: c.category, label: categoryLabel(c.category, c.category_key), amount: 0};
+            const groupKey = c.category_id != null ? String(c.category_id) : c.category;
+            const cat = byCategory.get(groupKey)
+                ?? {id: c.category_id, name: c.category, label: categoryLabel(c.category, c.category_key), amount: 0};
             cat.amount += own;
-            byCategory.set(c.category, cat);
+            byCategory.set(groupKey, cat);
 
             if (!personal) {
                 const parts = attribution(c, persons, accounts);

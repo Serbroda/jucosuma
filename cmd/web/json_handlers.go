@@ -64,6 +64,11 @@ func (app *application) importContractsJSON(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
+	categories, err := app.loadCategories(ctx, qtx)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
 	imported := 0
 	for _, p := range contracts {
 		billingPeriod := strings.ToUpper(p.BillingPeriod)
@@ -76,10 +81,16 @@ func (app *application) importContractsJSON(c echo.Context) error {
 			targetAccountID, goalID = nil, nil
 		}
 
+		categoryID, categoryName := categories.categoryParams(p.CategoryID, p.Category, normalizeKind(p.Kind))
 		inserted, err := qtx.InsertContract(ctx, sqlc.InsertContractParams{
 			Name:            p.Name,
 			Company:         p.Company,
-			Category:        p.Category,
+			Category:        categoryName,
+			CategoryID:      categoryID,
+			IsContract:      boolToInt64(p.IsContract && normalizeKind(p.Kind) == "EXPENSE"),
+			TermMonths:      p.TermMonths,
+			NoticePeriod:    p.NoticePeriod,
+			NoticeUnit:      noticeUnit(p.NoticePeriod, p.NoticeUnit),
 			StartDate:       time.Time(p.StartDate),
 			EndDate:         (*time.Time)(p.EndDate),
 			ContractNumber:  p.ContractNumber,

@@ -24,7 +24,12 @@ INSERT INTO contracts (created_at,
                        kind,
                        account_id,
                        target_account_id,
-                       goal_id)
+                       goal_id,
+                       category_id,
+                       term_months,
+                       notice_period,
+                       notice_unit,
+                       is_contract)
 VALUES (CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP,
         sqlc.arg('name'),
@@ -50,7 +55,12 @@ VALUES (CURRENT_TIMESTAMP,
         sqlc.arg('kind'),
         sqlc.arg('account_id'),
         sqlc.arg('target_account_id'),
-        sqlc.arg('goal_id')) RETURNING *
+        sqlc.arg('goal_id'),
+        sqlc.arg('category_id'),
+        sqlc.arg('term_months'),
+        sqlc.arg('notice_period'),
+        sqlc.arg('notice_unit'),
+        sqlc.arg('is_contract')) RETURNING *
 ;
 
 -- name: FindContractById :one
@@ -101,6 +111,11 @@ SET name              = sqlc.arg('name'),
     account_id        = sqlc.arg('account_id'),
     target_account_id = sqlc.arg('target_account_id'),
     goal_id           = sqlc.arg('goal_id'),
+    category_id       = sqlc.arg('category_id'),
+    term_months       = sqlc.arg('term_months'),
+    notice_period     = sqlc.arg('notice_period'),
+    notice_unit       = sqlc.arg('notice_unit'),
+    is_contract       = sqlc.arg('is_contract'),
     updated_at        = CURRENT_TIMESTAMP
 WHERE id = sqlc.arg('id')
   AND deleted_at IS NULL

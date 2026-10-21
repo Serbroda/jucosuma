@@ -62,6 +62,14 @@ const (
 	AccountTypeOther    AccountType = "other"
 )
 
+type NoticeUnit string
+
+const (
+	NoticeUnitDays   NoticeUnit = "days"
+	NoticeUnitWeeks  NoticeUnit = "weeks"
+	NoticeUnitMonths NoticeUnit = "months"
+)
+
 type ContractStatus string
 
 const (
@@ -75,7 +83,14 @@ type ContractDto struct {
 	Name            string         `json:"name"`
 	Company         *string        `json:"company"`
 	Category        string         `json:"category"`
+	CategoryID      *int64         `json:"category_id"`
 	CategoryKey     *string        `json:"category_key"`
+	IsContract      bool           `json:"is_contract"`
+	TermMonths      *int64         `json:"term_months"`
+	NoticePeriod    *int64         `json:"notice_period"`
+	NoticeUnit      *NoticeUnit    `json:"notice_unit"`
+	TermEnd         *DateOnly      `json:"term_end"`
+	CancelBy        *DateOnly      `json:"cancel_by"`
 	StartDate       DateOnly       `json:"start_date"`
 	EndDate         *DateOnly      `json:"end_date"`
 	ContractNumber  *string        `json:"contract_number"`
@@ -111,6 +126,11 @@ type CreateContractDto struct {
 	Name            string     `json:"name" validate:"required,min=1,max=256"`
 	Company         *string    `json:"company"`
 	Category        string     `json:"category"`
+	CategoryID      *int64     `json:"category_id"`
+	IsContract      bool       `json:"is_contract"`
+	TermMonths      *int64     `json:"term_months" validate:"omitempty,min=1,max=120"`
+	NoticePeriod    *int64     `json:"notice_period" validate:"omitempty,min=0,max=365"`
+	NoticeUnit      *string    `json:"notice_unit" validate:"omitempty,oneof=days weeks months"`
 	StartDate       DateOnly   `json:"start_date"`
 	EndDate         *DateOnly  `json:"end_date"`
 	ContractNumber  *string    `json:"contract_number"`
@@ -139,6 +159,11 @@ type UpdateContractDto struct {
 	Name            string     `json:"name" validate:"required,min=1,max=256"`
 	Company         *string    `json:"company"`
 	Category        string     `json:"category"`
+	CategoryID      *int64     `json:"category_id"`
+	IsContract      bool       `json:"is_contract"`
+	TermMonths      *int64     `json:"term_months" validate:"omitempty,min=1,max=120"`
+	NoticePeriod    *int64     `json:"notice_period" validate:"omitempty,min=0,max=365"`
+	NoticeUnit      *string    `json:"notice_unit" validate:"omitempty,oneof=days weeks months"`
 	StartDate       DateOnly   `json:"start_date"`
 	EndDate         *DateOnly  `json:"end_date"`
 	ContractNumber  *string    `json:"contract_number"`

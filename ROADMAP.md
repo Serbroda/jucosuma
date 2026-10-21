@@ -47,6 +47,13 @@ Goal: a household finance overview — what comes in, what the household actuall
 - [x] Savings goals (target, date, current amount, owner, account) funded by transfers; progress and projection.
 - [x] Accounts with IBAN (last 4 digits shown) and balance.
 
+### Stage 2c — Contracts & insurances ✅
+
+- [x] Entries reference their category by id (`contracts.category_id`); the name column stays as readable copy. Deleting a category moves its entries to "Other".
+- [x] Contract term (auto-renewal in months) and notice period; computed term end and cancel-by date.
+- [x] Explicit "is a contract" flag on entries (pre-set for housing, utilities, telecom and insurance categories); existing contracts were migrated.
+- [x] Contracts page with insurance tab, yearly costs and upcoming cancellation deadlines; deadlines card on the overview.
+
 ### Stage 3 — Actual bookings (Ist-Buchungen)
 
 - [ ] `transactions` table (date, amount, account, optional `contract_id` for planned entry, category) with `transaction_shares` analogous to `contract_shares`.

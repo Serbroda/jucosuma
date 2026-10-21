@@ -31,7 +31,7 @@ export default function CategoriesPage() {
 
     const format = (v: number) => new Intl.NumberFormat(numberLocale(), {style: "currency", currency: mainCurrency}).format(v);
     const entriesOf = (cat: CategoryDto) => data.contracts.filter((c) =>
-        c.category.toLowerCase() === cat.name.toLowerCase() && c.kind === cat.type);
+        c.category_id === cat.id);
     const listed = data.categories.filter((c) => c.type === type);
 
     return (

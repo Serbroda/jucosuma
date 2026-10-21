@@ -34,7 +34,7 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
     const format = (v: number, currency?: string | null) =>
         new Intl.NumberFormat(numberLocale(), {style: "currency", currency: currency || mainCurrency}).format(v);
     const has = (c: EntryColumn) => columns.includes(c);
-    const categoryOf = (c: ContractDto) => data.categories.find((cat) => cat.name.toLowerCase() === c.category.toLowerCase());
+    const categoryOf = (c: ContractDto) => data.categories.find((cat) => cat.id === c.category_id);
 
     return (
         <div className="overflow-x-auto -mx-5">
@@ -101,7 +101,7 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
                                     ) : "–"}
                                 </td>
                             )}
-                            {has("category") && <td className={classNames(td, "hidden sm:table-cell")}><CategoryBadge name={c.category} categories={data.categories}/></td>}
+                            {has("category") && <td className={classNames(td, "hidden sm:table-cell")}><CategoryBadge categoryId={c.category_id} fallbackName={c.category} categories={data.categories}/></td>}
                             <td className={classNames(td, "pr-5 text-right")}>
                                 <RowActions
                                     onEdit={() => navigate(`/contracts/${c.id}/edit`)}

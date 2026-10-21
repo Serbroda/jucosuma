@@ -16,10 +16,12 @@ import {
     EntryKindTransfer,
     type AccountDto,
     type CategoryDto,
+    type ContractDto,
     type PersonDto,
     type ShareDto,
 } from "../gen/types.gen.ts";
 import i18n from "../i18n";
+import dayjs from "../lib/dayjs";
 
 /** Entry kinds with translated labels; call during render so labels follow the language. */
 export function entryKinds() {
@@ -126,11 +128,6 @@ export function categoryLabel(name: string, key?: string | null): string {
     return key && i18n.exists(id) ? i18n.t(id as "categories.other") : name;
 }
 
-/** Display name for a category referenced by name, looking up its key in the category list. */
-export function categoryLabelByName(name: string, categories: CategoryDto[]): string {
-    const lower = name.toLowerCase();
-    return categoryLabel(name, categories.find((c) => c.name.toLowerCase() === lower)?.key);
-}
 
 /** Palette slots for household members, in order (aqua, violet, orange, …). */
 const PERSON_SLOTS = [3, 7, 2, 4, 5, 1, 6, 8];
@@ -139,4 +136,28 @@ const PERSON_SLOTS = [3, 7, 2, 4, 5, 1, 6, 8];
 export function personSlot(persons: PersonDto[], personId: number): number | undefined {
     const index = persons.filter((p) => p.in_household).findIndex((p) => p.id === personId);
     return index >= 0 ? PERSON_SLOTS[index % PERSON_SLOTS.length] : undefined;
+}
+
+/** "3 months" / "6 weeks" for a notice period, or undefined without one. */
+export function noticeLabel(period?: number | null, unit?: string | null): string | undefined {
+    if (period == null || !unit) return undefined;
+    const key = `contracts.unitCount.${unit}`;
+    return i18n.exists(`${key}_other`) ? i18n.t(key as "contracts.unitCount.months", {count: period}) : `${period} ${unit}`;
+}
+
+/** Predefined categories whose entries are usually contracts (the "is contract" switch starts on). */
+const CONTRACT_CATEGORY_KEYS = ["insurance", "telecom", "utilities", "housing"];
+
+export function isContractCategory(category: CategoryDto | undefined): boolean {
+    return !!category?.key && CONTRACT_CATEGORY_KEYS.includes(category.key);
+}
+
+/** Entries shown on the contracts page: expenses explicitly marked as contract. */
+export function isContractEntry(c: ContractDto): boolean {
+    return c.is_contract && c.kind === EntryKindExpense;
+}
+
+/** Whole days from today until a date (negative if past). */
+export function daysUntil(date: string): number {
+    return dayjs(date).startOf("day").diff(dayjs().startOf("day"), "day");
 }

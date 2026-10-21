@@ -19,6 +19,7 @@ import QuickEntryDialog from "../components/QuickEntryDialog.tsx";
 import SegmentedControl from "../components/SegmentedControl.tsx";
 import EntryIcon from "../components/EntryIcon.tsx";
 import EntryTable from "../components/EntryTable.tsx";
+import DeadlineBadge from "../components/ui/DeadlineBadge.tsx";
 import DonutChart, {type DonutSegment} from "../components/charts/DonutChart.tsx";
 import SankeyChart, {type SankeyNode} from "../components/charts/SankeyChart.tsx";
 import {
@@ -33,7 +34,7 @@ import {useAppData} from "../hooks/useAppData.ts";
 import {useMonth} from "../stores/useMonth.ts";
 import {slotColor} from "../lib/icons.ts";
 import {amountInMonth, attribution, summarizeMonth} from "../utils/budget.utils.ts";
-import {accountOwnerLabel} from "../utils/household.utils.ts";
+import {accountOwnerLabel, daysUntil} from "../utils/household.utils.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
 import {card, cardTitle} from "../utils/ui.ts";
@@ -114,7 +115,7 @@ export default function OverviewPage() {
     const {t} = useTranslation();
     const {user} = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
-    const categoryOf = (name: string) => categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
+    const categoryOf = (id?: number | null) => categories.find((c) => c.id === id);
     const [quickKind, setQuickKind] = useState<string | null>(null);
     const [recurringFilter, setRecurringFilter] = useState("all");
 
@@ -149,7 +150,7 @@ export default function OverviewPage() {
     const categorySegments: DonutSegment[] = useMemo(() => {
         const top = summary.byCategory.slice(0, CATEGORY_SLOTS);
         const rest = summary.byCategory.slice(CATEGORY_SLOTS).reduce((sum, c) => sum + c.amount, 0);
-        const segments = top.map((c) => ({key: c.name, label: c.label, value: c.amount, color: slotColor(categoryOf(c.name)?.color)}));
+        const segments = top.map((c) => ({key: c.id != null ? String(c.id) : c.name, label: c.label, value: c.amount, color: slotColor(categoryOf(c.id)?.color)}));
         if (rest > 0) segments.push({key: "__other", label: t('overview.otherCategories'), value: rest, color: "var(--chart-other)"});
         return segments;
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -172,6 +173,11 @@ export default function OverviewPage() {
         if (summary.unallocated < 0) sources.push({key: "deficit", label: t('overview.deficit'), value: -summary.unallocated, color: "var(--chart-8)"});
         return {sources, targets};
     }, [summary, categorySegments, t]);
+
+    // cancellation deadlines in the next 60 days
+    const deadlines = useMemo(() => contracts
+        .filter((c) => c.cancel_by && daysUntil(c.cancel_by) >= 0 && daysUntil(c.cancel_by) <= 60)
+        .sort((a, b) => (a.cancel_by ?? "").localeCompare(b.cancel_by ?? "")), [contracts]);
 
     const upcoming = useMemo(() => {
         const today = dayjs().startOf("day");
@@ -345,6 +351,32 @@ export default function OverviewPage() {
 
                 {/* Side column */}
                 <div className="flex flex-col gap-6 min-w-0">
+                    {deadlines.length > 0 && (
+                        <div className={card}>
+                            <div className="flex items-baseline justify-between mb-3">
+                                <div className={cardTitle}>{t('contracts.deadlinesCard')}</div>
+                                <NavLink to="/contracts" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">{t('overview.showAll')}</NavLink>
+                            </div>
+                            <ul className="flex flex-col gap-1">
+                                {deadlines.map((c) => (
+                                    <li key={c.id}>
+                                        <NavLink to={`/contracts/${c.id}`}
+                                                 className="flex items-center gap-3 py-1.5 -mx-2 px-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                                            <EntryIcon name={c.name} icon={c.icon_source} category={categoryOf(c.category_id)} className="size-7"/>
+                                            <span className="min-w-0 grow">
+                                                <span className="block text-sm text-zinc-950 dark:text-white truncate">{c.name}</span>
+                                                <span className="block text-xs text-zinc-400 dark:text-zinc-500">
+                                                    {t('contracts.cancelByShort', {date: dayjs(c.cancel_by).format("DD.MM.YYYY")})}
+                                                </span>
+                                            </span>
+                                            <DeadlineBadge date={c.cancel_by!}/>
+                                        </NavLink>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
                     <div className={card}>
                         <div className="flex items-baseline justify-between mb-3">
                             <div className={cardTitle}>{t('overview.upcoming')}</div>
@@ -356,7 +388,7 @@ export default function OverviewPage() {
                                 <li key={c.id}>
                                     <NavLink to={`/contracts/${c.id}`}
                                              className="flex items-center gap-3 py-1.5 -mx-2 px-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-                                        <EntryIcon name={c.name} icon={c.icon_source} category={categoryOf(c.category)} className="size-7"/>
+                                        <EntryIcon name={c.name} icon={c.icon_source} category={categoryOf(c.category_id)} className="size-7"/>
                                         <span className="text-xs text-zinc-400 dark:text-zinc-500 w-14 shrink-0 tabular-nums">
                                             {shortDate(c.next_billing_date!)}
                                         </span>

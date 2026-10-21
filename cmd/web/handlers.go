@@ -116,6 +116,11 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 	qtx := app.queries.WithTx(tx)
 
 	kind := normalizeKind(payload.Kind)
+	categories, err := app.loadCategories(ctx, qtx)
+	if err != nil {
+		return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	categoryID, categoryName := categories.categoryParams(payload.CategoryID, payload.Category, kind)
 	targetAccountID, goalID := payload.TargetAccountID, payload.GoalID
 	if payload.Kind != dtos.EntryKindTransfer {
 		targetAccountID, goalID = nil, nil
@@ -127,7 +132,12 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 		inserted, err := qtx.InsertContract(ctx, sqlc.InsertContractParams{
 			Name:            payload.Name,
 			Company:         payload.Company,
-			Category:        payload.Category,
+			Category:        categoryName,
+			CategoryID:      categoryID,
+			IsContract:      boolToInt64(payload.IsContract && kind == "EXPENSE"),
+			TermMonths:      payload.TermMonths,
+			NoticePeriod:    payload.NoticePeriod,
+			NoticeUnit:      noticeUnit(payload.NoticePeriod, payload.NoticeUnit),
 			StartDate:       time.Time(payload.StartDate),
 			EndDate:         (*time.Time)(payload.EndDate),
 			ContractNumber:  payload.ContractNumber,
@@ -169,7 +179,12 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			ID:              *id,
 			Name:            payload.Name,
 			Company:         payload.Company,
-			Category:        payload.Category,
+			Category:        categoryName,
+			CategoryID:      categoryID,
+			IsContract:      boolToInt64(payload.IsContract && kind == "EXPENSE"),
+			TermMonths:      payload.TermMonths,
+			NoticePeriod:    payload.NoticePeriod,
+			NoticeUnit:      noticeUnit(payload.NoticePeriod, payload.NoticeUnit),
 			StartDate:       time.Time(payload.StartDate),
 			EndDate:         (*time.Time)(payload.EndDate),
 			ContractNumber:  payload.ContractNumber,

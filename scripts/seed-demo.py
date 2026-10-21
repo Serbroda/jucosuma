@@ -134,13 +134,19 @@ G_HOUSE = goal("Hauskauf (langfristig)", "investing", "bank", 2, 50000, 0, A_DEP
 def entry(client, name, kind, amount, period, start, account_id, category=None, shares=None, target=None,
           goal_id=None, **details):
     """details: further entry fields, e.g. company, contract_number, end_date, owner_id (private entry)."""
+    # recurring expenses with provider, contract number or term are marked as contracts
+    is_contract = kind == "expense" and period != "one_time" and any(
+        details.get(k) for k in ("company", "contract_number", "customer_number", "term_months"))
     client.entry({
+        "is_contract": is_contract,
         "name": name, "kind": kind, "costs": amount, "billing_period": period, "start_date": start,
         "account_id": account_id, "target_account_id": target, "goal_id": goal_id,
         "category": category or cat("other"), "shares": shares or [],
         "currency": "EUR", "split_between": 1, **details,
     })
 
+
+YEARLY_3M = {"term_months": 12, "notice_period": 3, "notice_unit": "months"}
 
 # Income
 entry(danny, "Gehalt Danny", "income", 3400, "monthly", "2024-01-01", A_JOINT, cat("salary"), DANNY,
@@ -168,9 +174,9 @@ entry(danny, "Miete", "expense", 1400, "monthly", "2021-04-01", A_JOINT, cat("ho
 entry(danny, "Nebenkosten-Vorauszahlung", "expense", 180, "monthly", "2021-04-01", A_JOINT, cat("utilities"), HALF,
       company="Wohnbau Beispielstadt eG")
 entry(danny, "Strom (E.ON)", "expense", 82, "monthly", "2023-02-01", A_JOINT, cat("utilities"), HALF,
-      company="E.ON", customer_number="204 118 772")
+      company="E.ON", customer_number="204 118 772", term_months=12, notice_period=6, notice_unit="weeks")
 entry(danny, "Internet (Telekom)", "expense", 49.99, "monthly", "2022-08-01", A_JOINT, cat("telecom"), HALF,
-      company="Telekom", contract_number="TK-4471-0098")
+      company="Telekom", contract_number="TK-4471-0098", term_months=12, notice_period=1, notice_unit="months")
 entry(danny, "Rundfunkbeitrag", "expense", 55.08, "quarterly", "2021-04-15", A_JOINT, cat("utilities"), HALF,
       company="ARD ZDF Deutschlandradio Beitragsservice")
 
@@ -184,15 +190,19 @@ entry(julia, "Deutschlandticket", "expense", 58, "monthly", "2025-01-01", A_JULI
 
 # Insurance
 entry(danny, "Hausratversicherung", "expense", 106.80, "annually", "2022-03-01", A_JOINT, cat("insurance"), HALF,
-      company="HUK-COBURG", contract_number="HR-882 117 3")
+      company="HUK-COBURG", contract_number="HR-882 117 3", **YEARLY_3M)
 entry(danny, "Haftpflichtversicherung", "expense", 72, "annually", "2021-05-01", A_JOINT, cat("insurance"), HALF,
-      company="HUK-COBURG", contract_number="PH-551 902 1")
+      company="HUK-COBURG", contract_number="PH-551 902 1", **YEARLY_3M)
 entry(danny, "KFZ-Versicherung", "expense", 540, "annually", "2023-11-15", A_JOINT, cat("insurance"), HALF,
-      company="Allianz", contract_number="KFZ-77 3310 22")
-entry(danny, "Tierkrankenversicherung", "expense", 24.90, "monthly", "2024-05-01", A_JOINT, cat("pets"), HALF,
-      company="Petplan")
+      company="Allianz", contract_number="KFZ-77 3310 22", term_months=12, notice_period=1, notice_unit="months")
+entry(danny, "Tierkrankenversicherung", "expense", 24.90, "monthly", "2024-05-01", A_JOINT, cat("insurance"), HALF,
+      company="Petplan", contract_number="PP-30 118 552", **YEARLY_3M)
 entry(danny, "Zahnzusatz Danny", "expense", 16.50, "monthly", "2023-01-01", A_DANNY, cat("insurance"), DANNY,
-      company="Allianz")
+      company="Allianz", contract_number="ZZ-4 410 873", **YEARLY_3M)
+entry(danny, "Berufsunfähigkeit Danny", "expense", 68.40, "monthly", "2020-12-01", A_DANNY, cat("insurance"), DANNY,
+      company="Hannoversche", contract_number="BU-7 220 145", **YEARLY_3M)
+entry(danny, "Rechtsschutzversicherung", "expense", 239.88, "annually", "2022-12-01", A_JOINT, cat("insurance"), HALF,
+      company="ARAG", contract_number="RS-662 019", **YEARLY_3M)
 
 # Subscriptions
 entry(julia, "Netflix", "expense", 17.99, "monthly", "2020-09-01", A_JULIA, cat("entertainment"), HALF, company="Netflix")
@@ -203,9 +213,11 @@ entry(danny, "Spotify Duo", "expense", 14.99, "monthly", "2021-06-01", A_DANNY, 
 entry(danny, "Amazon Prime", "expense", 89.90, "annually", "2022-02-10", A_JOINT, cat("entertainment"), HALF, company="Amazon")
 entry(danny, "ChatGPT Plus", "expense", 22, "monthly", "2024-03-01", A_DANNY, cat("software"), DANNY, company="OpenAI")
 entry(danny, "Handy Danny (o2)", "expense", 24.99, "monthly", "2023-07-01", A_DANNY, cat("telecom"), DANNY,
-      company="o2", end_date="2027-06-30")
-entry(julia, "Handy Julia (Telekom)", "expense", 19.99, "monthly", "2024-02-01", A_JULIA, cat("telecom"), JULIA, company="Telekom")
-entry(julia, "Fitnessstudio", "expense", 39.90, "monthly", "2025-01-01", A_JULIA, cat("health"), JULIA, company="FitX")
+      company="o2", end_date="2027-06-30", term_months=24, notice_period=3, notice_unit="months")
+entry(julia, "Handy Julia (Telekom)", "expense", 19.99, "monthly", "2024-12-15", A_JULIA, cat("telecom"), JULIA, company="Telekom",
+      contract_number="MF-118 220 9", term_months=24, notice_period=1, notice_unit="months")
+entry(julia, "Fitnessstudio", "expense", 39.90, "monthly", "2025-01-01", A_JULIA, cat("health"), JULIA, company="FitX",
+      term_months=12, notice_period=4, notice_unit="weeks")
 
 # One-off expenses
 entry(danny, "Restaurant Jahrestag", "expense", 86.40, "one_time", "2026-10-11", A_DANNY, cat("leisure"), HALF)

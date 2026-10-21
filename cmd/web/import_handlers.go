@@ -115,6 +115,10 @@ func (app *application) importContractsCSV(c echo.Context) error {
 	defer tx.Rollback()
 
 	qtx := app.queries.WithTx(tx)
+	categories, err := app.loadCategories(ctx, qtx)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
 
 	imported := 0
 	errors := 0
@@ -199,10 +203,12 @@ func (app *application) importContractsCSV(c echo.Context) error {
 			billingPeriod = "NONE"
 		}
 
+		categoryID, categoryName := categories.categoryParams(nil, row.Category, "EXPENSE")
 		_, err = qtx.InsertContract(ctx, sqlc.InsertContractParams{
 			Name:           row.Name,
 			Company:        company,
-			Category:       row.Category,
+			Category:       categoryName,
+			CategoryID:     categoryID,
 			StartDate:      startDate,
 			EndDate:        endDate,
 			ContractNumber: contractNumber,

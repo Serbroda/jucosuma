@@ -4,7 +4,7 @@ import {
     type AccountDto, type CategoryDto, type CompanyDto, type ContractDto, type ContractHolderDto, type DocumentDto,
     type PersonDto, type SavingsGoalDto, type ShareDto
 } from "../gen/types.gen.ts";
-import {Field, Label} from "./catalyst/fieldset.tsx";
+import {Description, Field, Label} from "./catalyst/fieldset.tsx";
 import {Input} from "./catalyst/input.tsx";
 import {Select} from "./catalyst/select.tsx";
 import {Divider} from "./catalyst/divider.tsx";
@@ -24,7 +24,8 @@ import ChooseIconDialog from "./dialogs/ChooseIconDialog.tsx";
 import {CheckIcon, ChevronRightIcon, DocumentIcon, PencilIcon, XMarkIcon} from "@heroicons/react/16/solid";
 import SharesEditor from "./SharesEditor.tsx";
 import EntryIcon from "./EntryIcon.tsx";
-import {categoryLabel, defaultShares, entryKinds, entryPeriods} from "../utils/household.utils.ts";
+import {categoryLabel, defaultShares, entryKinds, entryPeriods, isContractCategory} from "../utils/household.utils.ts";
+import {Switch, SwitchField} from "./catalyst/switch.tsx";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
 import {formatDecimal} from "../utils/number.utils.ts";
 import {Combobox, ComboboxLabel, ComboboxOption} from "./catalyst/combobox.tsx";
@@ -79,7 +80,11 @@ export default function ContractForm({contract, holders, companies, categories, 
     const [kind, setKind] = useState<string>(contract.kind ?? EntryKindExpense);
     const [shares, setShares] = useState<ShareDto[]>(
         contract.shares ?? (isEdit ? [] : defaultShares(persons)));
-    const [showDetails, setShowDetails] = useState(Boolean(
+    const [isContract, setIsContract] = useState(isEdit
+        ? Boolean(contract.is_contract)
+        : isContractCategory(categories.find((c) => c.id === contract.category_id || (!contract.category_id && c.key === "other"))));
+    const [contractTouched, setContractTouched] = useState(isEdit);
+    const [showDetails, setShowDetails] = useState(Boolean(contract.is_contract) || Boolean(
         contract.company || contract.contract_number || contract.customer_number || contract.contract_holder
         || contract.contact_person || contract.contact_email || contract.contact_phone || contract.notes
         || contract.documents?.length));
@@ -213,7 +218,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                         <EntryIcon
                             name={contract.name || "?"}
                             icon={iconSource}
-                            category={categories.find((c) => c.name === contract.category)}
+                            category={categories.find((c) => c.id === contract.category_id)}
                             className="size-16"
                         />
                     </Button>
@@ -336,11 +341,16 @@ export default function ContractForm({contract, holders, companies, categories, 
                         <Field>
                             <Label>{t('entry.category')}</Label>
                             <Select
-                                name="category"
-                                defaultValue={contract.category ?? "Other"}
+                                name="category_id"
+                                defaultValue={contract.category_id ?? categories.find((c) => c.key === "other")?.id ?? ""}
+                                onChange={(e) => {
+                                    if (!contractTouched) {
+                                        setIsContract(isContractCategory(categories.find((c) => c.id === Number(e.target.value))));
+                                    }
+                                }}
                             >
-                                {categories.filter((cat) => cat.type === kind || cat.name === contract.category).map((cat) => (
-                                    <option key={cat.id} value={cat.name}>
+                                {categories.filter((cat) => cat.type === kind || cat.id === contract.category_id).map((cat) => (
+                                    <option key={cat.id} value={cat.id}>
                                         {categoryLabel(cat.name, cat.key)}
                                     </option>
                                 ))}
@@ -374,6 +384,19 @@ export default function ContractForm({contract, holders, companies, categories, 
                     </Field>
                 )}
                 <input type="hidden" name="split_between" value={contract.split_between ?? 1}/>
+
+                {isExpense && (
+                    <SwitchField>
+                        <Label>{t('contracts.isContract')}</Label>
+                        <Description>{t('contracts.isContractHint')}</Description>
+                        <Switch checked={isContract} onChange={(v) => {
+                            setIsContract(v);
+                            setContractTouched(true);
+                            if (v) setShowDetails(true);
+                        }}/>
+                    </SwitchField>
+                )}
+                <input type="hidden" name="is_contract" value={String(isExpense && isContract)}/>
 
                 <Field>
                     <Label>{t('entryForm.visibility')}</Label>
@@ -434,6 +457,32 @@ export default function ContractForm({contract, holders, companies, categories, 
                         defaultValue={contract.customer_number ?? ""}
                     />
                 </Field>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Field>
+                        <Label>{t('contracts.term')}</Label>
+                        <Select name="term_months" defaultValue={contract.term_months ?? ""}>
+                            <option value="">{t('contracts.noTerm')}</option>
+                            {[1, 3, 6, 12, 24, 36].map((m) => (
+                                <option key={m} value={m}>{t('contracts.termMonths', {count: m})}</option>
+                            ))}
+                        </Select>
+                        <Description>{t('contracts.termHint')}</Description>
+                    </Field>
+                    <Field>
+                        <Label>{t('contracts.notice')}</Label>
+                        <div className="grid grid-cols-[5rem_1fr] gap-2" data-slot="control">
+                            <Input type="number" min="0" max="365" name="notice_period"
+                                   defaultValue={contract.notice_period ?? ""} aria-label={t('contracts.notice')}/>
+                            <Select name="notice_unit" defaultValue={contract.notice_unit ?? "months"}
+                                    aria-label={t('contracts.noticeUnit')}>
+                                <option value="days">{t('contracts.units.days')}</option>
+                                <option value="weeks">{t('contracts.units.weeks')}</option>
+                                <option value="months">{t('contracts.units.months')}</option>
+                            </Select>
+                        </div>
+                    </Field>
+                </div>
 
                 <Field>
                     <Label>{t('entryForm.contractHolder')}</Label>

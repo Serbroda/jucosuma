@@ -3,6 +3,7 @@ package dtos
 import (
 	"math"
 	"testing"
+	"time"
 
 	sqlc "github.com/Serbroda/contracts/internal/db/sqlc/gen"
 )
@@ -74,6 +75,52 @@ func TestMapContractWithShares(t *testing.T) {
 			}
 			if dto.MonthlyCosts == nil || math.Abs(*dto.MonthlyCosts-tt.wantMonthly) > 1e-9 {
 				t.Errorf("MonthlyCosts = %v, want %v", dto.MonthlyCosts, tt.wantMonthly)
+			}
+		})
+	}
+}
+
+func TestComputeTerm(t *testing.T) {
+	date := func(s string) time.Time {
+		d, _ := time.Parse("2006-01-02", s)
+		return d
+	}
+	months, weeks := NoticeUnitMonths, NoticeUnitWeeks
+	today := date("2026-10-21")
+
+	tests := []struct {
+		name         string
+		start        string
+		end          *time.Time
+		term, notice *int64
+		unit         *NoticeUnit
+		wantEnd      string
+		wantCancelBy string
+	}{
+		{name: "yearly contract, deadline still ahead", start: "2023-02-01", term: ptr[int64](12), notice: ptr[int64](3), unit: &months,
+			wantEnd: "2027-02-01", wantCancelBy: "2026-11-01"},
+		{name: "deadline passed, next term", start: "2023-01-01", term: ptr[int64](12), notice: ptr[int64](3), unit: &months,
+			wantEnd: "2028-01-01", wantCancelBy: "2027-10-01"},
+		{name: "notice in weeks", start: "2025-12-15", term: ptr[int64](12), notice: ptr[int64](6), unit: &weeks,
+			wantEnd: "2026-12-15", wantCancelBy: "2026-11-03"},
+		{name: "term without notice", start: "2024-05-01", term: ptr[int64](24),
+			wantEnd: "2028-05-01"},
+		{name: "already cancelled", start: "2023-07-01", end: ptr(date("2027-06-30")), term: ptr[int64](24), notice: ptr[int64](3), unit: &months,
+			wantEnd: "2027-06-30"},
+		{name: "no term", start: "2024-01-01", notice: ptr[int64](1), unit: &months},
+	}
+
+	format := func(d *DateOnly) string {
+		if d == nil {
+			return ""
+		}
+		return time.Time(*d).Format("2006-01-02")
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			end, cancelBy := computeTerm(date(tt.start), tt.end, tt.term, tt.notice, tt.unit, today)
+			if format(end) != tt.wantEnd || format(cancelBy) != tt.wantCancelBy {
+				t.Errorf("got end=%q cancelBy=%q, want end=%q cancelBy=%q", format(end), format(cancelBy), tt.wantEnd, tt.wantCancelBy)
 			}
 		})
 	}

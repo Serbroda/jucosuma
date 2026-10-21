@@ -301,14 +301,14 @@ func (app *application) mapContracts(ctx context.Context, contracts []sqlc.Contr
 	for _, s := range shares {
 		sharesByContract[s.ContractID] = append(sharesByContract[s.ContractID], s)
 	}
-	categoryKeys, err := app.categoryKeys(ctx)
+	categories, err := app.loadCategories(ctx, app.queries)
 	if err != nil {
 		return nil, err
 	}
 
 	return utils.MapSlice(contracts, func(item sqlc.Contract) dtos.ContractDto {
 		dto := dtos.MapContractWithShares(item, sharesByContract[item.ID], persons)
-		dto.CategoryKey = categoryKeys[strings.ToLower(item.Category)]
+		categories.apply(&dto, item)
 		return dto
 	}), nil
 }
@@ -322,28 +322,93 @@ func (app *application) mapContract(ctx context.Context, contract sqlc.Contract)
 	if err != nil {
 		return dtos.ContractDto{}, err
 	}
-	categoryKeys, err := app.categoryKeys(ctx)
+	categories, err := app.loadCategories(ctx, app.queries)
 	if err != nil {
 		return dtos.ContractDto{}, err
 	}
 	dto := dtos.MapContractWithShares(contract, shares, persons)
-	dto.CategoryKey = categoryKeys[strings.ToLower(contract.Category)]
+	categories.apply(&dto, contract)
 	return dto, nil
 }
 
-// categoryKeys maps lower-cased category names to the translation key of predefined categories.
-func (app *application) categoryKeys(ctx context.Context) (map[string]*string, error) {
-	categories, err := app.queries.FindAllCategories(ctx)
+// categoryIndex resolves categories by id and (legacy) name.
+type categoryIndex struct {
+	byID   map[int64]sqlc.Category
+	byName map[string]sqlc.Category
+	byKey  map[string]sqlc.Category
+}
+
+func (app *application) loadCategories(ctx context.Context, q *sqlc.Queries) (*categoryIndex, error) {
+	categories, err := q.FindAllCategories(ctx)
 	if err != nil {
 		return nil, err
 	}
-	keys := make(map[string]*string, len(categories))
+	idx := &categoryIndex{byID: map[int64]sqlc.Category{}, byName: map[string]sqlc.Category{}, byKey: map[string]sqlc.Category{}}
 	for _, c := range categories {
+		idx.byID[c.ID] = c
+		if _, exists := idx.byName[strings.ToLower(c.Name)]; !exists {
+			idx.byName[strings.ToLower(c.Name)] = c
+		}
 		if c.Key != nil {
-			keys[strings.ToLower(c.Name)] = c.Key
+			idx.byKey[*c.Key] = c
 		}
 	}
-	return keys, nil
+	return idx, nil
+}
+
+// resolve finds the category for an entry: by id, else by name, else the "other" category of the
+// entry kind. It returns nil when nothing matches (e.g. all categories were deleted).
+func (idx *categoryIndex) resolve(id *int64, name string, kind string) *sqlc.Category {
+	if id != nil {
+		if c, ok := idx.byID[*id]; ok {
+			return &c
+		}
+	}
+	if c, ok := idx.byName[strings.ToLower(strings.TrimSpace(name))]; ok && name != "" {
+		return &c
+	}
+	return idx.fallback(kind)
+}
+
+// fallback is the "other" category for the entry kind.
+func (idx *categoryIndex) fallback(kind string) *sqlc.Category {
+	key := "other"
+	if strings.EqualFold(kind, string(dtos.EntryKindIncome)) {
+		key = "other_income"
+	}
+	if c, ok := idx.byKey[key]; ok {
+		return &c
+	}
+	return nil
+}
+
+// apply sets id, name and translation key of the entry's category on the DTO.
+func (idx *categoryIndex) apply(dto *dtos.ContractDto, item sqlc.Contract) {
+	var c *sqlc.Category
+	if item.CategoryID != nil {
+		if found, ok := idx.byID[*item.CategoryID]; ok {
+			c = &found
+		}
+	} else if found, ok := idx.byName[strings.ToLower(item.Category)]; ok {
+		c = &found
+	}
+	if c == nil {
+		return
+	}
+	dto.CategoryID = &c.ID
+	dto.Category = c.Name
+	dto.CategoryKey = c.Key
+}
+
+// categoryParams resolves the category of a payload into the id and name stored on the entry.
+func (idx *categoryIndex) categoryParams(id *int64, name string, kind string) (*int64, string) {
+	if c := idx.resolve(id, name, kind); c != nil {
+		return &c.ID, c.Name
+	}
+	if name == "" {
+		name = "Other"
+	}
+	return nil, name
 }
 
 func (app *application) personsById(ctx context.Context, q *sqlc.Queries) (map[int64]sqlc.Person, error) {
@@ -377,6 +442,15 @@ func replaceContractShares(ctx context.Context, q *sqlc.Queries, contractID int6
 		}
 	}
 	return nil
+}
+
+// noticeUnit converts an API notice unit to its database value; nil without a notice period.
+func noticeUnit(period *int64, unit *string) *string {
+	if period == nil || unit == nil || *unit == "" {
+		return nil
+	}
+	u := strings.ToUpper(*unit)
+	return &u
 }
 
 // normalizeKind converts an API entry kind to its database representation.

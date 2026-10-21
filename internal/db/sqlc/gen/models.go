@@ -67,6 +67,11 @@ type Contract struct {
 	AccountID       *int64     `db:"account_id"`
 	TargetAccountID *int64     `db:"target_account_id"`
 	GoalID          *int64     `db:"goal_id"`
+	CategoryID      *int64     `db:"category_id"`
+	TermMonths      *int64     `db:"term_months"`
+	NoticePeriod    *int64     `db:"notice_period"`
+	NoticeUnit      *string    `db:"notice_unit"`
+	IsContract      int64      `db:"is_contract"`
 }
 
 type ContractShare struct {

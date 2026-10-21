@@ -22,9 +22,14 @@ SET key        = CASE WHEN name = sqlc.arg('name') THEN key ELSE NULL END,
     updated_at = CURRENT_TIMESTAMP
 WHERE id = sqlc.arg('id') AND deleted_at IS NULL;
 
--- name: RenameContractCategory :exec
-UPDATE contracts SET category = sqlc.arg('new_name'), updated_at = CURRENT_TIMESTAMP
-WHERE category = sqlc.arg('old_name');
+-- name: SyncContractCategoryName :exec
+-- Keeps the readable name copy on entries in sync after a rename.
+UPDATE contracts SET category = sqlc.arg('name')
+WHERE category_id = sqlc.arg('category_id');
+
+-- name: ReassignContractCategory :exec
+UPDATE contracts SET category_id = sqlc.arg('new_id'), category = sqlc.arg('new_name'), updated_at = CURRENT_TIMESTAMP
+WHERE category_id = sqlc.arg('old_id');
 
 -- name: DeleteCategorySoft :exec
 UPDATE categories SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?;

@@ -117,18 +117,35 @@ func (q *Queries) InsertCategory(ctx context.Context, arg InsertCategoryParams) 
 	return i, err
 }
 
-const renameContractCategory = `-- name: RenameContractCategory :exec
-UPDATE contracts SET category = ?1, updated_at = CURRENT_TIMESTAMP
-WHERE category = ?2
+const reassignContractCategory = `-- name: ReassignContractCategory :exec
+UPDATE contracts SET category_id = ?1, category = ?2, updated_at = CURRENT_TIMESTAMP
+WHERE category_id = ?3
 `
 
-type RenameContractCategoryParams struct {
+type ReassignContractCategoryParams struct {
+	NewID   *int64 `db:"new_id"`
 	NewName string `db:"new_name"`
-	OldName string `db:"old_name"`
+	OldID   *int64 `db:"old_id"`
 }
 
-func (q *Queries) RenameContractCategory(ctx context.Context, arg RenameContractCategoryParams) error {
-	_, err := q.db.ExecContext(ctx, renameContractCategory, arg.NewName, arg.OldName)
+func (q *Queries) ReassignContractCategory(ctx context.Context, arg ReassignContractCategoryParams) error {
+	_, err := q.db.ExecContext(ctx, reassignContractCategory, arg.NewID, arg.NewName, arg.OldID)
+	return err
+}
+
+const syncContractCategoryName = `-- name: SyncContractCategoryName :exec
+UPDATE contracts SET category = ?1
+WHERE category_id = ?2
+`
+
+type SyncContractCategoryNameParams struct {
+	Name       string `db:"name"`
+	CategoryID *int64 `db:"category_id"`
+}
+
+// Keeps the readable name copy on entries in sync after a rename.
+func (q *Queries) SyncContractCategoryName(ctx context.Context, arg SyncContractCategoryNameParams) error {
+	_, err := q.db.ExecContext(ctx, syncContractCategoryName, arg.Name, arg.CategoryID)
 	return err
 }
 

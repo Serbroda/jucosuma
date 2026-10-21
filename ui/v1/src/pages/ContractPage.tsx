@@ -3,7 +3,7 @@ import {Heading, Subheading} from "../components/catalyst/heading.tsx";
 import {Divider} from "../components/catalyst/divider.tsx";
 import type {AccountDto, ContractDto, PersonDto} from "../gen/types.gen.ts";
 import {BillingPeriodNone, BillingPeriodOneTime, EntryKindExpense, EntryKindTransfer} from "../gen/types.gen.ts";
-import {accountName, categoryLabel, entryKindLabel} from "../utils/household.utils.ts";
+import {accountName, categoryLabel, entryKindLabel, noticeLabel} from "../utils/household.utils.ts";
 import {useTranslation} from "react-i18next";
 import {
     BanknotesIcon,
@@ -141,6 +141,22 @@ export default function ContractPage() {
                     {c?.customer_number && <>
                         <DescriptionTerm>{t('entryForm.customerNumber')}</DescriptionTerm>
                         <DescriptionDetails>{c.customer_number}</DescriptionDetails>
+                    </>}
+                    {c?.term_months != null && <>
+                        <DescriptionTerm>{t('contracts.term')}</DescriptionTerm>
+                        <DescriptionDetails>{t('contracts.termMonths', {count: c.term_months})}</DescriptionDetails>
+                    </>}
+                    {noticeLabel(c?.notice_period, c?.notice_unit) && <>
+                        <DescriptionTerm>{t('contracts.notice')}</DescriptionTerm>
+                        <DescriptionDetails>{noticeLabel(c?.notice_period, c?.notice_unit)}</DescriptionDetails>
+                    </>}
+                    {c?.term_end && <>
+                        <DescriptionTerm>{c.status === "active" ? t('contracts.termEnd') : t('contracts.endsOn')}</DescriptionTerm>
+                        <DescriptionDetails>{dayjs(c.term_end).format('DD.MM.YYYY')}</DescriptionDetails>
+                    </>}
+                    {c?.cancel_by && <>
+                        <DescriptionTerm>{t('contracts.cancelBy')}</DescriptionTerm>
+                        <DescriptionDetails>{dayjs(c.cancel_by).format('DD.MM.YYYY')}</DescriptionDetails>
                     </>}
                 </DescriptionList>
 

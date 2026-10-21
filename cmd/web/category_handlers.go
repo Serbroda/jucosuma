@@ -74,11 +74,11 @@ func (app *application) updateCategory(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to update category: "+err.Error())
 	}
-	// Entries reference categories by name, so they follow a rename.
+	// entries reference the category by id; only their readable name copy follows the rename
 	if existing.Name != payload.Name {
-		if err := qtx.RenameContractCategory(ctx, sqlc.RenameContractCategoryParams{
-			NewName: payload.Name,
-			OldName: existing.Name,
+		if err := qtx.SyncContractCategoryName(ctx, sqlc.SyncContractCategoryNameParams{
+			Name:       payload.Name,
+			CategoryID: &id,
 		}); err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to update entries: "+err.Error())
 		}
@@ -96,9 +96,38 @@ func (app *application) deleteCategory(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
 	}
 
-	err = app.queries.DeleteCategorySoft(c.Request().Context(), id)
+	ctx := c.Request().Context()
+	tx, err := app.db.BeginTx(ctx, nil)
 	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	defer tx.Rollback()
+	qtx := app.queries.WithTx(tx)
+
+	existing, err := qtx.FindCategoryById(ctx, id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "category not found")
+	}
+	categories, err := app.loadCategories(ctx, qtx)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	// entries of the deleted category move to the "other" category of the same type
+	if fallback := categories.fallback(existing.Type); fallback != nil && fallback.ID != id {
+		if err := qtx.ReassignContractCategory(ctx, sqlc.ReassignContractCategoryParams{
+			NewID:   &fallback.ID,
+			NewName: fallback.Name,
+			OldID:   &id,
+		}); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "failed to reassign entries: "+err.Error())
+		}
+	}
+
+	if err := qtx.DeleteCategorySoft(ctx, id); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to delete category: "+err.Error())
+	}
+	if err := tx.Commit(); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
 	return c.NoContent(http.StatusOK)

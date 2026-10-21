@@ -39,6 +39,15 @@ func MapContractToContractDto(item sqlc.Contract) ContractDto {
 		UpdatedAt:       item.UpdatedAt,
 	}
 
+	dto.IsContract = item.IsContract == 1
+	dto.TermMonths = item.TermMonths
+	dto.NoticePeriod = item.NoticePeriod
+	if item.NoticeUnit != nil {
+		unit := NoticeUnit(strings.ToLower(*item.NoticeUnit))
+		dto.NoticeUnit = &unit
+	}
+	dto.TermEnd, dto.CancelBy = computeTerm(item.StartDate, item.EndDate, item.TermMonths, item.NoticePeriod, dto.NoticeUnit, today())
+
 	dto.Status = computeStatus(item.EndDate)
 	dto.NextBillingDate = computeNextBillingDate(item.NextBillingDate, item.StartDate, item.BillingPeriod)
 	dto.MonthlyAmount = computeMonthlyAmount(item.Costs, item.BillingPeriod)
@@ -107,6 +116,52 @@ func computeStatus(endDate *time.Time) ContractStatus {
 func today() time.Time {
 	now := time.Now()
 	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+}
+
+// computeTerm returns the end of the current contract term and the last day to cancel for it.
+// Contracts renew automatically by termMonths. A set end date means the contract is already
+// cancelled: its end is the term end and there is nothing left to cancel. Without a term only
+// a notice period may be known, so no dates can be derived.
+func computeTerm(start time.Time, end *time.Time, termMonths, notice *int64, unit *NoticeUnit, today time.Time) (*DateOnly, *DateOnly) {
+	if end != nil {
+		d := DateOnly(*end)
+		return &d, nil
+	}
+	if termMonths == nil || *termMonths <= 0 {
+		return nil, nil
+	}
+
+	periods := 1
+	termEnd := func() time.Time {
+		return time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, periods*int(*termMonths), 0)
+	}
+	for termEnd().Before(today) {
+		periods++
+	}
+
+	if notice == nil || unit == nil {
+		d := DateOnly(termEnd())
+		return &d, nil
+	}
+	cancelBy := subtractNotice(termEnd(), *notice, *unit)
+	// the deadline for this term has passed: the next possible end is one term later
+	for cancelBy.Before(today) {
+		periods++
+		cancelBy = subtractNotice(termEnd(), *notice, *unit)
+	}
+	te, cb := DateOnly(termEnd()), DateOnly(cancelBy)
+	return &te, &cb
+}
+
+func subtractNotice(t time.Time, notice int64, unit NoticeUnit) time.Time {
+	switch unit {
+	case NoticeUnitDays:
+		return t.AddDate(0, 0, -int(notice))
+	case NoticeUnitWeeks:
+		return t.AddDate(0, 0, -7*int(notice))
+	default:
+		return t.AddDate(0, -int(notice), 0)
+	}
 }
 
 func computeNextBillingDate(stored *time.Time, startDate time.Time, billingPeriod string) *DateOnly {

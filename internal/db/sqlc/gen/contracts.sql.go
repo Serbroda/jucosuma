@@ -26,7 +26,7 @@ func (q *Queries) DeleteContractSoft(ctx context.Context, id int64) error {
 const findAllContracts = `-- name: FindAllContracts :many
 ;
 
-SELECT id, name, company, category, start_date, end_date, contract_number, customer_number, contract_holder, billing_period, costs, currency, next_billing_date, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at, owner_id, split_between, kind, account_id, target_account_id, goal_id
+SELECT id, name, company, category, start_date, end_date, contract_number, customer_number, contract_holder, billing_period, costs, currency, next_billing_date, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at, owner_id, split_between, kind, account_id, target_account_id, goal_id, category_id, term_months, notice_period, notice_unit, is_contract
 FROM contracts
 WHERE deleted_at IS NULL
 ORDER BY name ASC
@@ -70,6 +70,11 @@ func (q *Queries) FindAllContracts(ctx context.Context) ([]Contract, error) {
 			&i.AccountID,
 			&i.TargetAccountID,
 			&i.GoalID,
+			&i.CategoryID,
+			&i.TermMonths,
+			&i.NoticePeriod,
+			&i.NoticeUnit,
+			&i.IsContract,
 		); err != nil {
 			return nil, err
 		}
@@ -121,7 +126,7 @@ func (q *Queries) FindCompanies(ctx context.Context, userID *int64) ([]*string, 
 const findContractById = `-- name: FindContractById :one
 ;
 
-SELECT id, name, company, category, start_date, end_date, contract_number, customer_number, contract_holder, billing_period, costs, currency, next_billing_date, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at, owner_id, split_between, kind, account_id, target_account_id, goal_id
+SELECT id, name, company, category, start_date, end_date, contract_number, customer_number, contract_holder, billing_period, costs, currency, next_billing_date, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at, owner_id, split_between, kind, account_id, target_account_id, goal_id, category_id, term_months, notice_period, notice_unit, is_contract
 FROM contracts
 WHERE id = ?
   AND deleted_at IS NULL LIMIT 1
@@ -159,6 +164,11 @@ func (q *Queries) FindContractById(ctx context.Context, id int64) (Contract, err
 		&i.AccountID,
 		&i.TargetAccountID,
 		&i.GoalID,
+		&i.CategoryID,
+		&i.TermMonths,
+		&i.NoticePeriod,
+		&i.NoticeUnit,
+		&i.IsContract,
 	)
 	return i, err
 }
@@ -200,7 +210,7 @@ func (q *Queries) FindContractHolders(ctx context.Context, userID *int64) ([]*st
 const findContractsForUser = `-- name: FindContractsForUser :many
 ;
 
-SELECT id, name, company, category, start_date, end_date, contract_number, customer_number, contract_holder, billing_period, costs, currency, next_billing_date, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at, owner_id, split_between, kind, account_id, target_account_id, goal_id
+SELECT id, name, company, category, start_date, end_date, contract_number, customer_number, contract_holder, billing_period, costs, currency, next_billing_date, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at, owner_id, split_between, kind, account_id, target_account_id, goal_id, category_id, term_months, notice_period, notice_unit, is_contract
 FROM contracts
 WHERE deleted_at IS NULL
   AND (owner_id IS NULL OR owner_id = ?1)
@@ -245,6 +255,11 @@ func (q *Queries) FindContractsForUser(ctx context.Context, userID *int64) ([]Co
 			&i.AccountID,
 			&i.TargetAccountID,
 			&i.GoalID,
+			&i.CategoryID,
+			&i.TermMonths,
+			&i.NoticePeriod,
+			&i.NoticeUnit,
+			&i.IsContract,
 		); err != nil {
 			return nil, err
 		}
@@ -320,7 +335,12 @@ INSERT INTO contracts (created_at,
                        kind,
                        account_id,
                        target_account_id,
-                       goal_id)
+                       goal_id,
+                       category_id,
+                       term_months,
+                       notice_period,
+                       notice_unit,
+                       is_contract)
 VALUES (CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP,
         ?1,
@@ -346,7 +366,12 @@ VALUES (CURRENT_TIMESTAMP,
         ?21,
         ?22,
         ?23,
-        ?24) RETURNING id, name, company, category, start_date, end_date, contract_number, customer_number, contract_holder, billing_period, costs, currency, next_billing_date, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at, owner_id, split_between, kind, account_id, target_account_id, goal_id
+        ?24,
+        ?25,
+        ?26,
+        ?27,
+        ?28,
+        ?29) RETURNING id, name, company, category, start_date, end_date, contract_number, customer_number, contract_holder, billing_period, costs, currency, next_billing_date, contact_person, contact_address, contact_phone, contact_email, icon_source, notes, created_at, updated_at, deleted_at, owner_id, split_between, kind, account_id, target_account_id, goal_id, category_id, term_months, notice_period, notice_unit, is_contract
 `
 
 type InsertContractParams struct {
@@ -374,6 +399,11 @@ type InsertContractParams struct {
 	AccountID       *int64     `db:"account_id"`
 	TargetAccountID *int64     `db:"target_account_id"`
 	GoalID          *int64     `db:"goal_id"`
+	CategoryID      *int64     `db:"category_id"`
+	TermMonths      *int64     `db:"term_months"`
+	NoticePeriod    *int64     `db:"notice_period"`
+	NoticeUnit      *string    `db:"notice_unit"`
+	IsContract      int64      `db:"is_contract"`
 }
 
 func (q *Queries) InsertContract(ctx context.Context, arg InsertContractParams) (Contract, error) {
@@ -402,6 +432,11 @@ func (q *Queries) InsertContract(ctx context.Context, arg InsertContractParams) 
 		arg.AccountID,
 		arg.TargetAccountID,
 		arg.GoalID,
+		arg.CategoryID,
+		arg.TermMonths,
+		arg.NoticePeriod,
+		arg.NoticeUnit,
+		arg.IsContract,
 	)
 	var i Contract
 	err := row.Scan(
@@ -433,6 +468,11 @@ func (q *Queries) InsertContract(ctx context.Context, arg InsertContractParams) 
 		&i.AccountID,
 		&i.TargetAccountID,
 		&i.GoalID,
+		&i.CategoryID,
+		&i.TermMonths,
+		&i.NoticePeriod,
+		&i.NoticeUnit,
+		&i.IsContract,
 	)
 	return i, err
 }
@@ -465,8 +505,13 @@ SET name              = ?1,
     account_id        = ?22,
     target_account_id = ?23,
     goal_id           = ?24,
+    category_id       = ?25,
+    term_months       = ?26,
+    notice_period     = ?27,
+    notice_unit       = ?28,
+    is_contract       = ?29,
     updated_at        = CURRENT_TIMESTAMP
-WHERE id = ?25
+WHERE id = ?30
   AND deleted_at IS NULL
 `
 
@@ -495,6 +540,11 @@ type UpdateContractByIdParams struct {
 	AccountID       *int64     `db:"account_id"`
 	TargetAccountID *int64     `db:"target_account_id"`
 	GoalID          *int64     `db:"goal_id"`
+	CategoryID      *int64     `db:"category_id"`
+	TermMonths      *int64     `db:"term_months"`
+	NoticePeriod    *int64     `db:"notice_period"`
+	NoticeUnit      *string    `db:"notice_unit"`
+	IsContract      int64      `db:"is_contract"`
 	ID              int64      `db:"id"`
 }
 
@@ -524,6 +574,11 @@ func (q *Queries) UpdateContractById(ctx context.Context, arg UpdateContractById
 		arg.AccountID,
 		arg.TargetAccountID,
 		arg.GoalID,
+		arg.CategoryID,
+		arg.TermMonths,
+		arg.NoticePeriod,
+		arg.NoticeUnit,
+		arg.IsContract,
 		arg.ID,
 	)
 	return err
