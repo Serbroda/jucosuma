@@ -1,6 +1,6 @@
 import {
     BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime,
-    EntryKindExpense, EntryKindIncome, EntryKindTransfer,
+    EntryKindExpense, EntryKindTransfer,
     type AccountDto, type CategoryDto, type CompanyDto, type ContractDto, type ContractHolderDto, type DocumentDto,
     type PersonDto, type SavingsGoalDto, type ShareDto
 } from "../gen/types.gen.ts";
@@ -369,9 +369,9 @@ export default function ContractForm({contract, holders, companies, categories, 
                     </Field>
                 )}
 
-                {!isTransfer && (
+                {isExpense && (
                     <Field>
-                        <Label>{kind === EntryKindIncome ? t('entry.whoseIncome') : t('entry.whoCarries')}</Label>
+                        <Label>{t('entry.whoCarries')}</Label>
                         <div className="mt-2">
                             <SharesEditor persons={persons} value={shares} onChange={setShares}/>
                         </div>

@@ -12,7 +12,7 @@ import {BillingPeriodOneTime, EntryKindIncome} from "../gen/types.gen.ts";
 import {useAppData} from "../hooks/useAppData.ts";
 import {useMonth} from "../stores/useMonth.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
-import {amountInMonth, attribution} from "../utils/budget.utils.ts";
+import {amountInMonth, potOf} from "../utils/budget.utils.ts";
 import {personSlot} from "../utils/household.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
 import {slotColor} from "../lib/icons.ts";
@@ -33,30 +33,29 @@ export default function IncomePage() {
     const household = data.persons.filter((p) => p.in_household);
     const incomes = data.contracts.filter((c) => c.kind === EntryKindIncome && (!c.currency || c.currency === mainCurrency));
 
-    /** Income of a month per person id ("shared" when not attributed). */
-    const byPerson = (m: typeof month) => {
+    /** Income of a month per pot: person id for private accounts, "household" for shared ones. */
+    const byPot = (m: typeof month) => {
         const result: Record<string, number> = {};
         for (const c of incomes) {
             const amount = amountInMonth(c, m, "average");
             if (!amount) continue;
-            const parts = attribution(c, data.persons, data.accounts);
-            if (!parts) result.shared = (result.shared ?? 0) + amount;
-            else for (const [id, f] of parts) result[String(id)] = (result[String(id)] ?? 0) + amount * f;
+            const pot = String(potOf(data.accounts.find((a) => a.id === c.account_id)));
+            result[pot] = (result[pot] ?? 0) + amount;
         }
         return result;
     };
 
-    const current = useMemo(() => byPerson(month), // eslint-disable-next-line react-hooks/exhaustive-deps
+    const current = useMemo(() => byPot(month), // eslint-disable-next-line react-hooks/exhaustive-deps
         [data, month.format("YYYY-MM")]);
     const total = Object.values(current).reduce((s, v) => s + v, 0);
 
     const series = [
         ...household.map((p) => ({key: String(p.id), label: p.name, color: slotColor(personSlot(data.persons, p.id))})),
-        {key: "shared", label: t('common.shared'), color: "var(--chart-other)"},
+        {key: "household", label: t('overview.potHousehold'), color: "var(--chart-other)"},
     ];
     const columns = Array.from({length: 6}, (_, i) => {
         const m = month.subtract(5 - i, "month");
-        return {key: m.format("YYYY-MM"), label: m.format("MMM"), values: byPerson(m), highlight: i === 5};
+        return {key: m.format("YYYY-MM"), label: m.format("MMM"), values: byPot(m), highlight: i === 5};
     });
 
     const listed = incomes
@@ -90,12 +89,12 @@ export default function IncomePage() {
                         </div>
                     );
                 })}
-                {(current.shared ?? 0) > 0 && (
+                {(current.household ?? 0) > 0 && (
                     <div className={card + " flex items-center gap-4"}>
                         <IconTile iconComponent={UserGroupIcon} className="size-12"/>
                         <div>
-                            <div className="text-sm text-zinc-500 dark:text-zinc-400">{t('common.shared')}</div>
-                            <div className="text-2xl font-semibold text-zinc-950 dark:text-white">{format(current.shared)}</div>
+                            <div className="text-sm text-zinc-500 dark:text-zinc-400">{t('overview.potHousehold')}</div>
+                            <div className="text-2xl font-semibold text-zinc-950 dark:text-white">{format(current.household)}</div>
                         </div>
                     </div>
                 )}

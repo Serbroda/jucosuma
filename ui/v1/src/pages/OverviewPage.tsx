@@ -31,7 +31,7 @@ import {
 import {useAppData} from "../hooks/useAppData.ts";
 import {useMonth} from "../stores/useMonth.ts";
 import {slotColor} from "../lib/icons.ts";
-import {amountInMonth, costOwner, summarizeMonth} from "../utils/budget.utils.ts";
+import {amountInMonth, costOwner, potOf, type Scope, summarizeMonth} from "../utils/budget.utils.ts";
 import {accountOwnerLabel, daysUntil} from "../utils/household.utils.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
@@ -45,7 +45,7 @@ type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 /** Largest categories shown individually (each in its own colour); the rest folds into "other". */
 const CATEGORY_SLOTS = 7;
 const SAVINGS_COLOR = "var(--chart-6)";
-const BUDGET_COLOR = "var(--chart-7)";
+const TRANSFER_COLOR = "var(--chart-7)";
 
 function KpiCard({icon: IconCmp, tint, label, value, children}: {
     icon: Icon;
@@ -108,9 +108,14 @@ export default function OverviewPage() {
     const [recurringFilter, setRecurringFilter] = useState("all");
 
     const me = persons.find((p) => p.user_id != null && p.user_id === user?.id);
-    const personal = searchParams.get("scope") === "me" && me != null;
-    const personId = personal ? me?.id : undefined;
     const household = persons.filter((p) => p.in_household);
+    // selected pot: household cash, one person's own money, or everything together
+    const potParam = searchParams.get("pot");
+    const scope: Scope = potParam === "all" ? "all"
+        : potParam && household.some((p) => String(p.id) === potParam) ? Number(potParam) : "household";
+    const scopePerson = typeof scope === "number" ? persons.find((p) => p.id === scope) : undefined;
+    const potLabel = (key: string) => key === "household"
+        ? t('overview.potHousehold') : persons.find((p) => String(p.id) === key)?.name ?? t('common.unknown');
 
     const format = (value: number, digits = 2) => new Intl.NumberFormat(numberLocale(), {
         style: "currency", currency: mainCurrency, minimumFractionDigits: digits, maximumFractionDigits: digits,
@@ -124,15 +129,21 @@ export default function OverviewPage() {
     };
 
     const summary = useMemo(
-        () => summarizeMonth(contracts, persons, accounts, month, mode, mainCurrency, personId),
+        () => summarizeMonth(contracts, persons, accounts, month, mode, mainCurrency, scope),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [contracts, persons, accounts, monthKey, mode, mainCurrency, personId],
+        [contracts, persons, accounts, monthKey, mode, mainCurrency, scope],
     );
     const previous = useMemo(
-        () => summarizeMonth(contracts, persons, accounts, month.subtract(1, "month"), mode, mainCurrency, personId),
+        () => summarizeMonth(contracts, persons, accounts, month.subtract(1, "month"), mode, mainCurrency, scope),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [contracts, persons, accounts, monthKey, mode, mainCurrency, personId],
+        [contracts, persons, accounts, monthKey, mode, mainCurrency, scope],
     );
+    // every pot of the household with its own balance
+    const pots = useMemo(() => (["household", ...household.map((p) => p.id)] as Scope[]).map((pot) => ({
+        pot, summary: summarizeMonth(contracts, persons, accounts, month, mode, mainCurrency, pot),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    })), [contracts, persons, accounts, monthKey, mode, mainCurrency]);
+    const inflow = summary.income + summary.transfersIn;
 
     // Categories: fixed slots for the largest ones, the rest folds into "other"
     const categorySegments: DonutSegment[] = useMemo(() => {
@@ -154,12 +165,18 @@ export default function OverviewPage() {
         const sources: SankeyNode[] = [...incomeByName.entries()]
             .sort(([, a], [, b]) => b - a)
             .map(([label, value]) => ({key: `in:${label}`, label, value, color: "var(--chart-neutral)"}));
+        for (const [pot, value] of Object.entries(summary.transfersInBy)) {
+            sources.push({key: `from:${pot}`, label: t('overview.fromPot', {pot: potLabel(pot)}), value, color: TRANSFER_COLOR});
+        }
         const targets: SankeyNode[] = categorySegments.map((s) => ({...s, key: `cat:${s.key}`}));
         if (summary.savings > 0) targets.push({key: "savings", label: t('overview.saving'), value: summary.savings, color: SAVINGS_COLOR});
-        if (summary.freeBudgets > 0) targets.push({key: "budgets", label: t('overview.freeBudgets'), value: summary.freeBudgets, color: BUDGET_COLOR});
-        if (summary.unallocated > 0) targets.push({key: "rest", label: t('overview.unallocated'), value: summary.unallocated, color: "var(--chart-other)"});
-        if (summary.unallocated < 0) sources.push({key: "deficit", label: t('overview.deficit'), value: -summary.unallocated, color: "var(--chart-8)"});
+        for (const [pot, value] of Object.entries(summary.transfersOutBy)) {
+            targets.push({key: `to:${pot}`, label: t('overview.toPot', {pot: potLabel(pot)}), value, color: TRANSFER_COLOR});
+        }
+        if (summary.available > 0) targets.push({key: "rest", label: t('overview.available'), value: summary.available, color: "var(--chart-other)"});
+        if (summary.available < 0) sources.push({key: "deficit", label: t('overview.deficit'), value: -summary.available, color: "var(--chart-8)"});
         return {sources, targets};
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [summary, categorySegments, t]);
 
     // cancellation deadlines in the next 60 days
@@ -171,10 +188,11 @@ export default function OverviewPage() {
         const today = dayjs().startOf("day");
         return contracts
             .filter((c) => c.kind === EntryKindExpense && c.next_billing_date && c.status !== "expired"
-                && !dayjs(c.next_billing_date).isAfter(today.add(31, "day")))
+                && !dayjs(c.next_billing_date).isAfter(today.add(31, "day"))
+                && (scope === "all" || potOf(accounts.find((a) => a.id === c.account_id)) === scope))
             .sort((a, b) => (a.next_billing_date ?? "").localeCompare(b.next_billing_date ?? ""))
             .slice(0, 6);
-    }, [contracts]);
+    }, [contracts, accounts, scope]);
 
     const recurring = useMemo(() => contracts
         .filter((c) => c.kind === EntryKindExpense && c.billing_period !== BillingPeriodOneTime
@@ -211,20 +229,20 @@ export default function OverviewPage() {
                         {t('overview.hello', {name: me?.name ?? user?.username ?? ""})}
                     </h1>
                     <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-                        {personal
-                            ? t('overview.subtitleMe', {month: month.format("MMMM YYYY")})
-                            : t('overview.subtitleHousehold', {month: month.format("MMMM YYYY")})}
+                        {scopePerson ? t('overview.subtitlePerson', {name: scopePerson.name, month: month.format("MMMM YYYY")})
+                            : scope === "all" ? t('overview.subtitleAll', {month: month.format("MMMM YYYY")})
+                                : t('overview.subtitleHousehold', {month: month.format("MMMM YYYY")})}
                     </p>
                 </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 -mt-2">
                 <SegmentedControl
-                    value={personal ? "me" : "household"}
-                    onChange={(scope) => update({scope})}
+                    value={String(scope)}
+                    onChange={(pot) => update({pot})}
                     options={[
-                        {value: "household", label: t('overview.scopeHousehold')},
-                        {value: "me", label: me ? me.name : t('overview.scopeMe'), disabled: !me,
-                            title: me ? undefined : t('overview.linkLoginHint')},
+                        {value: "household", label: t('overview.potHousehold')},
+                        ...household.map((p) => ({value: String(p.id), label: p.name})),
+                        {value: "all", label: t('overview.potAll')},
                     ]}
                 />
                 <SegmentedControl
@@ -246,20 +264,24 @@ export default function OverviewPage() {
                 </div>
             )}
 
-            {/* KPIs: income → costs → savings → available */}
+            {/* KPIs: money in → costs → savings → available */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 <KpiCard icon={BanknotesIcon} tint="bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400"
-                         label={t('overview.income')} value={formatShort(summary.income)}>
-                    <Delta current={summary.income} previous={previous.income} upIsGood
-                           previousLabel={month.subtract(1, "month").format("MMMM")}/>
+                         label={t('overview.income')} value={formatShort(inflow)}>
+                    {summary.transfersIn > 0 && (
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                            {t('overview.inclTransfers', {amount: formatShort(summary.transfersIn)})}
+                        </div>
+                    )}
+                    <div className="mt-1">
+                        <Delta current={inflow} previous={previous.income + previous.transfersIn} upIsGood
+                               previousLabel={month.subtract(1, "month").format("MMMM")}/>
+                    </div>
                 </KpiCard>
                 <KpiCard icon={ShoppingBagIcon} tint="bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
-                         label={personal ? t('overview.myCosts') : t('overview.ourCosts')} value={formatShort(summary.expenses)}>
+                         label={t('overview.costs')} value={formatShort(summary.expenses)}>
                     <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                        {personal ? t('overview.costsSplitMe', {
-                            household: formatShort(summary.householdCosts),
-                            own: formatShort(me ? summary.privateCosts[me.id] ?? 0 : 0),
-                        }) : t('overview.costsSplit', {
+                        {t('overview.costsSplit', {
                             household: formatShort(summary.householdCosts),
                             own: formatShort(Object.values(summary.privateCosts).reduce((sum, v) => sum + v, 0)),
                         })}
@@ -271,19 +293,21 @@ export default function OverviewPage() {
                 </KpiCard>
                 <KpiCard icon={ChartBarIcon} tint="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
                          label={t('overview.saving')} value={formatShort(summary.savings)}>
-                    {summary.income > 0 && (
+                    {inflow > 0 && (
                         <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                            {t('overview.ofIncomeShort', {percent: Math.round(summary.savings / summary.income * 100)})}
+                            {t('overview.ofIncomeShort', {percent: Math.round(summary.savings / inflow * 100)})}
                         </div>
                     )}
                 </KpiCard>
                 <KpiCard icon={WalletIcon}
-                         tint={summary.unallocated < 0 ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                         tint={summary.available < 0 ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
                              : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"}
-                         label={t('overview.available')} value={formatShort(summary.unallocated)}>
-                    <div className={classNames("text-xs", summary.unallocated < 0 ? "text-red-600 dark:text-red-400" : "text-zinc-500 dark:text-zinc-400")}>
-                        {summary.unallocated < 0 ? t('overview.overspent')
-                            : summary.freeBudgets > 0 ? t('overview.availableHintBudgets') : t('overview.availableHint')}
+                         label={t('overview.available')} value={formatShort(summary.available)}>
+                    <div className={classNames("text-xs", summary.available < 0 ? "text-red-600 dark:text-red-400" : "text-zinc-500 dark:text-zinc-400")}>
+                        {inflow === 0 && summary.expenses > 0 ? t('overview.noInflowHint')
+                            : summary.available < 0 ? t('overview.overspent')
+                                : summary.transfersOut > 0 ? t('overview.availableHintTransfers', {amount: formatShort(summary.transfersOut)})
+                                    : t('overview.availableHint')}
                     </div>
                 </KpiCard>
             </div>
@@ -306,7 +330,7 @@ export default function OverviewPage() {
                         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mb-4">
                             <div className={cardTitle}>{t('overview.moneyFlow')}</div>
                             <div className="text-sm text-zinc-500 dark:text-zinc-400">
-                                {t('overview.flowSummary', {income: format(summary.income), rest: format(summary.unallocated)})}
+                                {t('overview.flowSummary', {income: format(inflow), rest: format(summary.available)})}
                             </div>
                         </div>
                         {sankey.sources.length === 0 ? (
@@ -393,11 +417,11 @@ export default function OverviewPage() {
                     <div className={card}>
                         <div className="flex items-baseline justify-between mb-3">
                             <div className={cardTitle}>{t('overview.accounts')}</div>
-                            <NavLink to="/household" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">{t('overview.showAll')}</NavLink>
+                            <NavLink to="/accounts" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">{t('overview.showAll')}</NavLink>
                         </div>
                         <ul className="flex flex-col gap-3">
                             {accounts
-                                .filter((a) => !personal || a.person_id === personId)
+                                .filter((a) => scope === "all" || potOf(a) === scope)
                                 .map((a) => {
                                     const IconCmp = accountIcon(a);
                                     const flow = flowByAccount.get(a.id) ?? 0;
@@ -432,32 +456,33 @@ export default function OverviewPage() {
                         </ul>
                     </div>
 
-                    {summary.budgets.length > 0 && (
+                    {household.length > 0 && (
                         <div className={card}>
-                            <div className={classNames(cardTitle, "mb-3")}>{t('overview.budgets')}</div>
-                            <div className="flex flex-col gap-4">
-                                {summary.budgets.map(({person, budget, spent}) => (
-                                    <div key={person.id}>
-                                        <div className="flex items-baseline gap-2 text-sm">
-                                            <span className="text-zinc-950 dark:text-white grow">{person.name}</span>
-                                            <span className={classNames("font-semibold tabular-nums",
-                                                budget - spent < 0 ? "text-red-600 dark:text-red-400" : "text-zinc-950 dark:text-white")}>
-                                                {format(budget - spent)}
+                            <div className={classNames(cardTitle, "mb-3")}>{t('overview.pots')}</div>
+                            <ul className="flex flex-col gap-1">
+                                {pots.map(({pot, summary: p}) => (
+                                    <li key={String(pot)}>
+                                        <button onClick={() => update({pot: String(pot)})}
+                                                className={classNames("w-full flex items-center gap-3 rounded-lg -mx-2 px-2 py-2 text-left hover:cursor-pointer",
+                                                    pot === scope ? "bg-zinc-100 dark:bg-zinc-800" : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50")}>
+                                            <span className="min-w-0 grow">
+                                                <span className="block text-sm font-medium text-zinc-950 dark:text-white">{potLabel(String(pot))}</span>
+                                                <span className="block text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                                                    {t('overview.potLine', {
+                                                        in: formatShort(p.income + p.transfersIn),
+                                                        out: formatShort(p.expenses + p.savings + p.transfersOut),
+                                                    })}
+                                                </span>
                                             </span>
-                                            <span className="text-xs text-zinc-400 dark:text-zinc-500">{t('overview.free')}</span>
-                                        </div>
-                                        <div className="mt-1.5 h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-                                            <div className="h-full rounded-full" style={{
-                                                width: `${budget > 0 ? Math.min(100, spent / budget * 100) : 100}%`,
-                                                background: BUDGET_COLOR,
-                                            }}/>
-                                        </div>
-                                        <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 tabular-nums">
-                                            {t('overview.budgetLine', {spent: format(spent), budget: format(budget)})}
-                                        </div>
-                                    </div>
+                                            <span className={classNames("text-sm font-semibold tabular-nums",
+                                                p.available < 0 ? "text-red-600 dark:text-red-400" : "text-zinc-950 dark:text-white")}>
+                                                {formatShort(p.available)}
+                                            </span>
+                                        </button>
+                                    </li>
                                 ))}
-                            </div>
+                            </ul>
+                            <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-2">{t('overview.potsHint')}</p>
                         </div>
                     )}
 

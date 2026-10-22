@@ -65,15 +65,11 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
     const [savedName, setSavedName] = useState("");
     const [onlyMe, setOnlyMe] = useState(false);
     const {user} = useAuth();
-    const me = persons.find((p) => p.user_id != null && p.user_id === user?.id);
 
     const isExpense = kind === EntryKindExpense;
     const isTransfer = kind === EntryKindTransfer;
-    const isIncome = kind === EntryKindIncome;
 
-    const initialShares = (forKind: string) =>
-        forKind === EntryKindIncome ? (me ? [{person_id: me.id, weight: 1}] : [])
-            : forKind === EntryKindExpense ? defaultShares(persons) : [];
+    const initialShares = (forKind: string) => forKind === EntryKindExpense ? defaultShares(persons) : [];
 
     /** Categories matching the entry kind; transfers have none. */
     const categoriesFor = (forKind: string) => categories.filter((c) => c.type === forKind);
@@ -149,7 +145,7 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
             currency: "EUR",
             account_id: accountId,
             target_account_id: isTransfer ? targetAccountId : undefined,
-            shares: isTransfer ? [] : shares,
+            shares: isExpense ? shares : [],
             split_between: 1,
             owner_id: onlyMe ? user?.id : undefined,
         };
@@ -310,9 +306,9 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                         </Field>
                     )}
 
-                    {!isTransfer && (
+                    {isExpense && (
                         <Field>
-                            <Label>{isIncome ? t('entry.whoseIncome') : t('entry.whoCarries')}</Label>
+                            <Label>{t('entry.whoCarries')}</Label>
                             <div className="mt-2">
                                 <SharesEditor persons={persons} value={shares} onChange={setShares}/>
                             </div>

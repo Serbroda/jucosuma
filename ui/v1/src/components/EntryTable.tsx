@@ -8,7 +8,7 @@ import RowActions from "./ui/RowActions.tsx";
 import IconTile from "./ui/IconTile.tsx";
 import {EntryKindTransfer, type ContractDto} from "../gen/types.gen.ts";
 import type {AppData} from "../hooks/useAppData.ts";
-import {splitText} from "../utils/budget.utils.ts";
+import {type Pot, potOf, splitText} from "../utils/budget.utils.ts";
 import {accountName} from "../utils/household.utils.ts";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
@@ -34,6 +34,8 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
     const format = (v: number, currency?: string | null) =>
         new Intl.NumberFormat(numberLocale(), {style: "currency", currency: currency || mainCurrency}).format(v);
     const has = (c: EntryColumn) => columns.includes(c);
+    const potLabel = (pot: Pot) => pot === "household"
+        ? t('overview.potHousehold') : data.persons.find((p) => p.id === pot)?.name ?? t('common.unknown');
     const categoryOf = (c: ContractDto) => data.categories.find((cat) => cat.id === c.category_id);
 
     return (
@@ -47,7 +49,7 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
                     {has("account") && <th className={classNames(th, "hidden md:table-cell")}>{t('overview.paidVia')}</th>}
                     {has("transfer") && <th className={classNames(th, "hidden md:table-cell")}>{t('transfers.fromTo')}</th>}
                     {has("split") && <th className={classNames(th, "hidden lg:table-cell")}>{t('overview.split')}</th>}
-                    {has("person") && <th className={classNames(th, "hidden lg:table-cell")}>{t('overview.person')}</th>}
+                    {has("person") && <th className={classNames(th, "hidden lg:table-cell")}>{t('overview.pot')}</th>}
                     {has("goal") && <th className={classNames(th, "hidden lg:table-cell")}>{t('goals.goal')}</th>}
                     {has("category") && <th className={classNames(th, "hidden sm:table-cell")}>{t('entry.category')}</th>}
                     <th className={classNames(th, "w-10 pr-5")}/>
@@ -91,7 +93,11 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
                                 </td>
                             )}
                             {has("split") && <td className={classNames(td, "hidden lg:table-cell whitespace-nowrap")}>{splitText(c, data.persons, data.accounts, t('common.household'), i18n.language)}</td>}
-                            {has("person") && <td className={classNames(td, "hidden lg:table-cell")}>{splitText(c, data.persons, data.accounts, t('common.household'), i18n.language)}</td>}
+                            {has("person") && (
+                                <td className={classNames(td, "hidden lg:table-cell")}>
+                                    {potLabel(potOf(data.accounts.find((a) => a.id === c.account_id)))}
+                                </td>
+                            )}
                             {has("goal") && (
                                 <td className={classNames(td, "hidden lg:table-cell")}>
                                     {goal ? (

@@ -112,33 +112,46 @@ export function costOwner(c: ContractDto, persons: PersonDto[], accounts: Accoun
 }
 
 export type AccountFlow = { account: AccountDto; inflow: number; outflow: number };
-export type PersonalBudget = { person: PersonDto; budget: number; spent: number };
+
+/**
+ * A pot of money: the household (all shared accounts) or one person (their own accounts).
+ * "all" combines every pot; transfers between pots are then internal.
+ */
+export type Scope = "all" | "household" | number;
+export type Pot = "household" | number;
+
+/** The pot an account belongs to; entries without account belong to the household. */
+export function potOf(account: AccountDto | undefined): Pot {
+    return account?.person_id ?? "household";
+}
 
 export type MonthEntry = {
     entry: ContractDto;
     amount: number; // full amount in the month
-    own: number;    // part that counts for the selected scope (household or person)
+    own: number;    // part that counts for the selected scope
 };
 
 export type MonthSummary = {
-    income: number;
-    expenses: number;          // household's (or the person's) share of expenses
-    externalShare: number;     // part of expenses borne by external persons (household scope only)
-    savings: number;           // transfers to savings / depot accounts
-    freeBudgets: number;       // pocket money not planned for costs (household scope only)
-    unallocated: number;
+    income: number;            // income booked to accounts of the scope
+    transfersIn: number;       // money moved in from other pots (e.g. contributions, pocket money)
+    transfersOut: number;      // money moved out to other pots
+    transfersInBy: Record<string, number>;  // by source pot ("household" or person id)
+    transfersOutBy: Record<string, number>; // by target pot
+    expenses: number;          // costs paid from the scope (external persons' shares excluded)
+    externalShare: number;     // part of those costs borne by external persons
+    savings: number;           // transfers into savings accounts / goals paid from the scope
+    available: number;         // income + transfersIn − transfersOut − expenses − savings
+    householdCosts: number;    // of the expenses: assigned to the household
+    privateCosts: Record<number, number>; // of the expenses: assigned to one person
     byCategory: { id?: number; name: string; label: string; amount: number }[];
-    householdCosts: number;    // costs belonging to the household as a whole
-    privateCosts: Record<number, number>; // private costs per household member
     accounts: AccountFlow[];
-    budgets: PersonalBudget[];
     entries: MonthEntry[];
     unassignedAccount: number; // number of entries in this month without account
 };
 
 /**
- * Summarizes a month for the whole household or, with `personId`, for one household member.
- * In the personal scope unsplit shared entries are divided equally among household members.
+ * Summarizes a month for a pot (household or person) or for all pots together.
+ * Money belongs to the pot of the account it is booked on; nothing is split by percentages.
  */
 export function summarizeMonth(
     contracts: ContractDto[],
@@ -147,33 +160,21 @@ export function summarizeMonth(
     month: Dayjs,
     mode: MonthMode,
     mainCurrency: string,
-    personId?: number,
+    scope: Scope = "all",
 ): MonthSummary {
-    const personal = personId != null;
-    const householdSize = Math.max(1, persons.filter((p) => p.in_household).length);
+    const inScope = (pot: Pot) => scope === "all" || pot === scope;
     const accountById = new Map(accounts.map((a) => [a.id, a]));
     const flows = new Map<number, AccountFlow>(
-        accounts
-            .filter((a) => !personal || a.person_id === personId)
-            .map((a) => [a.id, {account: a, inflow: 0, outflow: 0}]),
+        accounts.filter((a) => inScope(potOf(a))).map((a) => [a.id, {account: a, inflow: 0, outflow: 0}]),
     );
     const byCategory = new Map<string, { id?: number; name: string; label: string; amount: number }>();
-    let householdCosts = 0;
     const privateCosts: Record<number, number> = {};
-    const budgets = new Map<number, PersonalBudget>(
-        persons.filter((p) => p.in_household && (!personal || p.id === personId))
-            .map((p) => [p.id, {person: p, budget: 0, spent: 0}]),
-    );
+    const transfersInBy: Record<string, number> = {};
+    const transfersOutBy: Record<string, number> = {};
     const entries: MonthEntry[] = [];
 
-    let income = 0, expenses = 0, externalShare = 0, savings = 0, unassignedAccount = 0;
-
-    // Fraction of an entry that counts for the selected scope.
-    const scopeFraction = (c: ContractDto): number => {
-        if (!personal) return c.kind === EntryKindExpense ? c.household_share : 1;
-        const parts = attribution(c, persons, accounts);
-        return parts ? parts.get(personId) ?? 0 : 1 / householdSize;
-    };
+    let income = 0, expenses = 0, externalShare = 0, savings = 0, householdCosts = 0;
+    let transfersIn = 0, transfersOut = 0, unassignedAccount = 0;
 
     for (const c of contracts) {
         if (c.currency && c.currency !== mainCurrency) continue;
@@ -182,72 +183,76 @@ export function summarizeMonth(
 
         const account = c.account_id != null ? accountById.get(c.account_id) : undefined;
         const target = c.target_account_id != null ? accountById.get(c.target_account_id) : undefined;
-        // transfers into a savings goal or a savings account (from a non-savings account) are savings
-        const isSaving = c.kind === EntryKindTransfer && !isSavingsAccount(account)
-            && (c.goal_id != null || isSavingsAccount(target));
-        const own = c.kind === EntryKindTransfer && !isSaving
-            ? (personal ? (target?.person_id === personId ? amount : 0) : amount)
-            : amount * scopeFraction(c);
-
         const from = account && flows.get(account.id);
         const to = target && flows.get(target.id);
-        if (personal && own === 0 && !from && !to) continue;
-
-        entries.push({entry: c, amount, own});
-        if (!account) unassignedAccount++;
+        const pot = potOf(account);
+        let own = 0;
 
         if (c.kind === EntryKindIncome) {
-            income += own;
-            if (from) from.inflow += amount;
+            if (inScope(pot)) {
+                own = amount;
+                income += amount;
+                if (from) from.inflow += amount;
+            }
+        } else if (c.kind === EntryKindExpense) {
+            if (inScope(pot)) {
+                own = amount * c.household_share;
+                expenses += own;
+                externalShare += amount - own;
+                const owner = costOwner(c, persons, accounts);
+                if (owner === "household") householdCosts += own;
+                else privateCosts[owner] = (privateCosts[owner] ?? 0) + own;
+                const groupKey = c.category_id != null ? String(c.category_id) : c.category;
+                const cat = byCategory.get(groupKey)
+                    ?? {id: c.category_id, name: c.category, label: categoryLabel(c.category, c.category_key), amount: 0};
+                cat.amount += own;
+                byCategory.set(groupKey, cat);
+                if (from) from.outflow += own;
+            }
         } else if (c.kind === EntryKindTransfer) {
             if (from) from.outflow += amount;
             if (to) to.inflow += amount;
+            const targetPot = potOf(target);
+            // transfers into a savings goal or a savings account (from a non-savings account) are savings
+            const isSaving = !isSavingsAccount(account) && (c.goal_id != null || isSavingsAccount(target));
             if (isSaving) {
-                savings += own;
-            } else if (target?.person_id != null) {
-                const budget = budgets.get(target.person_id);
-                if (budget) budget.budget += amount;
-            }
-        } else if (c.kind === EntryKindExpense) {
-            const household = amount * c.household_share;
-            expenses += own;
-            if (!personal) externalShare += amount - household;
-            const groupKey = c.category_id != null ? String(c.category_id) : c.category;
-            const cat = byCategory.get(groupKey)
-                ?? {id: c.category_id, name: c.category, label: categoryLabel(c.category, c.category_key), amount: 0};
-            cat.amount += own;
-            byCategory.set(groupKey, cat);
-
-            const owner = costOwner(c, persons, accounts);
-            if (owner === "household") householdCosts += own;
-            else privateCosts[owner] = (privateCosts[owner] ?? 0) + own;
-
-            if (from) from.outflow += household;
-            if (account?.person_id != null) {
-                const budget = budgets.get(account.person_id);
-                if (budget) budget.spent += household;
+                if (inScope(pot)) {
+                    own = amount;
+                    savings += amount;
+                }
+            } else if (scope !== "all" && pot !== targetPot) {
+                if (pot === scope) {
+                    own = amount;
+                    transfersOut += amount;
+                    transfersOutBy[String(targetPot)] = (transfersOutBy[String(targetPot)] ?? 0) + amount;
+                } else if (targetPot === scope) {
+                    own = amount;
+                    transfersIn += amount;
+                    transfersInBy[String(pot)] = (transfersInBy[String(pot)] ?? 0) + amount;
+                }
             }
         }
-    }
 
-    // only persons who actually get pocket money have a budget
-    const budgetList = [...budgets.values()].filter((b) => b.budget > 0);
-    // Pocket money is allocated to persons; only its unplanned part is set aside here
-    // (costs paid from it are already part of the expenses).
-    const freeBudgets = personal ? 0 : budgetList.reduce((sum, b) => sum + Math.max(0, b.budget - b.spent), 0);
+        const touchesScope = inScope(pot) || (c.kind === EntryKindTransfer && inScope(potOf(target)));
+        if (!touchesScope) continue;
+        entries.push({entry: c, amount, own});
+        if (!account) unassignedAccount++;
+    }
 
     return {
         income,
+        transfersIn,
+        transfersOut,
+        transfersInBy,
+        transfersOutBy,
         expenses,
         externalShare,
         savings,
-        freeBudgets,
-        unallocated: income - expenses - savings - freeBudgets,
-        byCategory: [...byCategory.values()].filter((c) => c.amount > 0).sort((a, b) => b.amount - a.amount),
+        available: income + transfersIn - transfersOut - expenses - savings,
         householdCosts,
         privateCosts,
+        byCategory: [...byCategory.values()].filter((c) => c.amount > 0).sort((a, b) => b.amount - a.amount),
         accounts: [...flows.values()].filter((f) => f.inflow !== 0 || f.outflow !== 0),
-        budgets: budgetList,
         entries: entries.sort((a, b) => b.own - a.own),
         unassignedAccount,
     };

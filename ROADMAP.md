@@ -54,6 +54,13 @@ Goal: a household finance overview — what comes in, what the household actuall
 - [x] Explicit "is a contract" flag on entries (pre-set for housing, utilities, telecom and insurance categories); existing contracts were migrated.
 - [x] Contracts page with insurance tab, yearly costs and upcoming cancellation deadlines; deadlines card on the overview.
 
+### Stage 2d — Pots instead of percentages ✅
+
+- [x] Money belongs to the pot of its account: shared accounts form the household cash, private accounts belong to their owner. Income is no longer split by shares.
+- [x] Overview per pot (household cash / each person / total): income incl. transfers in, costs, savings, available; transfers between pots appear as contributions in the money flow.
+- [x] "Pots" card with the available amount of every pot; transfers page shows contributions to and payouts from the household cash.
+- [x] Expenses keep their assignment (household / private) for analysis only.
+
 ### Stage 3 — Actual bookings (Ist-Buchungen)
 
 - [ ] `transactions` table (date, amount, account, optional `contract_id` for planned entry, category) with `transaction_shares` analogous to `contract_shares`.
