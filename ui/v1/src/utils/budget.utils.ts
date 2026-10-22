@@ -326,17 +326,24 @@ export function summarizeGoals(contracts: ContractDto[], goals: SavingsGoalDto[]
             .filter((c) => c.billing_period !== BillingPeriodOneTime)
             .reduce((sum, c) => sum + amountInMonth(c, month, "average"), 0);
 
+        // every month counts with the amounts valid then (amount history), past and future
+        const rateIn = (m: Dayjs, mode: MonthMode) => transfers.reduce((sum, c) => sum + amountInMonth(c, m, mode), 0);
         const since = goal.current_date ? dayjs(goal.current_date).startOf("month") : month;
         const elapsed = Math.max(0, month.diff(since, "month"));
-        const current = (goal.current_amount ?? 0) + monthlyRate * elapsed;
+        let current = goal.current_amount ?? 0;
+        for (let i = 0; i < elapsed; i++) current += rateIn(since.add(i, "month"), "due");
 
         const result: GoalSummary = {goal, monthlyRate, current, transfers};
         const target = goal.target_amount;
         if (target != null && target > 0) {
             const missing = target - current;
             result.progress = Math.min(1, Math.max(0, current / target));
-            if (missing > 0 && monthlyRate > 0) {
-                result.reachedOn = month.add(Math.ceil(missing / monthlyRate), "month");
+            if (missing > 0) {
+                let saved = current;
+                for (let k = 1; k <= 600 && !result.reachedOn; k++) {
+                    saved += rateIn(month.add(k - 1, "month"), "average");
+                    if (saved >= target) result.reachedOn = month.add(k, "month");
+                }
             }
             if (goal.target_date && missing > 0) {
                 const months = Math.max(1, dayjs(goal.target_date).startOf("month").diff(month, "month"));
