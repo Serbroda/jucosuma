@@ -102,7 +102,7 @@ func (app *application) importContractsJSON(c echo.Context) error {
 			CustomerNumber:  p.CustomerNumber,
 			ContractHolder:  p.ContractHolder,
 			BillingPeriod:   billingPeriod,
-			Costs:           p.Costs,
+			Costs:           importBaseCosts(p),
 			Currency:        p.Currency,
 			NextBillingDate: (*time.Time)(p.NextBillingDate),
 			ContactPerson:   p.ContactPerson,
@@ -125,6 +125,13 @@ func (app *application) importContractsJSON(c echo.Context) error {
 		if err := replaceContractShares(ctx, qtx, inserted.ID, p.Shares, persons); err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to import shares of '"+p.Name+"': "+err.Error())
 		}
+		for _, a := range p.Amounts {
+			if err := qtx.UpsertContractAmount(ctx, sqlc.UpsertContractAmountParams{
+				ContractID: inserted.ID, ValidFrom: time.Time(a.ValidFrom), Costs: a.Costs,
+			}); err != nil {
+				return echo.NewHTTPError(http.StatusInternalServerError, "failed to import amounts of '"+p.Name+"': "+err.Error())
+			}
+		}
 		if p.Links != nil {
 			if err := replaceContractLinks(ctx, qtx, inserted.ID, *p.Links); err != nil {
 				return echo.NewHTTPError(http.StatusBadRequest, "'"+p.Name+"': "+err.Error())
@@ -141,4 +148,13 @@ func (app *application) importContractsJSON(c echo.Context) error {
 		"imported": imported,
 		"errors":   0,
 	})
+}
+
+// importBaseCosts returns the amount from the start date: exports with an amount history carry
+// today's amount in "costs" and the start amount in "base_costs".
+func importBaseCosts(p dtos.CreateContractDto) *float64 {
+	if len(p.Amounts) > 0 && p.BaseCosts != nil {
+		return p.BaseCosts
+	}
+	return p.Costs
 }

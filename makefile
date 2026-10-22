@@ -70,6 +70,7 @@ generate-go:
 test:
 	@echo "==> Running tests..."
 	go test ./... -v
+	cd ui/v1 && npm test
 
 # ------------------------------------------------------------
 # Helpers

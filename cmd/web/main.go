@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"strconv"
 
 	"github.com/Serbroda/contracts/internal/db"
 	"github.com/Serbroda/contracts/internal/db/migrations"
@@ -20,6 +22,9 @@ type application struct {
 	db         *sql.DB
 	queries    *sqlc.Queries
 	uploadsDir string
+	// backups: directory and the default retention from flag/env (0 = disabled by default)
+	backupDir         string
+	backupDefaultKeep int
 }
 
 func main() {
@@ -29,7 +34,12 @@ func main() {
 	addr := flag.String("addr", utils.GetEnv("ADDR", ":8080"), "http service address")
 	dbPath := flag.String("db-path", utils.GetEnv("DB_PATH", "jucosuma.db"), "sqlite data source")
 	uploadsDir := flag.String("uploads-dir", utils.GetEnv("UPLOADS_DIR", "./uploads"), "uploads directory")
+	backupDir := flag.String("backup-dir", utils.GetEnv("BACKUP_DIR", ""), "directory for daily database backups (default: backups next to the database)")
+	backupKeep := flag.Int("backup-keep", backupKeepDefault(), "number of daily backups to keep, 0 disables backups (admins can change both in the settings)")
 	flag.Parse()
+	if *backupDir == "" {
+		*backupDir = filepath.Join(filepath.Dir(*dbPath), "backups")
+	}
 
 	if *versionFlag {
 		fmt.Println(Version)
@@ -45,10 +55,13 @@ func main() {
 	db.Migrate(dbConn, "sqlite", migrations.MigrationsCommon, migrations.MigrationsCommonDir)
 
 	app := application{
-		db:         dbConn,
-		queries:    sqlc.New(dbConn),
-		uploadsDir: *uploadsDir,
+		db:                dbConn,
+		queries:           sqlc.New(dbConn),
+		uploadsDir:        *uploadsDir,
+		backupDir:         *backupDir,
+		backupDefaultKeep: *backupKeep,
 	}
+	db.StartBackups(dbConn, app.backupDir, app.backupConfig)
 
 	if err := app.seedAdmin("admin_password.txt"); err != nil {
 		log.Fatalf("Failed to seed admin: %v", err)
@@ -59,4 +72,12 @@ func main() {
 	log.Printf("Starting server on %s", *addr)
 
 	e.Logger.Fatal(e.Start(*addr))
+}
+
+// backupKeepDefault reads BACKUP_KEEP (number of daily backups), default 14.
+func backupKeepDefault() int {
+	if n, err := strconv.Atoi(utils.GetEnv("BACKUP_KEEP", "14")); err == nil {
+		return n
+	}
+	return 14
 }

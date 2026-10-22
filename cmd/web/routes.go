@@ -90,6 +90,9 @@ func (app *application) routes() *echo.Echo {
 	admin.PUT("/users/:id", app.updateUser)
 	admin.DELETE("/users/:id", app.deleteUser)
 	admin.PUT("/users/:id/reset-password", app.resetUserPassword)
+	admin.GET("/backups", app.getBackupSettings)
+	admin.PUT("/backups", app.saveBackupSettings)
+	admin.POST("/backups/run", app.runBackup)
 
 	return e
 }

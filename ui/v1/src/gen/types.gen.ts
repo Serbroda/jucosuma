@@ -120,6 +120,14 @@ export interface CreateContractDto {
    * Links replaces all links of the entry; nil keeps the existing ones.
    */
   links?: ContractLinkDto[];
+  /**
+   * Amounts (amount history) is only read by the JSON import; the form uses its own endpoints.
+   */
+  amounts: ContractAmountDto[];
+  /**
+   * BaseCosts is the amount from the start date when the export has an amount history.
+   */
+  base_costs?: number /* float64 */;
 }
 export interface UpdateContractDto {
   name: string;
@@ -353,4 +361,22 @@ export interface ContractLinkDto {
   id: number /* int64 */;
   title: string;
   url: string;
+}
+/**
+ * BackupSettingsDto are the backup settings of the installation, maintained by admins.
+ */
+export interface BackupSettingsDto {
+  enabled: boolean;
+  keep: number /* int */;
+  directory: string;
+  backups: BackupFileDto[];
+}
+export interface BackupFileDto {
+  name: string;
+  size: number /* int64 */;
+  created: string /* RFC3339 */;
+}
+export interface SaveBackupSettingsDto {
+  enabled: boolean;
+  keep: number /* int */;
 }

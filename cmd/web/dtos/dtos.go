@@ -162,6 +162,10 @@ type CreateContractDto struct {
 	Shares          []ShareDto `json:"shares"`
 	// Links replaces all links of the entry; nil keeps the existing ones.
 	Links *[]ContractLinkDto `json:"links"`
+	// Amounts (amount history) is only read by the JSON import; the form uses its own endpoints.
+	Amounts []ContractAmountDto `json:"amounts"`
+	// BaseCosts is the amount from the start date when the export has an amount history.
+	BaseCosts *float64 `json:"base_costs"`
 }
 
 type UpdateContractDto struct {
@@ -437,4 +441,23 @@ func (d CreateContractDto) Variable() bool {
 		return true
 	}
 	return *d.IsVariable
+}
+
+// BackupSettingsDto are the backup settings of the installation, maintained by admins.
+type BackupSettingsDto struct {
+	Enabled   bool            `json:"enabled"`
+	Keep      int             `json:"keep"`
+	Directory string          `json:"directory"`
+	Backups   []BackupFileDto `json:"backups"`
+}
+
+type BackupFileDto struct {
+	Name    string    `json:"name"`
+	Size    int64     `json:"size"`
+	Created time.Time `json:"created"`
+}
+
+type SaveBackupSettingsDto struct {
+	Enabled bool `json:"enabled"`
+	Keep    int  `json:"keep" validate:"min=1,max=365"`
 }

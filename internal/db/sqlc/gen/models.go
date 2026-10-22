@@ -25,6 +25,12 @@ type Account struct {
 	Iban        *string    `db:"iban"`
 }
 
+type AppSetting struct {
+	Key       string     `db:"key"`
+	Value     string     `db:"value"`
+	UpdatedAt *time.Time `db:"updated_at"`
+}
+
 type Category struct {
 	ID        int64      `db:"id"`
 	Name      string     `db:"name"`

@@ -132,8 +132,28 @@ Every setting can be passed as flag or environment variable.
 | `--addr`        | `ADDR`        | HTTP server address         | `:8080`       |
 | `--db-path`     | `DB_PATH`     | SQLite database file        | `jucosuma.db` |
 | `--uploads-dir` | `UPLOADS_DIR` | Directory for uploaded files| `./uploads`   |
+| `--backup-dir`  | `BACKUP_DIR`  | Directory for daily database backups | `backups` next to the database |
+| `--backup-keep` | `BACKUP_KEEP` | Number of daily backups to keep, `0` disables backups | `14` |
 
 In the Docker image the database lives in `/app/data/jucosuma.db` and uploads in `/app/uploads`.
+
+### Backups
+
+Jucosuma writes a backup of the database once a day (`backups/jucosuma-YYYY-MM-DD.db`, in Docker
+`/app/data/backups`) and keeps the last 14 days. The copy is consistent even while the app is running.
+Admins can switch backups on and off, change the retention and create a backup right away under
+*Settings → General*; these settings override `--backup-keep`/`BACKUP_KEEP`.
+Backups contain all entries, including private ones, and are only readable by the owner of the file.
+
+To restore, stop the app, replace the database file with a backup and start it again:
+
+```bash
+docker stop jucosuma
+cp /path/to/data/backups/jucosuma-2026-10-22.db /path/to/data/jucosuma.db
+docker start jucosuma
+```
+
+Uploaded documents are not part of the database backup – back up the uploads directory as well.
 
 ---
 
@@ -161,7 +181,7 @@ go generate ./...                # sqlc (internal/db/sqlc) and TypeScript types 
 Tests and checks:
 
 ```bash
-go test ./...
+make test                        # Go tests and the frontend calculation tests (vitest)
 cd ui/v1 && npx tsc -b && npx eslint src
 ```
 
