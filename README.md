@@ -95,7 +95,7 @@ docker compose up -d
 
 ### From source
 
-Prerequisites: Go 1.24+, Node.js 20+ and npm.
+Prerequisites: Go 1.24+, Node.js 24 (LTS) and npm.
 
 ```bash
 git clone https://github.com/Serbroda/jucosuma.git

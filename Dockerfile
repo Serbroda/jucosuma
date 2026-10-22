@@ -1,10 +1,11 @@
-FROM node:20-alpine AS build-ui
+FROM node:24-alpine AS build-ui
 
 WORKDIR /build
 
-COPY ui/v1/package.json .
+# install exactly the versions of the lockfile (reproducible builds)
+COPY ui/v1/package.json ui/v1/package-lock.json ./
 
-RUN npm install
+RUN npm ci
 
 COPY ui/v1 .
 
@@ -43,6 +44,8 @@ ARG DEFAULT_UPLOADS_DIR="./uploads"
 
 WORKDIR /app
 COPY --from=build-go /build/bin/jucosuma-linux-amd64 ./jucosuma
+# default locations of database (incl. backups) and uploads; usually mounted as volumes
+RUN mkdir -p /app/data /app/uploads
 
 ENV ADDR=${DEFAULT_ADDR}
 ENV DB_PATH=${DEFAULT_DB_PATH}
