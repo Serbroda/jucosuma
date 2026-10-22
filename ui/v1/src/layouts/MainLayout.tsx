@@ -117,7 +117,7 @@ function MainLayout() {
                     </Sidebar>
                 }
             >
-                {showMonth && <div className="flex justify-end mb-6"><MonthPicker/></div>}
+                {showMonth && <div className="flex justify-end mb-4"><MonthPicker/></div>}
                 <Outlet/>
             </SidebarLayout>
         </div>
