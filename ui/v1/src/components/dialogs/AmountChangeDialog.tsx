@@ -62,7 +62,7 @@ export default function AmountChangeDialog({open, onClose, contract, editing}: {
                 </Field>
                 <Field>
                     <Label>{editing ? t('entry.amount') : t('amounts.newAmount')}</Label>
-                    <Input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00"/>
+                    <Input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" className="[&_input]:text-right"/>
                 </Field>
             </div>
             <Description>{isStart ? t('amounts.startHint') : t('amounts.dialogHint')}</Description>

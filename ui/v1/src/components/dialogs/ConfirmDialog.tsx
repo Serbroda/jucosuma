@@ -30,18 +30,12 @@ const ConfirmDialog: FC<ConfirmDialogProps> = ({
                 <span className="text-black dark:text-white">{message}</span>
             </DialogBody>
             <DialogActions>
-                <Button
-                    onClick={() => onSubmit()}
-                    className="hover:cursor-pointer"
-                >
-                    {submitLabel || t("common.ok")}
-                </Button>
-                <Button
-                    plain
-                    onClick={onClose}
-                    className="hover:cursor-pointer"
-                >
+                <Button plain onClick={onClose} className="hover:cursor-pointer">
                     {cancelLabel || t("common.cancel")}
+                </Button>
+                {/* confirmations are used for deleting */}
+                <Button color="red" onClick={() => onSubmit()} className="hover:cursor-pointer">
+                    {submitLabel || t("common.ok")}
                 </Button>
             </DialogActions>
         </Dialog>

@@ -3,9 +3,8 @@ import {useRevalidator} from "react-router";
 import {useTranslation} from "react-i18next";
 import FormDialog from "./FormDialog.tsx";
 import {Description, Field, Label} from "../catalyst/fieldset.tsx";
-import {Input} from "../catalyst/input.tsx";
 import SegmentedControl from "../SegmentedControl.tsx";
-import IconField from "../ui/IconField.tsx";
+import NameIconField from "../ui/NameIconField.tsx";
 import {EntryKindExpense, EntryKindIncome, type CategoryDto} from "../../gen/types.gen.ts";
 import {categoryLabel, defaultCategoryIcon} from "../../utils/household.utils.ts";
 import {sendJson} from "../../lib/api.ts";
@@ -57,11 +56,12 @@ export default function CategoryDialog({open, onClose, category, defaultType, co
     return (
         <FormDialog open={open} onClose={onClose} onSubmit={save} saving={saving} error={error}
                     title={category ? t('categories.edit') : t('categories.add')}>
-            <Field>
-                <Label>{t('common.name')}</Label>
-                <Input autoFocus value={name} onChange={(e) => setName(e.target.value)}/>
-                {category?.key && <Description>{t('categories.renameHint')}</Description>}
-            </Field>
+            <NameIconField name={name} onNameChange={setName} icon={icon} color={color} defaultIcon={defaultCategoryIcon}
+                           description={category?.key && <Description>{t('categories.renameHint')}</Description>}
+                           onIconChange={(i, c) => {
+                               setIcon(i);
+                               setColor(c);
+                           }}/>
             <Field>
                 <Label>{t('categories.type')}</Label>
                 <div className="mt-2">
@@ -71,11 +71,6 @@ export default function CategoryDialog({open, onClose, category, defaultType, co
                     ]}/>
                 </div>
             </Field>
-            <IconField icon={icon} color={color} defaultIcon={defaultCategoryIcon}
-                       onChange={(i, c) => {
-                           setIcon(i);
-                           setColor(c);
-                       }}/>
         </FormDialog>
     );
 }

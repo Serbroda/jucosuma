@@ -6,7 +6,6 @@ import {
     ArrowsRightLeftIcon,
     ArrowUpIcon,
     BanknotesIcon,
-    BuildingLibraryIcon,
     ChartBarIcon,
     ClipboardDocumentCheckIcon,
     MinusIcon,
@@ -22,12 +21,10 @@ import DeadlineBadge from "../components/ui/DeadlineBadge.tsx";
 import DonutChart, {type DonutSegment} from "../components/charts/DonutChart.tsx";
 import SankeyChart, {type SankeyNode} from "../components/charts/SankeyChart.tsx";
 import {
-    AccountTypeDepot,
     BillingPeriodOneTime,
     EntryKindExpense,
     EntryKindIncome,
     EntryKindTransfer,
-    type AccountDto,
 } from "../gen/types.gen.ts";
 import {useAppData} from "../hooks/useAppData.ts";
 import {useMonth} from "../stores/useMonth.ts";
@@ -91,12 +88,6 @@ function Delta({current, previous, previousLabel, upIsGood}: { current: number; 
             <span className="text-zinc-400 dark:text-zinc-500">{t('overview.vs', {month: previousLabel})}</span>
         </div>
     );
-}
-
-function accountIcon(a: AccountDto): Icon {
-    if (a.type === AccountTypeDepot) return ChartBarIcon;
-    if (a.is_savings) return BanknotesIcon;
-    return a.person_id == null ? BuildingLibraryIcon : WalletIcon;
 }
 
 export default function OverviewPage() {
@@ -501,16 +492,11 @@ export default function OverviewPage() {
                             {accounts
                                 .filter((a) => scope === "all" || potOf(a) === scope)
                                 .map((a) => {
-                                    const IconCmp = accountIcon(a);
-                                    const own = a.icon || a.color != null ? accountStyle(a) : undefined;
+                                    const style = accountStyle(a);
                                     const flow = flowByAccount.get(a.id) ?? 0;
                                     return (
                                         <li key={a.id} className="flex items-center gap-3">
-                                            {own ? <IconTile icon={own.icon} color={own.color} className="size-9"/> : (
-                                                <div className="size-9 shrink-0 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300">
-                                                    <IconCmp className="size-4"/>
-                                                </div>
-                                            )}
+                                            <IconTile icon={style.icon} color={style.color} className="size-9"/>
                                             <div className="min-w-0 grow">
                                                 <div className="text-sm text-zinc-950 dark:text-white truncate">{a.name}</div>
                                                 <div className="text-xs text-zinc-400 dark:text-zinc-500 truncate">{accountOwnerLabel(a, persons)}</div>

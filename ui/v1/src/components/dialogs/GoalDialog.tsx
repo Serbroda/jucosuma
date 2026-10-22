@@ -6,7 +6,7 @@ import {Field, Label} from "../catalyst/fieldset.tsx";
 import {Input} from "../catalyst/input.tsx";
 import {Select} from "../catalyst/select.tsx";
 import SegmentedControl from "../SegmentedControl.tsx";
-import IconField from "../ui/IconField.tsx";
+import NameIconField from "../ui/NameIconField.tsx";
 import {goalStyle} from "../../utils/household.utils.ts";
 import {GoalKindInvesting, GoalKindSaving, type AccountDto, type ContractDto, type PersonDto, type SavingsGoalDto} from "../../gen/types.gen.ts";
 import {Button} from "../catalyst/button.tsx";
@@ -88,20 +88,25 @@ export default function GoalDialog({open, onClose, goal, persons, accounts, coun
     return (
         <FormDialog open={open} onClose={onClose} onSubmit={save} saving={saving} error={error}
                     title={goal ? t('goals.edit') : t('goals.add')}>
+            <NameIconField name={name} onNameChange={setName} placeholder={t('goals.namePlaceholder')}
+                           icon={icon} color={color} defaultIcon={kindDefault.icon} defaultColor={kindDefault.color}
+                           onIconChange={(i, c) => {
+                               setIcon(i);
+                               setColor(c);
+                           }}/>
             <Field>
-                <Label>{t('common.name')}</Label>
-                <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={t('goals.namePlaceholder')}/>
+                <Label>{t('goals.kind')}</Label>
+                <div className="mt-2">
+                    <SegmentedControl value={kind} onChange={setKind} options={[
+                        {value: GoalKindSaving, label: t('goals.saving')},
+                        {value: GoalKindInvesting, label: t('goals.investing')},
+                    ]}/>
+                </div>
             </Field>
-            <div className="flex flex-wrap gap-3">
-                <SegmentedControl value={kind} onChange={setKind} options={[
-                    {value: GoalKindSaving, label: t('goals.saving')},
-                    {value: GoalKindInvesting, label: t('goals.investing')},
-                ]}/>
-            </div>
             <div className="grid grid-cols-2 gap-3">
                 <Field>
                     <Label>{t('goals.target')}</Label>
-                    <Input inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="0,00" className="text-right"/>
+                    <Input inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="0,00" className="[&_input]:text-right"/>
                 </Field>
                 <Field>
                     <Label>{t('savings.goalDate')}</Label>
@@ -111,7 +116,7 @@ export default function GoalDialog({open, onClose, goal, persons, accounts, coun
             <div className="grid grid-cols-2 gap-3">
                 <Field>
                     <Label>{t('goals.current')}</Label>
-                    <Input inputMode="decimal" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="0,00" className="text-right"/>
+                    <Input inputMode="decimal" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="0,00" className="[&_input]:text-right"/>
                 </Field>
                 <Field>
                     <Label>{t('household.owner')}</Label>
@@ -156,11 +161,6 @@ export default function GoalDialog({open, onClose, goal, persons, accounts, coun
                     {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </Select>
             </Field>
-            <IconField icon={icon} color={color} defaultIcon={kindDefault.icon} defaultColor={kindDefault.color}
-                       onChange={(i, c) => {
-                           setIcon(i);
-                           setColor(c);
-                       }}/>
         </FormDialog>
     );
 }
