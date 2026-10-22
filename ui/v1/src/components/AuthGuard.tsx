@@ -1,4 +1,5 @@
 import {useEffect, type ReactNode} from "react";
+import {Navigate} from "react-router";
 import {useAuth} from "../stores/useAuth.ts";
 import {useTranslation} from "react-i18next";
 
@@ -19,13 +20,11 @@ export default function AuthGuard({children}: { children: ReactNode }) {
     }
 
     if (!isAuthenticated) {
-        window.location.hash = '#/login';
-        return null;
+        return <Navigate to="/login" replace/>;
     }
 
     if (user?.must_change_password) {
-        window.location.hash = '#/change-password';
-        return null;
+        return <Navigate to="/change-password" replace/>;
     }
 
     return <>{children}</>;

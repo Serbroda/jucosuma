@@ -12,7 +12,7 @@ COPY ui/v1 .
 RUN npm run build
 
 
-FROM golang:1.24-alpine AS build-go
+FROM golang:1.27-alpine AS build-go
 
 # Install make
 RUN apk add  --no-cache make
@@ -36,7 +36,7 @@ RUN CGO_ENABLED=0 \
       -o bin/jucosuma-linux-amd64 \
       ./cmd/web
 
-FROM alpine:3.22 AS run
+FROM alpine:3.24 AS run
 
 ARG DEFAULT_ADDR=":8080"
 ARG DEFAULT_DB_PATH="./data/jucosuma.db"

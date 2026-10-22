@@ -21,12 +21,9 @@ export const usePreferences = create<PreferencesState>((set) => ({
     theme: "light" as Theme,
     mainCurrency: "EUR",
     init: () => {
-        let theme: Theme | null = null;
-        if (localStorage.theme === "dark" || !("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark").matches) {
-            theme = "dark"
-        } else {
-            theme = "light"
-        }
+        // without own choice the theme follows the system
+        const theme: Theme = localStorage.theme === "dark"
+        || !("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
         applyTheme(theme);
         const mainCurrency = localStorage.getItem("mainCurrency") || "EUR";
         set({theme, mainCurrency})

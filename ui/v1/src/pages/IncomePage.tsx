@@ -52,8 +52,9 @@ export default function IncomePage() {
         return {result, flows};
     };
 
+    const monthKey = month.format("YYYY-MM");
     const {result: current, flows} = useMemo(() => byEarner(month), // eslint-disable-next-line react-hooks/exhaustive-deps
-        [data, month.format("YYYY-MM"), mode]);
+        [data, monthKey, mode]);
     const total = Object.values(current).reduce((s, v) => s + v, 0);
     const potLabel = (pot: string) => pot === "household"
         ? t('overview.potHousehold') : data.persons.find((p) => String(p.id) === pot)?.name ?? t('common.unknown');
