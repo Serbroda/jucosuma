@@ -35,7 +35,7 @@ func main() {
 	dbPath := flag.String("db-path", utils.GetEnv("DB_PATH", "jucosuma.db"), "sqlite data source")
 	uploadsDir := flag.String("uploads-dir", utils.GetEnv("UPLOADS_DIR", "./uploads"), "uploads directory")
 	backupDir := flag.String("backup-dir", utils.GetEnv("BACKUP_DIR", ""), "directory for daily database backups (default: backups next to the database)")
-	backupKeep := flag.Int("backup-keep", backupKeepDefault(), "number of daily backups to keep, 0 disables backups (admins can change both in the settings)")
+	backupKeep := flag.Int("backup-keep", backupKeepDefault(), "number of backups to keep, 0 disables backups (admins can change both in the settings)")
 	flag.Parse()
 	if *backupDir == "" {
 		*backupDir = filepath.Join(filepath.Dir(*dbPath), "backups")
