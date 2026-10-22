@@ -26,6 +26,8 @@ func MapContractToContractDto(item sqlc.Contract) ContractDto {
 		ContactAddress:  item.ContactAddress,
 		ContactPhone:    item.ContactPhone,
 		ContactEmail:    item.ContactEmail,
+		Website:         item.Website,
+		Links:           []ContractLinkDto{},
 		IconSource:      item.IconSource,
 		Notes:           item.Notes,
 		OwnerID:         item.OwnerID,
@@ -366,4 +368,13 @@ func MapSavingsGoalToDto(g sqlc.SavingsGoal) SavingsGoalDto {
 		CreatedAt:     g.CreatedAt,
 		UpdatedAt:     g.UpdatedAt,
 	}
+}
+
+// MapContractLinks maps the links of an entry.
+func MapContractLinks(links []sqlc.ContractLink) []ContractLinkDto {
+	result := make([]ContractLinkDto, 0, len(links))
+	for _, l := range links {
+		result = append(result, ContractLinkDto{ID: l.ID, Title: l.Title, URL: l.Url})
+	}
+	return result
 }

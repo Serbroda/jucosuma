@@ -11,6 +11,8 @@ import {
     CalendarIcon,
     ClockIcon,
     DocumentIcon,
+    LinkIcon,
+    ArrowTopRightOnSquareIcon,
     PencilIcon,
     UserIcon,
 } from "@heroicons/react/16/solid";
@@ -25,6 +27,7 @@ import EntryIcon from "../components/EntryIcon.tsx";
 import AmountHistory from "../components/AmountHistory.tsx";
 import LineBreakParagraph from "../components/LineBreakParagraph.tsx";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
+import {linkLabel, safeHref} from "../utils/dom.utils.ts";
 
 const statusColor = (status: string): "green" | "yellow" | "zinc" => {
     switch (status) {
@@ -52,7 +55,9 @@ export default function ContractPage() {
     const totalWeight = c?.shares.reduce((sum, s) => sum + s.weight, 0) ?? 0;
 
     const hasRecurringBilling = c?.billing_period && c.billing_period !== BillingPeriodNone && c.billing_period !== BillingPeriodOneTime;
-    const hasContact = c?.contact_person || c?.contact_address || c?.contact_phone || c?.contact_email;
+    const hasContact = c?.website || c?.contact_person || c?.contact_address || c?.contact_phone || c?.contact_email;
+    const website = safeHref(c?.website);
+    const links = (c?.links ?? []).filter((l) => safeHref(l.url));
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -236,6 +241,16 @@ export default function ContractPage() {
                     <Subheading className="mt-10">{t('entryForm.contactInformation')}</Subheading>
                     <Divider className="mt-4"/>
                     <DescriptionList>
+                        {website && <>
+                            <DescriptionTerm>{t('entryForm.website')}</DescriptionTerm>
+                            <DescriptionDetails>
+                                <a href={website} target="_blank" rel="noopener noreferrer"
+                                   className="inline-flex items-center gap-1.5 text-blue-600 dark:text-blue-400 hover:underline">
+                                    {linkLabel(website)}
+                                    <ArrowTopRightOnSquareIcon className="size-3.5 fill-current"/>
+                                </a>
+                            </DescriptionDetails>
+                        </>}
                         {c?.contact_person && <>
                             <DescriptionTerm>{t('entryForm.contactPerson')}</DescriptionTerm>
                             <DescriptionDetails>{c.contact_person}</DescriptionDetails>
@@ -257,8 +272,8 @@ export default function ContractPage() {
                     </DescriptionList>
                 </>}
 
-                {((c?.documents && c.documents.length > 0) || c?.notes) && <>
-                    <Subheading className="mt-10">{t('entryForm.documentsAndNotes')}</Subheading>
+                {((c?.documents && c.documents.length > 0) || links.length > 0 || c?.notes) && <>
+                    <Subheading className="mt-10">{t('entryForm.documentsLinksNotes')}</Subheading>
                     <Divider className="mt-4"/>
                     <DescriptionList>
                         {c?.documents && c.documents.length > 0 && <>
@@ -276,6 +291,19 @@ export default function ContractPage() {
                                             <span className="truncate">{doc.title}</span>
                                         </a>
                                     </div>
+                                )}
+                            </DescriptionDetails>
+                        </>}
+                        {links.length > 0 && <>
+                            <DescriptionTerm>{t('entryForm.links')}</DescriptionTerm>
+                            <DescriptionDetails>
+                                {links.map((l) =>
+                                    <a key={l.id} href={safeHref(l.url)} target="_blank" rel="noopener noreferrer" title={l.url}
+                                       className="flex min-w-0 items-center gap-2 text-sm/6 text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white pt-2">
+                                        <LinkIcon className="h-5 w-5 shrink-0 fill-zinc-400 dark:fill-zinc-500"/>
+                                        <span className="truncate">{l.title}</span>
+                                        <ArrowTopRightOnSquareIcon className="size-3.5 shrink-0 fill-zinc-400 dark:fill-zinc-500"/>
+                                    </a>
                                 )}
                             </DescriptionDetails>
                         </>}

@@ -121,6 +121,8 @@ type ContractDto struct {
 	Amounts         []ContractAmountDto `json:"amounts"`
 	CreatedAt       *time.Time          `json:"created_at"`
 	UpdatedAt       *time.Time          `json:"updated_at"`
+	Website         *string             `json:"website"`
+	Links           []ContractLinkDto   `json:"links"`
 	Documents       []DocumentDto       `json:"documents"`
 }
 
@@ -146,6 +148,7 @@ type CreateContractDto struct {
 	ContactAddress  *string    `json:"contact_address"`
 	ContactPhone    *string    `json:"contact_phone"`
 	ContactEmail    *string    `json:"contact_email"`
+	Website         *string    `json:"website"`
 	IconSource      *string    `json:"icon_source"`
 	Notes           *string    `json:"notes"`
 	OwnerID         *int64     `json:"owner_id"`
@@ -155,6 +158,8 @@ type CreateContractDto struct {
 	TargetAccountID *int64     `json:"target_account_id"`
 	GoalID          *int64     `json:"goal_id"`
 	Shares          []ShareDto `json:"shares"`
+	// Links replaces all links of the entry; nil keeps the existing ones.
+	Links *[]ContractLinkDto `json:"links"`
 }
 
 type UpdateContractDto struct {
@@ -179,6 +184,7 @@ type UpdateContractDto struct {
 	ContactAddress  *string    `json:"contact_address"`
 	ContactPhone    *string    `json:"contact_phone"`
 	ContactEmail    *string    `json:"contact_email"`
+	Website         *string    `json:"website"`
 	IconSource      *string    `json:"icon_source"`
 	Notes           *string    `json:"notes"`
 	OwnerID         *int64     `json:"owner_id"`
@@ -409,4 +415,11 @@ type ContractAmountDto struct {
 type SaveContractAmountDto struct {
 	ValidFrom DateOnly `json:"valid_from"`
 	Costs     *float64 `json:"costs" validate:"required"`
+}
+
+// ContractLinkDto is a link of an entry, e.g. a customer portal or a document in Paperless.
+type ContractLinkDto struct {
+	ID    int64  `json:"id"`
+	Title string `json:"title"`
+	URL   string `json:"url"`
 }

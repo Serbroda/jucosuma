@@ -1,7 +1,7 @@
 import {useMemo, useState} from "react";
 import {useNavigate, useRevalidator} from "react-router";
 import {useTranslation} from "react-i18next";
-import {CalendarDaysIcon, DocumentTextIcon, ShieldCheckIcon} from "@heroicons/react/20/solid";
+import {CalendarDaysIcon, DocumentTextIcon, ShieldCheckIcon, ArrowTopRightOnSquareIcon} from "@heroicons/react/20/solid";
 import PageHeader from "../components/ui/PageHeader.tsx";
 import IconTile from "../components/ui/IconTile.tsx";
 import RowActions from "../components/ui/RowActions.tsx";
@@ -17,7 +17,7 @@ import {splitText} from "../utils/budget.utils.ts";
 import {daysUntil, isContractEntry, noticeLabel} from "../utils/household.utils.ts";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
-import {classNames} from "../utils/dom.utils.ts";
+import {classNames, safeHref} from "../utils/dom.utils.ts";
 import {sendJson} from "../lib/api.ts";
 import {card, cardTitle, table, td, th, tr} from "../utils/ui.ts";
 import dayjs from "../lib/dayjs";
@@ -135,14 +135,23 @@ export default function ContractsPage() {
                         {listed.map((c) => (
                             <tr key={c.id} className={tr}>
                                 <td className={classNames(td, "pl-5")}>
-                                    <button onClick={() => navigate(`/contracts/${c.id}`)}
-                                            className="flex items-center gap-3 min-w-0 text-left hover:cursor-pointer">
-                                        <EntryIcon name={c.name} icon={c.icon_source} category={categoryOf(c)} className="size-8"/>
-                                        <span className="min-w-0">
-                                            <span className="block truncate font-medium text-zinc-950 dark:text-white">{c.name}</span>
-                                            <span className="block truncate text-xs text-zinc-400 dark:text-zinc-500">{c.company ?? "–"}</span>
-                                        </span>
-                                    </button>
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <button onClick={() => navigate(`/contracts/${c.id}`)}
+                                                className="flex items-center gap-3 min-w-0 text-left hover:cursor-pointer">
+                                            <EntryIcon name={c.name} icon={c.icon_source} category={categoryOf(c)} className="size-8"/>
+                                            <span className="min-w-0">
+                                                <span className="block truncate font-medium text-zinc-950 dark:text-white">{c.name}</span>
+                                                <span className="block truncate text-xs text-zinc-400 dark:text-zinc-500">{c.company ?? "–"}</span>
+                                            </span>
+                                        </button>
+                                        {safeHref(c.website) && (
+                                            <a href={safeHref(c.website)} target="_blank" rel="noopener noreferrer"
+                                               title={t('entryForm.website')} aria-label={t('entryForm.website')}
+                                               className="shrink-0 rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-white">
+                                                <ArrowTopRightOnSquareIcon className="size-4"/>
+                                            </a>
+                                        )}
+                                    </div>
                                 </td>
                                 <td className={classNames(td, "hidden lg:table-cell tabular-nums whitespace-nowrap")}>{c.contract_number ?? "–"}</td>
                                 <td className={classNames(td, "hidden md:table-cell")}>

@@ -82,6 +82,10 @@ func (app *application) importContractsJSON(c echo.Context) error {
 		}
 
 		categoryID, categoryName := categories.categoryParams(p.CategoryID, p.Category, normalizeKind(p.Kind))
+		website, err := normalizeOptionalURL(p.Website)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "'"+p.Name+"': "+err.Error())
+		}
 		inserted, err := qtx.InsertContract(ctx, sqlc.InsertContractParams{
 			Name:            p.Name,
 			Company:         p.Company,
@@ -104,6 +108,7 @@ func (app *application) importContractsJSON(c echo.Context) error {
 			ContactAddress:  p.ContactAddress,
 			ContactPhone:    p.ContactPhone,
 			ContactEmail:    p.ContactEmail,
+			Website:         website,
 			IconSource:      p.IconSource,
 			Notes:           p.Notes,
 			OwnerID:         p.OwnerID,
@@ -118,6 +123,11 @@ func (app *application) importContractsJSON(c echo.Context) error {
 		}
 		if err := replaceContractShares(ctx, qtx, inserted.ID, p.Shares, persons); err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to import shares of '"+p.Name+"': "+err.Error())
+		}
+		if p.Links != nil {
+			if err := replaceContractLinks(ctx, qtx, inserted.ID, *p.Links); err != nil {
+				return echo.NewHTTPError(http.StatusBadRequest, "'"+p.Name+"': "+err.Error())
+			}
 		}
 		imported++
 	}

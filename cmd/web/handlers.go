@@ -126,6 +126,11 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 		targetAccountID, goalID = nil, nil
 	}
 
+	website, err := normalizeOptionalURL(payload.Website)
+	if err != nil {
+		return nil, echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
 	// 2) DB-Operation: Insert oder Update
 	var contract *sqlc.Contract
 	if id == nil {
@@ -151,6 +156,7 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			ContactAddress:  payload.ContactAddress,
 			ContactPhone:    payload.ContactPhone,
 			ContactEmail:    payload.ContactEmail,
+			Website:         website,
 			IconSource:      payload.IconSource,
 			Notes:           payload.Notes,
 			OwnerID:         payload.OwnerID,
@@ -214,6 +220,7 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			ContactAddress:  payload.ContactAddress,
 			ContactPhone:    payload.ContactPhone,
 			ContactEmail:    payload.ContactEmail,
+			Website:         website,
 			IconSource:      payload.IconSource,
 			Notes:           payload.Notes,
 			OwnerID:         payload.OwnerID,
@@ -244,6 +251,11 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 	}
 	if err := replaceContractShares(ctx, qtx, contract.ID, shares, persons); err != nil {
 		return nil, echo.NewHTTPError(http.StatusInternalServerError, "cannot save shares: "+err.Error())
+	}
+	if payload.Links != nil {
+		if err := replaceContractLinks(ctx, qtx, contract.ID, *payload.Links); err != nil {
+			return nil, echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
 	}
 
 	// 3) Optional: Datei-Upload verarbeiten

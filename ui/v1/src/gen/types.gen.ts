@@ -78,6 +78,8 @@ export interface ContractDto {
   amounts: ContractAmountDto[];
   created_at?: string /* RFC3339 */;
   updated_at?: string /* RFC3339 */;
+  website?: string;
+  links: ContractLinkDto[];
   documents: DocumentDto[];
 }
 export interface CreateContractDto {
@@ -102,6 +104,7 @@ export interface CreateContractDto {
   contact_address?: string;
   contact_phone?: string;
   contact_email?: string;
+  website?: string;
   icon_source?: string;
   notes?: string;
   owner_id?: number /* int64 */;
@@ -111,6 +114,10 @@ export interface CreateContractDto {
   target_account_id?: number /* int64 */;
   goal_id?: number /* int64 */;
   shares: ShareDto[];
+  /**
+   * Links replaces all links of the entry; nil keeps the existing ones.
+   */
+  links?: ContractLinkDto[];
 }
 export interface UpdateContractDto {
   name: string;
@@ -134,6 +141,7 @@ export interface UpdateContractDto {
   contact_address?: string;
   contact_phone?: string;
   contact_email?: string;
+  website?: string;
   icon_source?: string;
   notes?: string;
   owner_id?: number /* int64 */;
@@ -334,4 +342,12 @@ export interface ContractAmountDto {
 export interface SaveContractAmountDto {
   valid_from: DateOnly;
   costs?: number /* float64 */;
+}
+/**
+ * ContractLinkDto is a link of an entry, e.g. a customer portal or a document in Paperless.
+ */
+export interface ContractLinkDto {
+  id: number /* int64 */;
+  title: string;
+  url: string;
 }

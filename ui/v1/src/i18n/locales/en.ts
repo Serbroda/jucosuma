@@ -144,6 +144,13 @@ const en = {
         saveAndNew: "Save & new",
     },
     entryForm: {
+        website: "Website",
+        links: "Links",
+        linksHint: "e.g. customer portal or the contract in Paperless.",
+        addLink: "Add link",
+        linkTitle: "Title",
+        linkUrl: "Address",
+        documentsLinksNotes: "Documents, links & notes",
         addTitle: "Add Entry",
         editTitle: "Edit Entry",
         nameRequired: "Name is required.",

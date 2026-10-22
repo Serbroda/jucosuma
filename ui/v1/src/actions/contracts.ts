@@ -40,6 +40,9 @@ export const contractAction: ActionFunction = async ({request, params}) => {
         contact_address: form.get("contact_address") as string,
         contact_phone: form.get("contact_phone") as string,
         contact_email: form.get("contact_email") as string,
+        website: form.get("website") as string || undefined,
+        // only sent by the full form; without the field the existing links are kept
+        links: form.has("links") ? JSON.parse(form.get("links") as string) : undefined,
         icon_source: form.get("icon_source") as string || undefined,
         notes: form.get("notes") as string || undefined,
         owner_id: form.get("owner_id") ? Number(form.get("owner_id")) : undefined,

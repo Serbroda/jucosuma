@@ -72,6 +72,7 @@ type Contract struct {
 	NoticePeriod    *int64     `db:"notice_period"`
 	NoticeUnit      *string    `db:"notice_unit"`
 	IsContract      int64      `db:"is_contract"`
+	Website         *string    `db:"website"`
 }
 
 type ContractAmount struct {
@@ -79,6 +80,14 @@ type ContractAmount struct {
 	ContractID int64     `db:"contract_id"`
 	ValidFrom  time.Time `db:"valid_from"`
 	Costs      float64   `db:"costs"`
+}
+
+type ContractLink struct {
+	ID         int64  `db:"id"`
+	ContractID int64  `db:"contract_id"`
+	Title      string `db:"title"`
+	Url        string `db:"url"`
+	SortOrder  int64  `db:"sort_order"`
 }
 
 type ContractShare struct {

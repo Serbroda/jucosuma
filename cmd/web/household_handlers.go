@@ -313,10 +313,19 @@ func (app *application) mapContracts(ctx context.Context, contracts []sqlc.Contr
 	for _, a := range amounts {
 		amountsByContract[a.ContractID] = append(amountsByContract[a.ContractID], a)
 	}
+	links, err := app.queries.FindAllContractLinks(ctx)
+	if err != nil {
+		return nil, err
+	}
+	linksByContract := make(map[int64][]sqlc.ContractLink)
+	for _, l := range links {
+		linksByContract[l.ContractID] = append(linksByContract[l.ContractID], l)
+	}
 
 	return utils.MapSlice(contracts, func(item sqlc.Contract) dtos.ContractDto {
 		dto := dtos.MapContractWithShares(item, sharesByContract[item.ID], persons)
 		dtos.ApplyAmounts(&dto, amountsByContract[item.ID])
+		dto.Links = dtos.MapContractLinks(linksByContract[item.ID])
 		categories.apply(&dto, item)
 		return dto
 	}), nil
@@ -339,8 +348,13 @@ func (app *application) mapContract(ctx context.Context, contract sqlc.Contract)
 	if err != nil {
 		return dtos.ContractDto{}, err
 	}
+	links, err := app.queries.FindContractLinksByContractId(ctx, contract.ID)
+	if err != nil {
+		return dtos.ContractDto{}, err
+	}
 	dto := dtos.MapContractWithShares(contract, shares, persons)
 	dtos.ApplyAmounts(&dto, amounts)
+	dto.Links = dtos.MapContractLinks(links)
 	categories.apply(&dto, contract)
 	return dto, nil
 }

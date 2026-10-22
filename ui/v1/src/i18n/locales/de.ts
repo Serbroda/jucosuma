@@ -148,6 +148,13 @@ const de: Translation<typeof en> = {
         saveAndNew: "Speichern & neu",
     },
     entryForm: {
+        website: "Webseite",
+        links: "Links",
+        linksHint: "z. B. Kundenportal oder der Vertrag in Paperless.",
+        addLink: "Link hinzufügen",
+        linkTitle: "Titel",
+        linkUrl: "Adresse",
+        documentsLinksNotes: "Dokumente, Links & Notizen",
         addTitle: "Posten anlegen",
         editTitle: "Posten bearbeiten",
         nameRequired: "Name ist erforderlich.",

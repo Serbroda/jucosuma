@@ -25,6 +25,7 @@ import {CheckIcon, ChevronRightIcon, DocumentIcon, PencilIcon, XMarkIcon} from "
 import SharesEditor from "./SharesEditor.tsx";
 import EarnerSelect from "./EarnerSelect.tsx";
 import AmountHistory from "./AmountHistory.tsx";
+import LinksEditor, {type EditableLink} from "./LinksEditor.tsx";
 import {costOwner, earnerOfAccount, earnerShares, type Pot} from "../utils/budget.utils.ts";
 import EntryIcon from "./EntryIcon.tsx";
 import {categoryLabel, defaultShares, entryKinds, entryPeriods, isContractCategory} from "../utils/household.utils.ts";
@@ -53,6 +54,7 @@ export default function ContractForm({contract, holders, companies, categories, 
     const {user: currentUser} = useAuth();
     const isEdit = mode === 'edit';
     const [isPersonal, setIsPersonal] = useState(contract.owner_id != null);
+    const [links, setLinks] = useState<EditableLink[]>((contract.links ?? []).map((l) => ({title: l.title, url: l.url})));
     const [nameError, setNameError] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
     const isBusy = state === 'submitting' || isDeleting;
@@ -94,7 +96,7 @@ export default function ContractForm({contract, holders, companies, categories, 
     const [showDetails, setShowDetails] = useState(Boolean(contract.is_contract) || Boolean(
         contract.company || contract.contract_number || contract.customer_number || contract.contract_holder
         || contract.contact_person || contract.contact_email || contract.contact_phone || contract.notes
-        || contract.documents?.length));
+        || contract.website || contract.links?.length || contract.documents?.length));
 
     const isExpense = kind === EntryKindExpense;
     const isIncome = kind === EntryKindIncome;
@@ -568,6 +570,15 @@ export default function ContractForm({contract, holders, companies, categories, 
                 <Divider className="mt-6"/>
                 <Subheading>{t('entryForm.contactInformation')}</Subheading>
                 <Field>
+                    <Label>{t('entryForm.website')}</Label>
+                    <Input
+                        name="website"
+                        inputMode="url"
+                        placeholder="https://www.…"
+                        defaultValue={contract.website ?? ""}
+                    />
+                </Field>
+                <Field>
                     <Label>{t('entryForm.contactPerson')}</Label>
                     <Input
                         name="contact_person"
@@ -606,6 +617,15 @@ export default function ContractForm({contract, holders, companies, categories, 
                         multiple
                         accept=".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
                     />
+                </Field>
+
+                <Field>
+                    <Label>{t('entryForm.links')}</Label>
+                    <Description>{t('entryForm.linksHint')}</Description>
+                    <div className="mt-2">
+                        <LinksEditor value={links} onChange={setLinks}/>
+                    </div>
+                    <input type="hidden" name="links" value={JSON.stringify(links)}/>
                 </Field>
 
                 <div>
