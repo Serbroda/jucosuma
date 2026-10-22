@@ -537,7 +537,7 @@ const en = {
         startDate: "Contract start",
         startDateHint: "Term end and cancellation deadline are calculated from this date.",
         isContract: "Is a contract",
-        isContractHint: "Shown on the contracts page with term and cancellation deadlines.",
+        isContractHint: "Shown on the contracts page with term and cancellation deadlines. Off = variable cost or budget (e.g. groceries, fuel). Variable costs can get an actual amount in the monthly closing.",
         title: "Contracts & insurances",
         subtitle: "All contracts with provider, term and cancellation deadlines.",
         term: "Term",
@@ -591,6 +591,7 @@ const en = {
         },
     },
     closing: {
+        noVariable: "No variable costs planned for this month. Add expenses like groceries or fuel without “Is a contract” to compare them here.",
         account: "Account",
         title: "Monthly closing",
         subtitle: "Once a month: enter account balances and, if you like, what you really spent on variable costs.",

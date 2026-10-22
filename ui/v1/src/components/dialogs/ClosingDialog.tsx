@@ -160,10 +160,12 @@ export default function ClosingDialog({open, onClose, month, data}: {
                 </div>
             </div>
 
-            {categories.length > 0 && (
-                <div>
-                    <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('closing.actualsTitle')}</div>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{t('closing.actualsHint')}</p>
+            <div>
+                <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('closing.actualsTitle')}</div>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                    {categories.length > 0 ? t('closing.actualsHint') : t('closing.noVariable')}
+                </p>
+                {categories.length > 0 && (
                     <div className="flex flex-col gap-2 mt-3">
                         {categories.map((c) => {
                             const planned = plan.byCategory.find((b) => b.id === c.id)?.amount ?? 0;
@@ -190,8 +192,8 @@ export default function ClosingDialog({open, onClose, month, data}: {
                             );
                         })}
                     </div>
-                </div>
-            )}
+                )}
+            </div>
 
             <Field>
                 <Label>{t('entryForm.notes')}</Label>

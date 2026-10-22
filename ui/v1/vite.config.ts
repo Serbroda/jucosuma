@@ -11,6 +11,10 @@ export default defineConfig({
         tailwindcss(),
         VitePWA({
             registerType: 'autoUpdate',
+            // no offline cache: the app needs the API anyway and a precaching service worker kept
+            // serving outdated builds. selfDestroying unregisters already installed workers and
+            // clears their caches; the manifest stays so the app can still be added to the home screen.
+            selfDestroying: true,
             manifest: {
                 name: 'Jucosuma',
                 short_name: 'Jucosuma',

@@ -7,7 +7,7 @@ import EntryTable from "../components/EntryTable.tsx";
 import QuickEntryDialog from "../components/QuickEntryDialog.tsx";
 import {Button} from "../components/catalyst/button.tsx";
 import {Input, InputGroup} from "../components/catalyst/input.tsx";
-import {BillingPeriodOneTime, EntryKindExpense} from "../gen/types.gen.ts";
+import {EntryKindExpense} from "../gen/types.gen.ts";
 import {useAppData} from "../hooks/useAppData.ts";
 import {useMonth} from "../stores/useMonth.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
@@ -39,7 +39,8 @@ export default function ExpensesPage() {
     const term = search.trim().toLowerCase();
     const listed = expenses
         .filter((c) => amountInMonth(c, month, "average") > 0)
-        .filter((c) => filter === "all" || (filter === "variable") === (c.billing_period === BillingPeriodOneTime))
+        // fixed costs are contracts, everything else (budgets, one-off purchases) is variable
+        .filter((c) => filter === "all" || (filter === "variable") === !c.is_contract)
         .filter((c) => !term || c.name.toLowerCase().includes(term) || (c.company ?? "").toLowerCase().includes(term))
         .sort((a, b) => amountInMonth(b, month, "average") - amountInMonth(a, month, "average"));
 

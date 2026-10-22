@@ -541,7 +541,7 @@ const de: Translation<typeof en> = {
         startDate: "Vertragsbeginn",
         startDateHint: "Laufzeitende und Kündigungsfrist werden ab diesem Datum berechnet.",
         isContract: "Ist ein Vertrag",
-        isContractHint: "Erscheint unter Verträge mit Laufzeit und Kündigungsfristen.",
+        isContractHint: "Erscheint unter Verträge mit Laufzeit und Kündigungsfristen. Aus = variable Kosten bzw. Budget (z. B. Lebensmittel, Tanken). Für variable Kosten kannst du im Monatsabschluss den Ist-Betrag erfassen.",
         title: "Verträge & Versicherungen",
         subtitle: "Alle Verträge mit Anbieter, Laufzeit und Kündigungsfristen.",
         term: "Laufzeit",
@@ -595,6 +595,7 @@ const de: Translation<typeof en> = {
         },
     },
     closing: {
+        noVariable: "Für diesen Monat sind keine variablen Kosten geplant. Lege Ausgaben wie Lebensmittel oder Tanken ohne „Ist ein Vertrag“ an, um sie hier zu vergleichen.",
         account: "Konto",
         title: "Monatsabschluss",
         subtitle: "Einmal im Monat: Kontostände eintragen und, wenn ihr wollt, was ihr für variable Kosten wirklich ausgegeben habt.",
