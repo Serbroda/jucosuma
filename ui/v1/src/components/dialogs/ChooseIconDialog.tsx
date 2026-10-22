@@ -124,7 +124,9 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
 
     return (
         <Dialog open={isOpen} onClose={onClose}>
-            <TabGroup defaultIndex={0}>
+            {/* title on top as in every dialog, so the close button does not cover the tabs */}
+            <DialogTitle>{t('icons.title')}</DialogTitle>
+            <TabGroup defaultIndex={0} className="mt-4">
                 <TabList className="flex gap-1 dark:bg-zinc-800 rounded-lg p-1 transition-all">
                     {tabs.map((label, idx) => (
                         <Tab key={idx} as={Fragment}>
@@ -146,7 +148,6 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
 
                 <TabPanels>
                     <TabPanel className="focus:outline-none mt-4">
-                        <DialogTitle>{t('icons.symbolsTitle')}</DialogTitle>
                         <DialogBody className="flex flex-col gap-4">
                             <ColorPicker value={symbolColor} onChange={(color) => chooseSymbol(symbol, color)}/>
                             <IconPicker value={symbol} color={symbolColor} onChange={(icon) => chooseSymbol(icon, symbolColor)}/>
@@ -155,7 +156,6 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
                     </TabPanel>
 
                     <TabPanel className="focus:outline-none mt-4">
-                        <DialogTitle>{t('icons.recentTitle')}</DialogTitle>
                         <DialogBody>
                             {recentIcons.length > 0
                                 ? iconGrid(recentIcons)
@@ -166,7 +166,6 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
                     </TabPanel>
 
                     <TabPanel className="focus:outline-none mt-4">
-                        <DialogTitle>{t('icons.searchTitle')}</DialogTitle>
                         <DialogBody>
                             <Field>
                                 <Label>{t('common.search')}</Label>
@@ -186,7 +185,6 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
                     </TabPanel>
 
                     <TabPanel className="focus:outline-none mt-4">
-                        <DialogTitle>{t('icons.uploadTitle')}</DialogTitle>
                         <DialogBody>
                             <Field>
                                 <Label>{t('icons.icon')}</Label>

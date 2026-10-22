@@ -6,7 +6,7 @@ import {Description, Field, Label} from "../catalyst/fieldset.tsx";
 import {Input} from "../catalyst/input.tsx";
 import {Select} from "../catalyst/select.tsx";
 import {Checkbox, CheckboxField} from "../catalyst/checkbox.tsx";
-import IconField from "../ui/IconField.tsx";
+import NameIconField from "../ui/NameIconField.tsx";
 import {
     AccountTypeChecking,
     AccountTypeDepot,
@@ -80,10 +80,12 @@ export default function AccountDialog({open, onClose, account, persons}: {
     return (
         <FormDialog open={open} onClose={onClose} onSubmit={save} saving={saving} error={error}
                     title={account ? t('accounts.edit') : t('accounts.add')}>
-            <Field>
-                <Label>{t('common.name')}</Label>
-                <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={t('household.accountPlaceholder')}/>
-            </Field>
+            <NameIconField name={name} onNameChange={setName} placeholder={t('household.accountPlaceholder')}
+                           icon={icon} color={color} defaultIcon={typeDefault.icon} defaultColor={typeDefault.color}
+                           onIconChange={(i, c) => {
+                               setIcon(i);
+                               setColor(c);
+                           }}/>
             <div className="grid grid-cols-2 gap-3">
                 <Field>
                     <Label>{t('household.accountType')}</Label>
@@ -110,14 +112,9 @@ export default function AccountDialog({open, onClose, account, persons}: {
                 <Field>
                     <Label>{t('accounts.currentBalance')}</Label>
                     <Input inputMode="decimal" value={balance} onChange={(e) => setBalance(e.target.value)}
-                           placeholder={t('savings.optional')} className="text-right"/>
+                           placeholder={t('savings.optional')} className="[&_input]:text-right"/>
                 </Field>
             </div>
-            <IconField icon={icon} color={color} defaultIcon={typeDefault.icon} defaultColor={typeDefault.color}
-                       onChange={(i, c) => {
-                           setIcon(i);
-                           setColor(c);
-                       }}/>
             <CheckboxField>
                 <Checkbox checked={isSavings} onChange={setIsSavings}/>
                 <Label>{t('accounts.isSavings')}</Label>

@@ -13,6 +13,7 @@ import EarnerSelect from "./EarnerSelect.tsx";
 import CostTypeControl from "./CostTypeControl.tsx";
 import TransferTypeControl from "./TransferTypeControl.tsx";
 import EntryIcon from "./EntryIcon.tsx";
+import IconButton from "./ui/IconButton.tsx";
 import ChooseIconDialog from "./dialogs/ChooseIconDialog.tsx";
 import {defaultTransferType, earnerOfAccount, earnerShares, isSavingsAccount, type Pot} from "../utils/budget.utils.ts";
 import {
@@ -276,14 +277,12 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                         ))}
                     </div>
 
-                    <div className="grid grid-cols-[auto_1fr_7rem] items-end gap-2">
-                        <button type="button" onClick={() => setChooseIcon(true)} title={t('icons.icon')}
-                                aria-label={t('icons.icon')}
-                                className="rounded-lg hover:cursor-pointer hover:opacity-80 focus:outline-2 focus:outline-blue-500">
+                    <div className="grid grid-cols-[auto_1fr_7rem] items-end gap-3">
+                        <IconButton onClick={() => setChooseIcon(true)}>
                             <EntryIcon name={name || "?"} icon={iconSource}
                                        category={isTransfer ? undefined : categories.find((c) => c.id === categoryId)}
                                        className="size-9"/>
-                        </button>
+                        </IconButton>
                         <Field>
                             <Label>{t('common.name')}</Label>
                             <Input
@@ -301,12 +300,12 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
                                 placeholder="0,00"
-                                className="text-right"
+                                className="[&_input]:text-right"
                             />
                         </Field>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-3">
                         <Field>
                             <Label>{t('entry.interval')}</Label>
                             <Select value={period} onChange={(e) => setPeriod(e.target.value)}>
@@ -319,7 +318,7 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                         </Field>
                     </div>
 
-                    <div className="grid gap-2 grid-cols-2">
+                    <div className="grid gap-3 grid-cols-2">
                         <Field>
                             <Label>{isExpense ? t('entry.paidFrom') : isTransfer ? t('entry.fromAccount') : t('entry.toAccount')}</Label>
                             <Select value={accountId ?? ""}

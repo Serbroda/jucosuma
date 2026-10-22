@@ -194,7 +194,7 @@ export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClo
                     </>
                 ) : (
                     <>
-                        <Button outline onClick={handleClose} className="hover:cursor-pointer">{t('common.cancel')}</Button>
+                        <Button plain onClick={handleClose} className="hover:cursor-pointer">{t('common.cancel')}</Button>
                         <Button onClick={handlePreview} disabled={loading || !file} className="hover:cursor-pointer">
                             {loading ? t('common.loading') : t('import.preview')}
                         </Button>

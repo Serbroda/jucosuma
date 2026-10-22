@@ -8,7 +8,7 @@ export interface SegmentedControlProps<T extends string> {
 
 export default function SegmentedControl<T extends string>({options, value, onChange}: SegmentedControlProps<T>) {
     return (
-        <div className="flex max-w-full overflow-x-auto rounded-lg bg-zinc-100 dark:bg-zinc-800 p-0.5 text-xs">
+        <div className="flex w-fit max-w-full overflow-x-auto rounded-lg bg-zinc-100 dark:bg-zinc-800 p-0.5 text-xs">
             {options.map((o) => (
                 <button
                     key={o.value}

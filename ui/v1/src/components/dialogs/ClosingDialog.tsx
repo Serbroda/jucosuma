@@ -135,7 +135,7 @@ export default function ClosingDialog({open, onClose, month, data}: {
                                     <span className="hidden sm:block text-xs text-right text-zinc-500 dark:text-zinc-400 tabular-nums">
                                         {t('closing.plan', {amount: format(planned)})}
                                     </span>
-                                    <Input inputMode="decimal" className="text-right" placeholder={t('closing.actualPlaceholder')}
+                                    <Input inputMode="decimal" className="[&_input]:text-right" placeholder={t('closing.actualPlaceholder')}
                                            aria-label={`${t('closing.actual')} ${categoryLabel(c.name, c.key)}`}
                                            value={actuals[c.id] ?? ""}
                                            onChange={(e) => setActuals({...actuals, [c.id]: e.target.value})}/>
@@ -172,14 +172,14 @@ export default function ClosingDialog({open, onClose, month, data}: {
                                         </td>
                                         {needsStart && (
                                             <td className={td + (needsStart ? " w-28 sm:w-36" : " w-36")}>
-                                                <Input inputMode="decimal" className="text-right" placeholder="0,00"
+                                                <Input inputMode="decimal" className="[&_input]:text-right" placeholder="0,00"
                                                        aria-label={`${t('closing.startBalance')} ${a.name}`}
                                                        value={starts[a.id] ?? ""}
                                                        onChange={(e) => setStarts({...starts, [a.id]: e.target.value})}/>
                                             </td>
                                         )}
                                         <td className={td + (needsStart ? " w-28 sm:w-36" : " w-36")}>
-                                            <Input inputMode="decimal" className="text-right"
+                                            <Input inputMode="decimal" className="[&_input]:text-right"
                                                    aria-label={`${t('closing.endBalance')} ${a.name}`}
                                                    placeholder={exp != null ? formatDecimal(exp) || "0,00" : "0,00"}
                                                    value={ends[a.id] ?? ""}

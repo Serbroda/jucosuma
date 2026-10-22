@@ -29,6 +29,7 @@ import TransferTypeControl from "./TransferTypeControl.tsx";
 import LinksEditor, {type EditableLink} from "./LinksEditor.tsx";
 import {costOwner, defaultTransferType, earnerOfAccount, earnerShares, isSavingsAccount, type Pot} from "../utils/budget.utils.ts";
 import EntryIcon from "./EntryIcon.tsx";
+import IconButton from "./ui/IconButton.tsx";
 import {categoryLabel, type CostType, costTypeOf, defaultCostType, sharesForAccount, entryKinds, entryPeriods} from "../utils/household.utils.ts";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
 import {formatDecimal} from "../utils/number.utils.ts";
@@ -250,21 +251,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                     </div>
                 )}
 
-                <div className="justify-self-center">
-                    <Button
-                        plain
-                        onClick={() => setChooseIconOpen(true)}
-                        className="hover:cursor-pointer"
-                    >
-                        <EntryIcon
-                            name={contract.name || "?"}
-                            icon={iconSource}
-                            category={categories.find((c) => c.id === contract.category_id)}
-                            className="size-16"
-                        />
-                    </Button>
-                    <input type="hidden" name="icon_source" value={iconSource}/>
-                </div>
+<input type="hidden" name="icon_source" value={iconSource}/>
 
                 <div className="grid grid-cols-3 rounded-lg bg-zinc-100 dark:bg-zinc-800 p-1 text-sm">
                     {entryKinds().map((k) => (
@@ -285,19 +272,29 @@ export default function ContractForm({contract, holders, companies, categories, 
                 </div>
                 <input type="hidden" name="kind" value={kind}/>
 
-                <Field>
-                    <Label>{t('common.name')} *</Label>
-                    <Input
-                        name="name"
-                        placeholder={t('entry.placeholderExpense')}
-                        defaultValue={contract.name ?? ""}
-                        invalid={!!nameError}
-                        onChange={() => nameError && setNameError('')}
-                    />
-                    {nameError && <ErrorMessage>{nameError}</ErrorMessage>}
-                </Field>
+                <div className="grid grid-cols-[auto_1fr] items-end gap-3">
+                    <IconButton onClick={() => setChooseIconOpen(true)}>
+                        <EntryIcon
+                            name={contract.name || "?"}
+                            icon={iconSource}
+                            category={categories.find((c) => c.id === contract.category_id)}
+                            className="size-9"
+                        />
+                    </IconButton>
+                    <Field>
+                        <Label>{t('common.name')} *</Label>
+                        <Input
+                            name="name"
+                            placeholder={t('entry.placeholderExpense')}
+                            defaultValue={contract.name ?? ""}
+                            invalid={!!nameError}
+                            onChange={() => nameError && setNameError('')}
+                        />
+                    </Field>
+                </div>
+                {nameError && <ErrorMessage className="-mt-2">{nameError}</ErrorMessage>}
 
-                <div className="grid grid-cols-[1fr_5.5rem] sm:grid-cols-[1fr_5.5rem_1fr] gap-2">
+                <div className="grid grid-cols-[1fr_5.5rem] sm:grid-cols-[1fr_5.5rem_1fr] gap-3">
                     <Field>
                         <Label>{t('entry.amount')}</Label>
                         <Input
@@ -309,6 +306,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                             defaultValue={formatDecimal(contract.costs) ?? ""}
                             pattern="^-?[0-9.]*[0-9]([,.][0-9]{1,2})?$"
                             placeholder="0,00"
+                            className="[&_input]:text-right"
                         />
                         {(contract.amounts?.length ?? 0) > 0 && <Description>{t('amounts.formHint')}</Description>}
                     </Field>
@@ -341,7 +339,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                     <AmountHistory contract={contract as ContractDto} compact/>
                 )}
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                     <Field>
                         <Label>
                             {billingPeriod === BillingPeriodOneTime ? t('entry.date')
@@ -406,7 +404,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                 )}
 
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                     <Field>
                         <Label>{isExpense ? t('entry.paidFrom') : isTransfer ? t('entry.fromAccount') : t('entry.toAccount')}</Label>
                         <Select name="account_id" defaultValue={contract.account_id ?? ""}
@@ -748,26 +746,9 @@ export default function ContractForm({contract, holders, companies, categories, 
                     </Field>
                 </FormSection>
 
-                {/* Actions */}
-                <div className="flex mt-6 gap-4 lg:gap-2 flex-wrap">
-                    <Button
-                        type="submit"
-                        disabled={isBusy}
-                        className="w-full lg:w-auto hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {state === 'submitting' ? t('common.saving') : t('common.save')}
-                    </Button>
-                    <Button
-                        type="button"
-                        outline
-                        disabled={isBusy}
-                        onClick={() => navigation(isEdit ? `/contracts/${contract.id}` : "/entries")}
-                        className="w-full lg:w-auto hover:cursor-pointer"
-                    >
-                        {t('common.cancel')}
-                    </Button>
-                    {isEdit && <>
-                        <div className="hidden lg:block lg:grow"/>
+                {/* Actions as in the dialogs: delete on the left, cancel and save on the right (save on top on phones) */}
+                <div className="flex flex-col-reverse lg:flex-row mt-6 gap-4 lg:gap-2">
+                    {isEdit && (
                         <Button
                             type="button"
                             color="red"
@@ -783,7 +764,24 @@ export default function ContractForm({contract, holders, companies, categories, 
                         >
                             {t('common.delete')}
                         </Button>
-                    </>}
+                    )}
+                    <div className="hidden lg:block lg:grow"/>
+                    <Button
+                        type="button"
+                        plain
+                        disabled={isBusy}
+                        onClick={() => navigation(isEdit ? `/contracts/${contract.id}` : "/entries")}
+                        className="w-full lg:w-auto hover:cursor-pointer"
+                    >
+                        {t('common.cancel')}
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={isBusy}
+                        className="w-full lg:w-auto hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {state === 'submitting' ? t('common.saving') : t('common.save')}
+                    </Button>
                 </div>
             </Form>
         </>
