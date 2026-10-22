@@ -64,6 +64,8 @@ cross-legged, holding a contract. It's a playful nod to the name similarity and 
 - Logins per person, admin and user roles, persons linked to logins.
 - **Private entries** are only visible to their owner – also not to admins.
 - Categories with colour and icon, accounts with owner, balance and an optional own icon.
+- Icons from built-in symbols, an app logo search, an uploaded file or an image address – images from an address
+  are downloaded by the server, checked to really be an image (PNG, JPEG, GIF, WebP) and stored with the entry.
 - German and English, chosen per user; light and dark mode; works on phones.
 - CSV/JSON export and import.
 

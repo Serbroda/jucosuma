@@ -5,7 +5,7 @@ import {Button} from "../catalyst/button";
 import {Avatar} from "../catalyst/avatar";
 import {classNames} from "../../utils/dom.utils";
 import {Input, InputGroup} from "../catalyst/input";
-import {Field, Label} from "../catalyst/fieldset";
+import {Description, ErrorMessage, Field, Label} from "../catalyst/fieldset";
 import {Dialog, DialogActions, DialogBody, DialogTitle} from "../catalyst/dialog";
 import {MagnifyingGlassIcon} from "@heroicons/react/16/solid";
 import {Tab, TabGroup, TabList, TabPanel, TabPanels} from "@headlessui/react";
@@ -31,11 +31,16 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
     const [selectedIcon, setSelectedIcon] = useState<string>('');
     const [symbol, setSymbol] = useState<string | undefined>();
     const [symbolColor, setSymbolColor] = useState<number | undefined>(1);
+    const [url, setUrl] = useState("");
+    const [urlError, setUrlError] = useState("");
+    const [loadingUrl, setLoadingUrl] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
             setSelectedIcon('');
             setSymbol(undefined);
+            setUrl("");
+            setUrlError("");
             apiFetch(`${apiBasePath}/used_icons`)
                 .then((res) => res.json())
                 .then((data) => setRecentIcons(data ?? []))
@@ -48,6 +53,35 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
         setSymbolColor(color);
         if (icon) setSelectedIcon(symbolSource(icon, color));
     };
+
+    /** The server downloads the image and checks that it really is one; then it is scaled like an upload. */
+    async function loadFromUrl() {
+        if (!url.trim() || loadingUrl) return;
+        setLoadingUrl(true);
+        setUrlError("");
+        try {
+            const res = await apiFetch(`${apiBasePath}/icon_from_url`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({url: url.trim()}),
+            });
+            if (!res.ok) {
+                setUrlError(res.status === 400 ? t('icons.urlInvalid')
+                    : res.status === 422 ? t('icons.urlNotImage') : t('icons.urlFailed'));
+                return;
+            }
+            const {icon} = await res.json() as { icon: string };
+            // data URL → file, so it is scaled the same way as an uploaded file
+            const [meta, base64] = icon.split(",");
+            const bytes = Uint8Array.from(atob(base64), (ch) => ch.charCodeAt(0));
+            const type = meta.slice("data:".length, meta.indexOf(";"));
+            setSelectedIcon(await fileToBase64(new File([bytes], "icon", {type}), {resizeTo: 128}));
+        } catch {
+            setUrlError(t('icons.urlFailed'));
+        } finally {
+            setLoadingUrl(false);
+        }
+    }
 
     async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
@@ -185,9 +219,9 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
                     </TabPanel>
 
                     <TabPanel className="focus:outline-none mt-4">
-                        <DialogBody>
+                        <DialogBody className="flex flex-col gap-4">
                             <Field>
-                                <Label>{t('icons.icon')}</Label>
+                                <Label>{t('icons.file')}</Label>
                                 <Input
                                     type="file"
                                     name="file"
@@ -195,6 +229,31 @@ const ChooseIconDialog: FC<ChooseIconDialogProps> = ({isOpen, onClose, onSubmit}
                                     accept=".jpg,.jpeg,.png,.gif,.webp,.svg"
                                 />
                             </Field>
+                            <Field>
+                                <Label>{t('icons.fromUrl')}</Label>
+                                <div data-slot="control" className="flex gap-2">
+                                    <Input type="url" value={url} placeholder="https://…/logo.png" autoComplete="off"
+                                           onChange={(e) => setUrl(e.target.value)}
+                                           onKeyDown={(e) => {
+                                               if (e.key === "Enter") {
+                                                   e.preventDefault();
+                                                   loadFromUrl();
+                                               }
+                                           }}/>
+                                    <Button outline type="button" onClick={loadFromUrl} disabled={!url.trim() || loadingUrl}
+                                            className="shrink-0 hover:cursor-pointer">
+                                        {loadingUrl ? t('common.loading') : t('icons.load')}
+                                    </Button>
+                                </div>
+                                <Description>{t('icons.fromUrlHint')}</Description>
+                                {urlError && <ErrorMessage>{urlError}</ErrorMessage>}
+                            </Field>
+                            {selectedIcon && !parseSymbol(selectedIcon) && (
+                                <div className="flex items-center gap-3">
+                                    <Avatar src={selectedIcon} square className="size-11"/>
+                                    <span className="text-sm text-zinc-500 dark:text-zinc-400">{t('icons.preview')}</span>
+                                </div>
+                            )}
                         </DialogBody>
                         {actions}
                     </TabPanel>
