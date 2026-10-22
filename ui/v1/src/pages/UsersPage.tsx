@@ -1,6 +1,4 @@
 import {useEffect, useState} from "react";
-import {Heading} from "../components/catalyst/heading.tsx";
-import {Divider} from "../components/catalyst/divider.tsx";
 import {Button} from "../components/catalyst/button.tsx";
 import {Badge} from "../components/catalyst/badge.tsx";
 import {Field, Label} from "../components/catalyst/fieldset.tsx";
@@ -94,14 +92,16 @@ export default function UsersPage() {
                 }}
             />
 
-            <div className="flex items-center justify-between">
-                <Heading>{t('users.title')}</Heading>
-                <Button onClick={() => setShowAddForm(!showAddForm)} className="hover:cursor-pointer">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <h2 className="text-lg font-semibold text-zinc-950 dark:text-white">{t('users.title')}</h2>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('users.subtitle')}</p>
+                </div>
+                <Button outline onClick={() => setShowAddForm(!showAddForm)} className="hover:cursor-pointer">
                     <PlusIcon/>
                     {t('users.addUser')}
                 </Button>
             </div>
-            <Divider className="mt-4 mb-6"/>
 
             {error && (
                 <div className="rounded-lg border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-3 text-sm text-red-700 dark:text-red-400 mb-4">

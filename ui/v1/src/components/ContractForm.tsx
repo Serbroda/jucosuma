@@ -7,11 +7,10 @@ import {
 import {Description, Field, Label} from "./catalyst/fieldset.tsx";
 import {Input} from "./catalyst/input.tsx";
 import {Select} from "./catalyst/select.tsx";
-import {Divider} from "./catalyst/divider.tsx";
 import {Subheading} from "./catalyst/heading.tsx";
 import {Button} from "./catalyst/button.tsx";
 import {Form, useNavigate, useNavigation} from "react-router";
-import {useEffect, useRef, useState} from "react";
+import {type ReactNode, useEffect, useRef, useState} from "react";
 import {ErrorMessage} from "./catalyst/fieldset.tsx";
 import {apiBasePath} from "../config.ts";
 import {apiFetch} from "../lib/fetch.ts";
@@ -28,7 +27,7 @@ import AmountHistory from "./AmountHistory.tsx";
 import LinksEditor, {type EditableLink} from "./LinksEditor.tsx";
 import {costOwner, earnerOfAccount, earnerShares, type Pot} from "../utils/budget.utils.ts";
 import EntryIcon from "./EntryIcon.tsx";
-import {categoryLabel, defaultShares, entryKinds, entryPeriods, isContractCategory} from "../utils/household.utils.ts";
+import {categoryLabel, sharesForAccount, entryKinds, entryPeriods, isContractCategory} from "../utils/household.utils.ts";
 import {Switch, SwitchField} from "./catalyst/switch.tsx";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
 import {formatDecimal} from "../utils/number.utils.ts";
@@ -45,6 +44,21 @@ export interface ContractFormProps {
     goals?: SavingsGoalDto[];
     mode?: 'add' | 'edit';
     error?: string;
+}
+
+/** Collapsible part of the form. Content stays mounted so its fields are always submitted. */
+function FormSection({title, defaultOpen, children}: { title: string; defaultOpen: boolean; children: ReactNode }) {
+    const [open, setOpen] = useState(defaultOpen);
+    return (
+        <div className="border-t border-zinc-950/5 dark:border-white/5 pt-4">
+            <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
+                    className="flex w-full items-center gap-2 text-sm font-semibold text-zinc-950 dark:text-white hover:cursor-pointer">
+                <ChevronRightIcon className={classNames("size-4 text-zinc-400 transition-transform", open ? "rotate-90" : "")}/>
+                {title}
+            </button>
+            <div className={classNames("grid grid-cols-1 gap-4 mt-4", open ? "" : "hidden")}>{children}</div>
+        </div>
+    );
 }
 
 export default function ContractForm({contract, holders, companies, categories, persons, accounts, goals = [], mode = 'add', error}: ContractFormProps) {
@@ -84,7 +98,9 @@ export default function ContractForm({contract, holders, companies, categories, 
     const [showNextBillingOverride, setShowNextBillingOverride] = useState(false);
     const [kind, setKind] = useState<string>(contract.kind ?? EntryKindExpense);
     const [shares, setShares] = useState<ShareDto[]>(
-        contract.shares ?? (isEdit ? [] : defaultShares(persons)));
+        contract.shares ?? (isEdit ? [] : sharesForAccount(contract.account_id, accounts, persons)));
+    // new entries: who carries the costs follows the chosen account until set by hand
+    const [sharesTouched, setSharesTouched] = useState(isEdit);
     const [isContract, setIsContract] = useState(isEdit
         ? Boolean(contract.is_contract)
         : isContractCategory(categories.find((c) => c.id === contract.category_id || (!contract.category_id && c.key === "other"))));
@@ -93,10 +109,9 @@ export default function ContractForm({contract, holders, companies, categories, 
     const [earner, setEarner] = useState<Pot>(isEdit && contract.kind === EntryKindIncome
         ? costOwner(contract as ContractDto, persons, accounts) : earnerOfAccount(contract.account_id, accounts));
     const [earnerTouched, setEarnerTouched] = useState(isEdit);
-    const [showDetails, setShowDetails] = useState(Boolean(contract.is_contract) || Boolean(
-        contract.company || contract.contract_number || contract.customer_number || contract.contract_holder
-        || contract.contact_person || contract.contact_email || contract.contact_phone || contract.notes
-        || contract.website || contract.links?.length || contract.documents?.length));
+    const hasProvider = Boolean(contract.company || contract.website || contract.contact_person || contract.contact_address
+        || contract.contact_phone || contract.contact_email);
+    const hasDocuments = Boolean(contract.documents?.length || contract.links?.length);
 
     const isExpense = kind === EntryKindExpense;
     const isIncome = kind === EntryKindIncome;
@@ -344,11 +359,46 @@ export default function ContractForm({contract, holders, companies, categories, 
                     </Field>
                 </div>
 
+                {hasRecurringBilling && (
+                    <div>
+                        {!showNextBillingOverride && !contract.next_billing_date ? (
+                            <button
+                                type="button"
+                                onClick={() => setShowNextBillingOverride(true)}
+                                className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                            >
+                                {t('entryForm.setNextBilling')}
+                            </button>
+                        ) : (
+                            <Field>
+                                <Label>{t('entryForm.nextBillingDate')}</Label>
+                                <Input
+                                    type="date"
+                                    name="next_billing_date"
+                                    defaultValue={
+                                        contract.next_billing_date
+                                            ? dayjs(contract.next_billing_date).format("YYYY-MM-DD")
+                                            : ""
+                                    }
+                                />
+                                <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
+                                    {t('entryForm.nextBillingHint')}
+                                </p>
+                            </Field>
+                        )}
+                    </div>
+                )}
+
+
                 <div className="grid grid-cols-2 gap-2">
                     <Field>
                         <Label>{isExpense ? t('entry.paidFrom') : isTransfer ? t('entry.fromAccount') : t('entry.toAccount')}</Label>
                         <Select name="account_id" defaultValue={contract.account_id ?? ""}
-                                onChange={(e) => !earnerTouched && setEarner(earnerOfAccount(Number(e.target.value) || null, accounts))}>
+                                onChange={(e) => {
+                                    const id = Number(e.target.value) || null;
+                                    if (!earnerTouched) setEarner(earnerOfAccount(id, accounts));
+                                    if (!sharesTouched) setShares(sharesForAccount(id, accounts, persons));
+                                }}>
                             <option value="">{t('common.noAccount')}</option>
                             {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                         </Select>
@@ -408,7 +458,10 @@ export default function ContractForm({contract, holders, companies, categories, 
                     <Field>
                         <Label>{t('entry.whoCarries')}</Label>
                         <div className="mt-2">
-                            <SharesEditor persons={persons} value={shares} onChange={setShares}/>
+                            <SharesEditor persons={persons} value={shares} onChange={(v) => {
+                                setShares(v);
+                                setSharesTouched(true);
+                            }}/>
                         </div>
                         <input type="hidden" name="shares" value={JSON.stringify(shares)}/>
                         {shares.length === 0 && (contract.split_between ?? 1) > 1 && (
@@ -427,7 +480,6 @@ export default function ContractForm({contract, holders, companies, categories, 
                         <Switch checked={isContract} onChange={(v) => {
                             setIsContract(v);
                             setContractTouched(true);
-                            if (v) setShowDetails(true);
                         }}/>
                     </SwitchField>
                 )}
@@ -449,255 +501,218 @@ export default function ContractForm({contract, holders, companies, categories, 
                     />
                 </Field>
 
-                <button
-                    type="button"
-                    onClick={() => setShowDetails(!showDetails)}
-                    className="flex items-center gap-1 mt-4 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:cursor-pointer"
-                >
-                    <ChevronRightIcon className={classNames("size-4 transition-transform", showDetails ? "rotate-90" : "")}/>
-                    {t('entryForm.detailsToggle')}
-                </button>
-
-                <div className={classNames("grid grid-cols-1 gap-4", showDetails ? "" : "hidden")}>
-                <Field>
-                    <Label>{t('entryForm.company')}</Label>
-                    <Combobox
-                        name="company"
-                        options={companiesWithInput}
-                        onInputChange={(e) => {
-                            setCompaniesWithInput([...companies, {name: e.target.value}])
-                        }}
-                        displayValue={(c) => c?.name}
-                        defaultValue={{name: contract.company || ''}}>
-                        {(c) => (
-                            <ComboboxOption value={c}>
-                                <ComboboxLabel>{c.name}</ComboboxLabel>
-                            </ComboboxOption>
-                        )}
-                    </Combobox>
-                </Field>
-
-                <Field>
-                    <Label>{t('entryForm.contractNumber')}</Label>
-                    <Input
-                        name="contract_number"
-                        defaultValue={contract.contract_number ?? ""}
-                    />
-                </Field>
-
-                <Field>
-                    <Label>{t('entryForm.customerNumber')}</Label>
-                    <Input
-                        name="customer_number"
-                        defaultValue={contract.customer_number ?? ""}
-                    />
-                </Field>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* contract data only for contracts; hidden fields stay in the form so nothing is lost */}
+                <div className={classNames("grid grid-cols-1 gap-4", isExpense && isContract ? "" : "hidden")}>
+                    <Subheading className="mt-2">{t('entryForm.sectionContract')}</Subheading>
                     <Field>
-                        <Label>{t('contracts.term')}</Label>
-                        <Select name="term_months" defaultValue={contract.term_months ?? ""}>
-                            <option value="">{t('contracts.noTerm')}</option>
-                            {[1, 3, 6, 12, 24, 36].map((m) => (
-                                <option key={m} value={m}>{t('contracts.termMonths', {count: m})}</option>
-                            ))}
-                        </Select>
-                        <Description>{t('contracts.termHint')}</Description>
+                        <Label>{t('entryForm.contractNumber')}</Label>
+                        <Input
+                            name="contract_number"
+                            defaultValue={contract.contract_number ?? ""}
+                        />
                     </Field>
+
                     <Field>
-                        <Label>{t('contracts.notice')}</Label>
-                        <div className="grid grid-cols-[5rem_1fr] gap-2" data-slot="control">
-                            <Input type="number" min="0" max="365" name="notice_period"
-                                   defaultValue={contract.notice_period ?? ""} aria-label={t('contracts.notice')}/>
-                            <Select name="notice_unit" defaultValue={contract.notice_unit ?? "months"}
-                                    aria-label={t('contracts.noticeUnit')}>
-                                <option value="days">{t('contracts.units.days')}</option>
-                                <option value="weeks">{t('contracts.units.weeks')}</option>
-                                <option value="months">{t('contracts.units.months')}</option>
+                        <Label>{t('entryForm.customerNumber')}</Label>
+                        <Input
+                            name="customer_number"
+                            defaultValue={contract.customer_number ?? ""}
+                        />
+                    </Field>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Field>
+                            <Label>{t('contracts.term')}</Label>
+                            <Select name="term_months" defaultValue={contract.term_months ?? ""}>
+                                <option value="">{t('contracts.noTerm')}</option>
+                                {[1, 3, 6, 12, 24, 36].map((m) => (
+                                    <option key={m} value={m}>{t('contracts.termMonths', {count: m})}</option>
+                                ))}
                             </Select>
-                        </div>
+                            <Description>{t('contracts.termHint')}</Description>
+                        </Field>
+                        <Field>
+                            <Label>{t('contracts.notice')}</Label>
+                            <div className="grid grid-cols-[5rem_1fr] gap-2" data-slot="control">
+                                <Input type="number" min="0" max="365" name="notice_period"
+                                       defaultValue={contract.notice_period ?? ""} aria-label={t('contracts.notice')}/>
+                                <Select name="notice_unit" defaultValue={contract.notice_unit ?? "months"}
+                                        aria-label={t('contracts.noticeUnit')}>
+                                    <option value="days">{t('contracts.units.days')}</option>
+                                    <option value="weeks">{t('contracts.units.weeks')}</option>
+                                    <option value="months">{t('contracts.units.months')}</option>
+                                </Select>
+                            </div>
+                        </Field>
+                    </div>
+
+                    <Field>
+                        <Label>{t('entryForm.contractHolder')}</Label>
+                        {holders && <Combobox
+                            name="contract_holder"
+                            options={holdersWithInput}
+                            onInputChange={(e) => {
+                                handleHolderChange(e.target.value)
+                            }}
+                            displayValue={(user) => user?.name}
+                            defaultValue={{name: contract.contract_holder || ''}}>
+                            {(user) => (
+                                <ComboboxOption value={user}>
+                                    <ComboboxLabel>{user.name}</ComboboxLabel>
+                                </ComboboxOption>
+                            )}
+                        </Combobox>}
                     </Field>
                 </div>
 
-                <Field>
-                    <Label>{t('entryForm.contractHolder')}</Label>
-                    {holders && <Combobox
-                        name="contract_holder"
-                        options={holdersWithInput}
-                        onInputChange={(e) => {
-                            handleHolderChange(e.target.value)
-                        }}
-                        displayValue={(user) => user?.name}
-                        defaultValue={{name: contract.contract_holder || ''}}>
-                        {(user) => (
-                            <ComboboxOption value={user}>
-                                <ComboboxLabel>{user.name}</ComboboxLabel>
-                            </ComboboxOption>
-                        )}
-                    </Combobox>}
-                </Field>
+                <FormSection title={t('entryForm.sectionProvider')} defaultOpen={hasProvider || (isExpense && isContract)}>
+                    <Field>
+                        <Label>{t('entryForm.company')}</Label>
+                        <Combobox
+                            name="company"
+                            options={companiesWithInput}
+                            onInputChange={(e) => {
+                                setCompaniesWithInput([...companies, {name: e.target.value}])
+                            }}
+                            displayValue={(c) => c?.name}
+                            defaultValue={{name: contract.company || ''}}>
+                            {(c) => (
+                                <ComboboxOption value={c}>
+                                    <ComboboxLabel>{c.name}</ComboboxLabel>
+                                </ComboboxOption>
+                            )}
+                        </Combobox>
+                    </Field>
+                    <Field>
+                        <Label>{t('entryForm.website')}</Label>
+                        <Input
+                            name="website"
+                            inputMode="url"
+                            placeholder="https://www.…"
+                            defaultValue={contract.website ?? ""}
+                        />
+                    </Field>
+                    <Field>
+                        <Label>{t('entryForm.contactPerson')}</Label>
+                        <Input
+                            name="contact_person"
+                            defaultValue={contract.contact_person ?? ""}
+                        />
+                    </Field>
+                    <Field>
+                        <Label>{t('entryForm.address')}</Label>
+                        <Textarea
+                            name="contact_address"
+                            defaultValue={contract.contact_address ?? ""}
+                        />
+                    </Field>
+                    <Field>
+                        <Label>{t('entryForm.phone')}</Label>
+                        <Input
+                            name="contact_phone"
+                            defaultValue={contract.contact_phone ?? ""}
+                        />
+                    </Field>
+                    <Field>
+                        <Label>{t('entryForm.email')}</Label>
+                        <Input
+                            name="contact_email"
+                            defaultValue={contract.contact_email ?? ""}
+                        />
+                    </Field>
+                </FormSection>
 
-                {hasRecurringBilling && (
+                <FormSection title={t('entryForm.sectionDocuments')} defaultOpen={hasDocuments}>
+                    <Field>
+                        <Label>{t('entryForm.documents')}</Label>
+                        <Input
+                            type="file"
+                            name="file"
+                            multiple
+                            accept=".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+                        />
+                    </Field>
+
+                    <Field>
+                        <Label>{t('entryForm.links')}</Label>
+                        <Description>{t('entryForm.linksHint')}</Description>
+                        <div className="mt-2">
+                            <LinksEditor value={links} onChange={setLinks}/>
+                        </div>
+                        <input type="hidden" name="links" value={JSON.stringify(links)}/>
+                    </Field>
+
                     <div>
-                        {!showNextBillingOverride && !contract.next_billing_date ? (
-                            <button
-                                type="button"
-                                onClick={() => setShowNextBillingOverride(true)}
-                                className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
-                            >
-                                {t('entryForm.setNextBilling')}
-                            </button>
-                        ) : (
-                            <Field>
-                                <Label>{t('entryForm.nextBillingDate')}</Label>
-                                <Input
-                                    type="date"
-                                    name="next_billing_date"
-                                    defaultValue={
-                                        contract.next_billing_date
-                                            ? dayjs(contract.next_billing_date).format("YYYY-MM-DD")
-                                            : ""
-                                    }
-                                />
-                                <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
-                                    {t('entryForm.nextBillingHint')}
-                                </p>
-                            </Field>
-                        )}
-                    </div>
-                )}
+                        {contract.documents &&
+                            contract.documents.map((doc) => (
+                                <div key={doc.id} className="flex grow min-w-0 items-center">
+                                    {editDocId === doc.id ? (
+                                        <Input
+                                            type="text"
+                                            value={editTitle}
+                                            onChange={(e) => setEditTitle(e.target.value)}
+                                            className="flex truncate border rounded px-1 text-black"
+                                            autoFocus
+                                            onBlur={() => saveEdit(doc.id)}
+                                        />
+                                    ) : (
+                                        <a
+                                            href={`/uploads/${doc.path}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="flex items-center gap-2 text-sm/6 text-zinc-500 dark:text-zinc-400 truncate"
+                                        >
+                                            <DocumentIcon className="h-5 w-5 shrink-0 fill-zinc-400 dark:fill-zinc-500"/>
+                                            <span className="truncate">{doc.title}</span>
+                                        </a>
+                                    )}
 
-                <Divider className="mt-6"/>
-                <Subheading>{t('entryForm.contactInformation')}</Subheading>
-                <Field>
-                    <Label>{t('entryForm.website')}</Label>
-                    <Input
-                        name="website"
-                        inputMode="url"
-                        placeholder="https://www.…"
-                        defaultValue={contract.website ?? ""}
-                    />
-                </Field>
-                <Field>
-                    <Label>{t('entryForm.contactPerson')}</Label>
-                    <Input
-                        name="contact_person"
-                        defaultValue={contract.contact_person ?? ""}
-                    />
-                </Field>
-                <Field>
-                    <Label>{t('entryForm.address')}</Label>
-                    <Textarea
-                        name="contact_address"
-                        defaultValue={contract.contact_address ?? ""}
-                    />
-                </Field>
-                <Field>
-                    <Label>{t('entryForm.phone')}</Label>
-                    <Input
-                        name="contact_phone"
-                        defaultValue={contract.contact_phone ?? ""}
-                    />
-                </Field>
-                <Field>
-                    <Label>{t('entryForm.email')}</Label>
-                    <Input
-                        name="contact_email"
-                        defaultValue={contract.contact_email ?? ""}
-                    />
-                </Field>
+                                    <div className="grow"></div>
 
-                <Divider className="mt-6"/>
-                <Subheading>{t('entryForm.documentsAndNotes')}</Subheading>
-                <Field>
-                    <Label>{t('entryForm.documents')}</Label>
-                    <Input
-                        type="file"
-                        name="file"
-                        multiple
-                        accept=".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
-                    />
-                </Field>
+                                    {editDocId === doc.id ? (
+                                        <Button
+                                            className="my-1 ml-1 lg:size-6 hover:cursor-pointer"
+                                            onClick={() => saveEdit(doc.id)}
+                                        >
+                                            <CheckIcon/>
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            className="my-1 ml-1 lg:size-6 hover:cursor-pointer"
+                                            onClick={() => startEdit(doc)}
+                                        >
+                                            <PencilIcon/>
+                                        </Button>
+                                    )}
 
-                <Field>
-                    <Label>{t('entryForm.links')}</Label>
-                    <Description>{t('entryForm.linksHint')}</Description>
-                    <div className="mt-2">
-                        <LinksEditor value={links} onChange={setLinks}/>
-                    </div>
-                    <input type="hidden" name="links" value={JSON.stringify(links)}/>
-                </Field>
-
-                <div>
-                    {contract.documents &&
-                        contract.documents.map((doc) => (
-                            <div key={doc.id} className="flex grow min-w-0 items-center">
-                                {editDocId === doc.id ? (
-                                    <Input
-                                        type="text"
-                                        value={editTitle}
-                                        onChange={(e) => setEditTitle(e.target.value)}
-                                        className="flex truncate border rounded px-1 text-black"
-                                        autoFocus
-                                        onBlur={() => saveEdit(doc.id)}
-                                    />
-                                ) : (
-                                    <a
-                                        href={`/uploads/${doc.path}`}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="flex items-center gap-2 text-sm/6 text-zinc-500 dark:text-zinc-400 truncate"
-                                    >
-                                        <DocumentIcon className="h-5 w-5 shrink-0 fill-zinc-400 dark:fill-zinc-500"/>
-                                        <span className="truncate">{doc.title}</span>
-                                    </a>
-                                )}
-
-                                <div className="grow"></div>
-
-                                {editDocId === doc.id ? (
                                     <Button
                                         className="my-1 ml-1 lg:size-6 hover:cursor-pointer"
-                                        onClick={() => saveEdit(doc.id)}
+                                        onClick={() =>
+                                            openConfirmDialog({
+                                                title: t('entryForm.deleteDocumentTitle'),
+                                                message: t('entryForm.deleteDocumentMessage'),
+                                                submitLabel: t('common.delete'),
+                                                cancelLabel: t('common.cancel'),
+                                                onSubmit: deleteDocument.bind(null, doc.id),
+                                            })
+                                        }
                                     >
-                                        <CheckIcon/>
+                                        <XMarkIcon/>
                                     </Button>
-                                ) : (
-                                    <Button
-                                        className="my-1 ml-1 lg:size-6 hover:cursor-pointer"
-                                        onClick={() => startEdit(doc)}
-                                    >
-                                        <PencilIcon/>
-                                    </Button>
-                                )}
+                                </div>
+                            ))}
+                    </div>
+                </FormSection>
 
-                                <Button
-                                    className="my-1 ml-1 lg:size-6 hover:cursor-pointer"
-                                    onClick={() =>
-                                        openConfirmDialog({
-                                            title: t('entryForm.deleteDocumentTitle'),
-                                            message: t('entryForm.deleteDocumentMessage'),
-                                            submitLabel: t('common.delete'),
-                                            cancelLabel: t('common.cancel'),
-                                            onSubmit: deleteDocument.bind(null, doc.id),
-                                        })
-                                    }
-                                >
-                                    <XMarkIcon/>
-                                </Button>
-                            </div>
-                        ))}
-                </div>
-
-                <Field>
-                    <Label>{t('entryForm.notes')}</Label>
-                    <Textarea
-                        name="notes"
-                        defaultValue={contract.notes ?? ""}
-                    />
-                </Field>
-
-                </div>
+                <FormSection title={t('entryForm.notes')} defaultOpen={Boolean(contract.notes)}>
+                    <Field>
+                        <Label>{t('entryForm.notes')}</Label>
+                        <Textarea
+                            name="notes"
+                            defaultValue={contract.notes ?? ""}
+                        />
+                    </Field>
+                </FormSection>
 
                 {/* Actions */}
                 <div className="flex mt-6 gap-4 lg:gap-2 flex-wrap">

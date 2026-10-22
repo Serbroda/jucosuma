@@ -25,7 +25,7 @@ import {
     type ShareDto,
 } from "../gen/types.gen.ts";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
-import {categoryLabel, isContractCategory, defaultShares, entryKinds, entryPeriods, recallAccount, rememberAccount} from "../utils/household.utils.ts";
+import {categoryLabel, isContractCategory, sharesForAccount, entryKinds, entryPeriods, recallAccount, rememberAccount} from "../utils/household.utils.ts";
 import {parseAmount} from "../utils/number.utils.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import {apiBasePath} from "../config.ts";
@@ -74,7 +74,9 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
     const isIncome = kind === EntryKindIncome;
     const isTransfer = kind === EntryKindTransfer;
 
-    const initialShares = (forKind: string) => forKind === EntryKindExpense ? defaultShares(persons) : [];
+    const initialShares = (forKind: string, account?: number) =>
+        forKind === EntryKindExpense ? sharesForAccount(account, accounts, persons) : [];
+    const [sharesTouched, setSharesTouched] = useState(false);
 
     /** Categories matching the entry kind; transfers have none. */
     const categoriesFor = (forKind: string) => categories.filter((c) => c.type === forKind);
@@ -100,7 +102,8 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
         const recalled = recallAccount(keepKind, "from", accounts);
         setAccountId(recalled);
         setTargetAccountId(recallAccount(keepKind, "to", accounts));
-        setShares(initialShares(keepKind));
+        setShares(initialShares(keepKind, recalled));
+        setSharesTouched(false);
         setEarner(earnerOfAccount(recalled, accounts));
         setEarnerTouched(false);
     };
@@ -117,9 +120,11 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
 
     const changeKind = (value: string) => {
         setKind(value);
-        setAccountId(recallAccount(value, "from", accounts));
+        const recalled = recallAccount(value, "from", accounts);
+        setAccountId(recalled);
         setTargetAccountId(recallAccount(value, "to", accounts));
-        setShares(initialShares(value));
+        setShares(initialShares(value, recalled));
+        setSharesTouched(false);
         chooseCategory(defaultCategory(value));
         setGoalId(undefined);
     };
@@ -285,6 +290,7 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                                         const id = e.target.value ? Number(e.target.value) : undefined;
                                         setAccountId(id);
                                         if (!earnerTouched) setEarner(earnerOfAccount(id, accounts));
+                                        if (!sharesTouched && isExpense) setShares(sharesForAccount(id, accounts, persons));
                                     }}>
                                 {accountOptions}
                             </Select>
@@ -332,7 +338,10 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                         <Field>
                             <Label>{t('entry.whoCarries')}</Label>
                             <div className="mt-2">
-                                <SharesEditor persons={persons} value={shares} onChange={setShares}/>
+                                <SharesEditor persons={persons} value={shares} onChange={(v) => {
+                                    setShares(v);
+                                    setSharesTouched(true);
+                                }}/>
                             </div>
                         </Field>
                     )}

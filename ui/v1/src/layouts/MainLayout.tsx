@@ -11,9 +11,6 @@ import {
     ReceiptPercentIcon,
     ShieldCheckIcon,
     SparklesIcon,
-    TagIcon,
-    UserGroupIcon,
-    UsersIcon,
     WalletIcon,
 } from "@heroicons/react/20/solid";
 import clsx from "clsx";
@@ -38,7 +35,6 @@ function MainLayout() {
     const {user, logout} = useAuth()
     const {t} = useTranslation()
     const {pathname} = useLocation()
-    const isAdmin = user?.role === 'admin'
 
     const handleLogout = async () => {
         await logout()
@@ -54,9 +50,6 @@ function MainLayout() {
         {label: t('nav.closing'), url: '/closing', icon: ClipboardDocumentCheckIcon},
         {label: t('nav.savings'), url: '/savings', icon: SparklesIcon},
         {label: t('nav.accounts'), url: '/accounts', icon: BuildingLibraryIcon},
-        {label: t('nav.categories'), url: '/categories', icon: TagIcon},
-        {label: t('nav.persons'), url: '/persons', icon: UserGroupIcon},
-        ...(isAdmin ? [{label: t('nav.users'), url: '/users', icon: UsersIcon}] : []),
     ]
     // entry pages live under /contracts/…; highlight the menu item matching the entry's kind instead
     const entry = useMatches().map((m) => (m.data as { contract?: ContractDto } | undefined)?.contract).find(Boolean)
@@ -68,7 +61,7 @@ function MainLayout() {
         ? url === entryNav
         : url === '/' ? pathname === '/' : pathname.startsWith(url)
     // pages without month context (the closing page has its own month list)
-    const showMonth = !['/settings', '/users', '/contracts', '/closing'].some((p) => pathname.startsWith(p))
+    const showMonth = !['/settings', '/contracts', '/closing'].some((p) => pathname.startsWith(p))
 
     return (
         <div className="text-black dark:text-white">

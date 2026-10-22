@@ -8,9 +8,9 @@ import {contractLoader, contractsLoader, contractFormLoader} from "./loader/cont
 import {contractAction} from "./actions/contracts.ts";
 import ContractPage from "./pages/ContractPage.tsx";
 import SettingsPage from "./pages/SettingsPage.tsx";
+import SettingsLayout from "./layouts/SettingsLayout.tsx";
 import LoginPage from "./pages/LoginPage.tsx";
 import ChangePasswordPage from "./pages/ChangePasswordPage.tsx";
-import UsersPage from "./pages/UsersPage.tsx";
 import AuthGuard from "./components/AuthGuard.tsx";
 import OverviewPage from "./pages/OverviewPage.tsx";
 import SavingsPage from "./pages/SavingsPage.tsx";
@@ -47,12 +47,19 @@ const router = createHashRouter([
                     {path: '/closing', element: <ClosingPage/>, loader: contractsLoader},
                     {path: '/savings', element: <SavingsPage/>, loader: contractsLoader},
                     {path: '/accounts', element: <AccountsPage/>, loader: contractsLoader},
-                    {path: '/categories', element: <CategoriesPage/>, loader: contractsLoader},
-                    {path: '/persons', element: <PersonsPage/>, loader: contractsLoader},
+                    {
+                        path: '/settings', element: <SettingsLayout/>, children: [
+                            {index: true, element: <SettingsPage/>},
+                            {path: 'categories', element: <CategoriesPage/>, loader: contractsLoader},
+                            {path: 'persons', element: <PersonsPage/>, loader: contractsLoader},
+                        ],
+                    },
+                    // old addresses of the management pages
+                    {path: '/categories', element: <Navigate to="/settings/categories" replace/>},
+                    {path: '/persons', element: <Navigate to="/settings/persons" replace/>},
+                    {path: '/users', element: <Navigate to="/settings/persons" replace/>},
                     {path: '/entries', element: <Navigate to="/expenses" replace/>},
                     {path: '/household', element: <Navigate to="/accounts" replace/>},
-                    {path: '/settings', element: <SettingsPage/>},
-                    {path: '/users', element: <UsersPage/>},
                     {path: '/contracts/add', element: <ContractFormPage mode="add"/>, loader: contractFormLoader, action: contractAction},
                     {path: '/contracts/:id', element: <ContractPage/>, loader: contractLoader},
                     {path: '/contracts/:id/edit', element: <ContractFormPage mode="edit"/>, loader: contractLoader, action: contractAction},

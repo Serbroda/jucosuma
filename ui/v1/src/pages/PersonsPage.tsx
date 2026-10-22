@@ -21,6 +21,8 @@ import {sendJson} from "../lib/api.ts";
 import {apiFetch} from "../lib/fetch.ts";
 import {apiBasePath} from "../config.ts";
 import {card, table, td, th, tr} from "../utils/ui.ts";
+import {useAuth} from "../stores/useAuth.ts";
+import UsersPage from "./UsersPage.tsx";
 
 export default function PersonsPage() {
     const data = useAppData();
@@ -30,6 +32,7 @@ export default function PersonsPage() {
     const revalidator = useRevalidator();
     const [editing, setEditing] = useState<PersonDto | null | undefined>(undefined);
     const [logins, setLogins] = useState<UserOptionDto[]>([]);
+    const isAdmin = useAuth().user?.role === 'admin';
 
     useEffect(() => {
         apiFetch(`${apiBasePath}/user_options`).then(async (res) => res.ok && setLogins(await res.json()));
@@ -100,6 +103,7 @@ export default function PersonsPage() {
                     </table>
                 </div>
             </div>
+            {isAdmin && <UsersPage/>}
         </div>
     );
 }

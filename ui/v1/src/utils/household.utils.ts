@@ -120,6 +120,17 @@ export function defaultShares(persons: PersonDto[]): ShareDto[] {
 }
 
 /**
+ * Who carries an expense by default: the owner of a private account, the household for a shared
+ * account. Forms follow the chosen account with this until the user picks something else.
+ */
+export function sharesForAccount(accountId: number | null | undefined, accounts: AccountDto[], persons: PersonDto[]): ShareDto[] {
+    const owner = accounts.find((a) => a.id === accountId)?.person_id;
+    return owner != null && persons.some((p) => p.id === owner && p.in_household)
+        ? [{person_id: owner, weight: 1}]
+        : defaultShares(persons);
+}
+
+/**
  * Display name of a category: predefined categories (with a key) are translated,
  * categories created by users are shown as entered.
  */

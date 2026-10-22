@@ -26,7 +26,7 @@ export default function SharesEditor({persons, value, onChange}: SharesEditorPro
     if (persons.length === 0) {
         return (
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                <Trans i18nKey="shares.addPersons" components={{link: <NavLink to="/household" className="underline"/>}}/>
+                <Trans i18nKey="shares.addPersons" components={{link: <NavLink to="/settings/persons" className="underline"/>}}/>
             </p>
         );
     }
