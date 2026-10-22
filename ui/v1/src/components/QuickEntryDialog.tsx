@@ -42,9 +42,11 @@ export interface QuickEntryDialogProps {
     goals?: SavingsGoalDto[];
     /** Entry kind preselected when the dialog opens (default: expense). */
     initialKind?: string;
+    /** Values filled in when the dialog opens, e.g. a payment into a savings goal. */
+    prefill?: { name?: string; goalId?: number; targetAccountId?: number };
 }
 
-export default function QuickEntryDialog({isOpen, onClose, persons, accounts, categories, goals = [], initialKind}: QuickEntryDialogProps) {
+export default function QuickEntryDialog({isOpen, onClose, persons, accounts, categories, goals = [], initialKind, prefill}: QuickEntryDialogProps) {
     const navigate = useNavigate();
     const {t} = useTranslation();
     const revalidator = useRevalidator();
@@ -114,6 +116,11 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
             setKind(startKind);
             reset(startKind);
             setSavedName("");
+            if (prefill) {
+                setName(prefill.name ?? "");
+                if (prefill.goalId != null) setGoalId(prefill.goalId);
+                if (prefill.targetAccountId != null) setTargetAccountId(prefill.targetAccountId);
+            }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);

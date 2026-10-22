@@ -7,19 +7,29 @@ import {Input} from "../catalyst/input.tsx";
 import {Select} from "../catalyst/select.tsx";
 import SegmentedControl from "../SegmentedControl.tsx";
 import {ColorPicker, IconPicker} from "../ui/ColorIconPicker.tsx";
-import {GoalKindInvesting, GoalKindSaving, type AccountDto, type PersonDto, type SavingsGoalDto} from "../../gen/types.gen.ts";
-import {formatDecimal, parseAmount} from "../../utils/number.utils.ts";
+import {GoalKindInvesting, GoalKindSaving, type AccountDto, type ContractDto, type PersonDto, type SavingsGoalDto} from "../../gen/types.gen.ts";
+import {Button} from "../catalyst/button.tsx";
+import {PlusIcon} from "@heroicons/react/16/solid";
+import {usePreferences} from "../../stores/usePreferences.ts";
+import {billingPeriodLabel} from "../../utils/data.utils.ts";
+import {formatDecimal, numberLocale, parseAmount} from "../../utils/number.utils.ts";
 import {sendJson} from "../../lib/api.ts";
 import dayjs from "../../lib/dayjs";
 
-export default function GoalDialog({open, onClose, goal, persons, accounts, count}: {
+export default function GoalDialog({open, onClose, goal, persons, accounts, count, payments = [], monthlyRate = 0, onAddPayment}: {
     open: boolean;
     onClose: () => void;
     goal?: SavingsGoalDto;
     persons: PersonDto[];
     accounts: AccountDto[];
     count: number;
+    /** transfers linked to the goal; their recurring amounts are its monthly rate */
+    payments?: ContractDto[];
+    monthlyRate?: number;
+    onAddPayment?: () => void;
 }) {
+    const {mainCurrency} = usePreferences();
+    const format = (v: number) => new Intl.NumberFormat(numberLocale(), {style: "currency", currency: mainCurrency}).format(v);
     const {t} = useTranslation();
     const revalidator = useRevalidator();
     const [name, setName] = useState("");
@@ -107,6 +117,34 @@ export default function GoalDialog({open, onClose, goal, persons, accounts, coun
                         {persons.filter((p) => p.in_household).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </Select>
                 </Field>
+            </div>
+            {/* the monthly rate comes from linked transfers, not from a field of the goal */}
+            <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 px-4 py-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-medium text-zinc-950 dark:text-white">{t('goals.payments')}</span>
+                    {goal && onAddPayment && (
+                        <Button outline type="button" onClick={onAddPayment} className="hover:cursor-pointer">
+                            <PlusIcon/>{t('goals.addPayment')}
+                        </Button>
+                    )}
+                </div>
+                {payments.length > 0 ? (
+                    <>
+                        <ul className="mt-2 divide-y divide-zinc-950/5 dark:divide-white/5">
+                            {payments.map((c) => (
+                                <li key={c.id} className="flex items-center justify-between gap-3 py-1.5">
+                                    <span className="truncate text-zinc-700 dark:text-zinc-300">{c.name}</span>
+                                    <span className="shrink-0 tabular-nums text-zinc-950 dark:text-white">
+                                        {format(c.costs ?? 0)} <span className="text-zinc-400 dark:text-zinc-500">{billingPeriodLabel(c.billing_period)}</span>
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                        <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t('goals.rateFromPayments', {amount: format(monthlyRate)})}</div>
+                    </>
+                ) : (
+                    <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{goal ? t('goals.noPayments') : t('goals.noPaymentsNew')}</p>
+                )}
             </div>
             <Field>
                 <Label>{t('goals.account')}</Label>

@@ -508,6 +508,11 @@ const de: Translation<typeof en> = {
         hint: "Umbuchungen zwischen Töpfen (z. B. Beiträge an die Haushaltskasse oder Taschengeld) verschieben Geld; Umbuchungen auf ein Sparziel oder Sparkonto zählen als Sparen.",
     },
     goals: {
+        payments: "Monatliche Einzahlungen",
+        addPayment: "Monatliche Einzahlung anlegen",
+        rateFromPayments: "Ergibt {{amount}} pro Monat.",
+        noPayments: "Noch keine Einzahlung verknüpft. Die monatliche Rate ergibt sich aus Umbuchungen auf dieses Ziel.",
+        noPaymentsNew: "Nach dem Speichern kannst du monatliche Einzahlungen (Umbuchungen) anlegen – daraus ergibt sich die Rate.",
         title: "Sparen & Ziele",
         subtitle: "Eure Sparziele und Investitionen im Überblick.",
         add: "Ziel hinzufügen",

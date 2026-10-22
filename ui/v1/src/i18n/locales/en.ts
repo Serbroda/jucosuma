@@ -504,6 +504,11 @@ const en = {
         hint: "Transfers between pots (e.g. contributions to the household cash or pocket money) move money; transfers into a savings goal or savings account count as savings.",
     },
     goals: {
+        payments: "Monthly payments",
+        addPayment: "Add monthly payment",
+        rateFromPayments: "Makes {{amount}} per month.",
+        noPayments: "No payment linked yet. The monthly rate comes from transfers into this goal.",
+        noPaymentsNew: "After saving you can add monthly payments (transfers) – they make up the rate.",
         title: "Savings & goals",
         subtitle: "Your savings goals and investments at a glance.",
         add: "Add goal",

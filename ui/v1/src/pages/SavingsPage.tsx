@@ -8,8 +8,9 @@ import RowActions from "../components/ui/RowActions.tsx";
 import SegmentedControl from "../components/SegmentedControl.tsx";
 import EntryTable from "../components/EntryTable.tsx";
 import GoalDialog from "../components/dialogs/GoalDialog.tsx";
+import QuickEntryDialog from "../components/QuickEntryDialog.tsx";
 import {Button} from "../components/catalyst/button.tsx";
-import {GoalKindInvesting, GoalKindSaving, type SavingsGoalDto} from "../gen/types.gen.ts";
+import {EntryKindTransfer, GoalKindInvesting, GoalKindSaving, type SavingsGoalDto} from "../gen/types.gen.ts";
 import {useAppData} from "../hooks/useAppData.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
 import {summarizeGoals} from "../utils/budget.utils.ts";
@@ -28,6 +29,8 @@ export default function SavingsPage() {
     const revalidator = useRevalidator();
     const [filter, setFilter] = useState<Filter>("all");
     const [editing, setEditing] = useState<SavingsGoalDto | null | undefined>(undefined);
+    // goal for which a monthly payment (transfer) is being created
+    const [paymentFor, setPaymentFor] = useState<SavingsGoalDto | undefined>();
 
     const format = (v: number) => new Intl.NumberFormat(numberLocale(), {style: "currency", currency: mainCurrency, maximumFractionDigits: 0}).format(v);
     const all = useMemo(() => summarizeGoals(data.contracts, data.goals), [data.contracts, data.goals]);
@@ -49,7 +52,19 @@ export default function SavingsPage() {
     return (
         <div className="flex flex-col gap-6">
             <GoalDialog open={editing !== undefined} goal={editing ?? undefined} onClose={() => setEditing(undefined)}
-                        persons={data.persons} accounts={data.accounts} count={data.goals.length}/>
+                        persons={data.persons} accounts={data.accounts} count={data.goals.length}
+                        payments={all.find((g) => g.goal.id === editing?.id)?.transfers}
+                        monthlyRate={all.find((g) => g.goal.id === editing?.id)?.monthlyRate}
+                        onAddPayment={() => {
+                            const goal = editing ?? undefined;
+                            setEditing(undefined);
+                            setPaymentFor(goal);
+                        }}/>
+            <QuickEntryDialog isOpen={paymentFor != null} initialKind={EntryKindTransfer} onClose={() => setPaymentFor(undefined)}
+                              persons={data.persons} accounts={data.accounts} categories={data.categories} goals={data.goals}
+                              prefill={paymentFor && {
+                                  name: paymentFor.name, goalId: paymentFor.id, targetAccountId: paymentFor.account_id ?? undefined,
+                              }}/>
             <PageHeader title={t('goals.title')} subtitle={t('goals.subtitle')}
                         actions={<Button onClick={() => setEditing(null)} className="hover:cursor-pointer"><PlusIcon/>{t('goals.add')}</Button>}/>
 
@@ -118,9 +133,16 @@ export default function SavingsPage() {
                                 </div>
                             )}
                             <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 mt-auto">
-                                <span className="inline-flex items-center gap-1 rounded-md bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5">
-                                    <ArrowPathIcon className="size-3"/>{t('goals.perMonth', {amount: format(monthlyRate)})}
-                                </span>
+                                {monthlyRate > 0 ? (
+                                    <span className="inline-flex items-center gap-1 rounded-md bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5">
+                                        <ArrowPathIcon className="size-3"/>{t('goals.perMonth', {amount: format(monthlyRate)})}
+                                    </span>
+                                ) : (
+                                    <button type="button" onClick={() => setPaymentFor(goal)}
+                                            className="inline-flex items-center gap-1 rounded-md border border-dashed border-zinc-300 dark:border-zinc-600 px-2 py-0.5 text-blue-600 dark:text-blue-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:cursor-pointer">
+                                        <PlusIcon className="size-3"/>{t('goals.addPayment')}
+                                    </button>
+                                )}
                                 {progress === 1 && <span>{t('savings.reached')}</span>}
                                 {progress !== 1 && reachedOn && <span>{t('goals.reachedOn', {date: reachedOn.format("MMM YYYY")})}</span>}
                                 {requiredRate != null && requiredRate > monthlyRate + 0.5 && (
