@@ -101,7 +101,7 @@ function accountIcon(a: AccountDto): Icon {
 export default function OverviewPage() {
     const data = useAppData();
     const {contracts, persons, accounts, categories, goals} = data;
-    const {month, monthKey, mode, setMode} = useMonth();
+    const {month, monthKey, mode} = useMonth();
     const navigate = useNavigate();
     const {mainCurrency} = usePreferences();
     const {t} = useTranslation();
@@ -204,6 +204,10 @@ export default function OverviewPage() {
         .filter((c) => c.cancel_by && daysUntil(c.cancel_by) >= 0 && daysUntil(c.cancel_by) <= 60)
         .sort((a, b) => (a.cancel_by ?? "").localeCompare(b.cancel_by ?? "")), [contracts]);
 
+    // the "soon" card opens on deadlines when one is due within 30 days
+    const [soonTab, setSoonTab] = useState<"payments" | "deadlines">(
+        () => deadlines.some((c) => daysUntil(c.cancel_by!) <= 30) ? "deadlines" : "payments");
+
     const upcoming = useMemo(() => {
         const today = dayjs().startOf("day");
         return contracts
@@ -263,14 +267,6 @@ export default function OverviewPage() {
                         {value: "household", label: t('overview.potHousehold')},
                         ...household.map((p) => ({value: String(p.id), label: p.name})),
                         {value: "all", label: t('overview.potAll')},
-                    ]}
-                />
-                <SegmentedControl
-                    value={mode}
-                    onChange={setMode}
-                    options={[
-                        {value: "average", label: t('overview.modeAverage')},
-                        {value: "due", label: t('overview.modeDue')},
                     ]}
                 />
             </div>
@@ -440,12 +436,39 @@ export default function OverviewPage() {
                             ))}
                         </div>
                     )}
-                    {deadlines.length > 0 && (
-                        <div className={card}>
-                            <div className="flex items-baseline justify-between mb-3">
-                                <div className={cardTitle}>{t('contracts.deadlinesCard')}</div>
-                                <NavLink to="/contracts" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">{t('overview.showAll')}</NavLink>
-                            </div>
+                    {/* upcoming payments and cancellation deadlines in one card */}
+                    <div className={card}>
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                            <div className={cardTitle}>{t('overview.soon')}</div>
+                            <NavLink to={soonTab === "deadlines" ? "/contracts" : "/expenses"}
+                                     className="text-sm text-blue-600 dark:text-blue-400 hover:underline">{t('overview.showAll')}</NavLink>
+                        </div>
+                        <div className="mb-3">
+                            <SegmentedControl value={soonTab} onChange={setSoonTab} options={[
+                                {value: "payments", label: t('overview.soonPayments')},
+                                {value: "deadlines", label: deadlines.length ? `${t('overview.soonDeadlines')} (${deadlines.length})` : t('overview.soonDeadlines')},
+                            ]}/>
+                        </div>
+                        {soonTab === "payments" ? (
+                            upcoming.length === 0 ? <div className="text-sm text-zinc-400 dark:text-zinc-500">{t('overview.nothing')}</div> : (
+                            <ul className="flex flex-col gap-1">
+                            {upcoming.map((c) => (
+                                <li key={c.id}>
+                                    <NavLink to={`/contracts/${c.id}`}
+                                             className="flex items-center gap-3 py-1.5 -mx-2 px-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                                        <EntryIcon name={c.name} icon={c.icon_source} category={categoryOf(c.category_id)} className="size-7"/>
+                                        <span className="text-xs text-zinc-400 dark:text-zinc-500 w-14 shrink-0 tabular-nums">
+                                            {shortDate(c.next_billing_date!)}
+                                        </span>
+                                        <span className="text-sm text-zinc-950 dark:text-white truncate grow">{c.name}</span>
+                                        <span className="text-sm font-medium tabular-nums text-zinc-950 dark:text-white">{format(c.costs ?? 0)}</span>
+                                    </NavLink>
+                                </li>
+                            ))}
+                        </ul>
+                            )
+                        ) : (
+                            deadlines.length === 0 ? <div className="text-sm text-zinc-400 dark:text-zinc-500">{t('overview.noDeadlines')}</div> : (
                             <ul className="flex flex-col gap-1">
                                 {deadlines.map((c) => (
                                     <li key={c.id}>
@@ -463,30 +486,8 @@ export default function OverviewPage() {
                                     </li>
                                 ))}
                             </ul>
-                        </div>
-                    )}
-
-                    <div className={card}>
-                        <div className="flex items-baseline justify-between mb-3">
-                            <div className={cardTitle}>{t('overview.upcoming')}</div>
-                            <NavLink to="/entries" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">{t('overview.showAll')}</NavLink>
-                        </div>
-                        {upcoming.length === 0 && <div className="text-sm text-zinc-400 dark:text-zinc-500">{t('overview.nothing')}</div>}
-                        <ul className="flex flex-col gap-1">
-                            {upcoming.map((c) => (
-                                <li key={c.id}>
-                                    <NavLink to={`/contracts/${c.id}`}
-                                             className="flex items-center gap-3 py-1.5 -mx-2 px-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-                                        <EntryIcon name={c.name} icon={c.icon_source} category={categoryOf(c.category_id)} className="size-7"/>
-                                        <span className="text-xs text-zinc-400 dark:text-zinc-500 w-14 shrink-0 tabular-nums">
-                                            {shortDate(c.next_billing_date!)}
-                                        </span>
-                                        <span className="text-sm text-zinc-950 dark:text-white truncate grow">{c.name}</span>
-                                        <span className="text-sm font-medium tabular-nums text-zinc-950 dark:text-white">{format(c.costs ?? 0)}</span>
-                                    </NavLink>
-                                </li>
-                            ))}
-                        </ul>
+                            )
+                        )}
                     </div>
 
                     <div className={card}>

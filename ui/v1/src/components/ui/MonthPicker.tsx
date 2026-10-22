@@ -2,6 +2,7 @@ import {useTranslation} from "react-i18next";
 import {ArrowUturnLeftIcon, ChevronLeftIcon, ChevronRightIcon} from "@heroicons/react/20/solid";
 import clsx from "clsx";
 import {useMonth} from "../../stores/useMonth.ts";
+import SegmentedControl from "../SegmentedControl.tsx";
 import dayjs from "../../lib/dayjs";
 
 /**
@@ -10,7 +11,7 @@ import dayjs from "../../lib/dayjs";
  */
 export default function MonthPicker() {
     const {t} = useTranslation();
-    const {month, setMonth} = useMonth();
+    const {month, setMonth, mode, setMode} = useMonth();
     const today = dayjs();
     const isCurrent = month.isSame(today, "month");
     const button = clsx("p-2 hover:cursor-pointer",
@@ -19,6 +20,11 @@ export default function MonthPicker() {
 
     return (
         <div className="flex flex-wrap items-center justify-end gap-2">
+            {/* how recurring amounts count: spread over the months, or only in the month they are due */}
+            <SegmentedControl value={mode} onChange={setMode} options={[
+                {value: "average", label: t('overview.modeAverageShort'), title: t('overview.modeAverageHint')},
+                {value: "due", label: t('overview.modeDueShort'), title: t('overview.modeDueHint')},
+            ]}/>
             {!isCurrent && (
                 <button
                     onClick={() => setMonth(today)}

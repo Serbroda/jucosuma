@@ -16,7 +16,6 @@ import {amountInMonth} from "../utils/budget.utils.ts";
 import {categoryLabel} from "../utils/household.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
 import {classNames} from "../utils/dom.utils.ts";
-import {slotColor} from "../lib/icons.ts";
 import {sendJson} from "../lib/api.ts";
 import {card, table, td, th, tr} from "../utils/ui.ts";
 
@@ -52,7 +51,6 @@ export default function CategoriesPage() {
                         <thead>
                         <tr>
                             <th className={classNames(th, "pl-5")}>{t('common.name')}</th>
-                            <th className={classNames(th, "hidden sm:table-cell")}>{t('categories.color')}</th>
                             <th className={classNames(th, "text-right")}>{t('categories.entries')}</th>
                             <th className={classNames(th, "text-right")}>{t('categories.sumIn', {month: month.format("MMM")})}</th>
                             <th className={classNames(th, "w-10 pr-5")}/>
@@ -69,9 +67,6 @@ export default function CategoriesPage() {
                                             <IconTile icon={cat.icon} color={cat.color} className="size-8"/>
                                             <span className="font-medium text-zinc-950 dark:text-white">{categoryLabel(cat.name, cat.key)}</span>
                                         </button>
-                                    </td>
-                                    <td className={classNames(td, "hidden sm:table-cell")}>
-                                        <span className="block size-3 rounded-full" style={{background: slotColor(cat.color)}}/>
                                     </td>
                                     <td className={classNames(td, "text-right tabular-nums")}>{entries.length}</td>
                                     <td className={classNames(td, "text-right tabular-nums font-medium text-zinc-950 dark:text-white")}>

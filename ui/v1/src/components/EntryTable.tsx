@@ -9,7 +9,7 @@ import IconTile from "./ui/IconTile.tsx";
 import {EntryKindTransfer, type ContractDto} from "../gen/types.gen.ts";
 import type {AppData} from "../hooks/useAppData.ts";
 import {type Pot, potOf, splitText, costOwner} from "../utils/budget.utils.ts";
-import {accountName} from "../utils/household.utils.ts";
+import {accountName, isDefaultAssignment} from "../utils/household.utils.ts";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
 import {table, td, th, tr} from "../utils/ui.ts";
@@ -102,7 +102,13 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
                                     </span>
                                 </td>
                             )}
-                            {has("split") && <td className={classNames(td, "hidden lg:table-cell whitespace-nowrap")}>{splitText(c, data.persons, data.accounts, t('common.household'), i18n.language)}</td>}
+                            {has("split") && (
+                                <td className={classNames(td, "hidden lg:table-cell whitespace-nowrap")}>
+                                    {/* only deviations from the account (e.g. a private cost on the joint account, external persons) */}
+                                    {isDefaultAssignment(c, data.persons, data.accounts) ? ""
+                                        : splitText(c, data.persons, data.accounts, t('common.household'), i18n.language)}
+                                </td>
+                            )}
                             {has("person") && (
                                 <td className={classNames(td, "hidden lg:table-cell")}>
                                     {potLabel(potOf(data.accounts.find((a) => a.id === c.account_id)))}

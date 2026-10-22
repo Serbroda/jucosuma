@@ -13,7 +13,6 @@ import {
     SparklesIcon,
     WalletIcon,
 } from "@heroicons/react/20/solid";
-import clsx from "clsx";
 import MonthPicker from "../components/ui/MonthPicker.tsx";
 import {SidebarLayout} from "../components/catalyst/sidebar-layout.tsx";
 import {Navbar, NavbarItem, NavbarSection, NavbarSpacer} from "../components/catalyst/navbar.tsx";
@@ -118,13 +117,7 @@ function MainLayout() {
                     </Sidebar>
                 }
             >
-                {/* on phones only the month picker is shown here, the household chip is decoration */}
-                <div className={clsx("flex-wrap items-center gap-3 mb-6 sm:mb-8", showMonth ? "flex" : "hidden sm:flex")}>
-                    <div className="hidden sm:flex items-center gap-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 text-sm text-zinc-700 dark:text-zinc-200">
-                        <HomeIcon className="size-4 text-zinc-500"/>{t('nav.ourHousehold')}
-                    </div>
-                    {showMonth && <div className="ml-auto"><MonthPicker/></div>}
-                </div>
+                {showMonth && <div className="flex justify-end mb-6"><MonthPicker/></div>}
                 <Outlet/>
             </SidebarLayout>
         </div>

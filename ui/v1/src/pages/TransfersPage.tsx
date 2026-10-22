@@ -1,6 +1,6 @@
 import {useState} from "react";
 import {useTranslation} from "react-i18next";
-import {ArrowsRightLeftIcon, BanknotesIcon, HomeIcon, PlusIcon, WalletIcon} from "@heroicons/react/20/solid";
+import {ArrowsRightLeftIcon, BanknotesIcon, PlusIcon} from "@heroicons/react/20/solid";
 import PageHeader from "../components/ui/PageHeader.tsx";
 import IconTile from "../components/ui/IconTile.tsx";
 import EntryTable from "../components/EntryTable.tsx";
@@ -10,7 +10,7 @@ import {EntryKindTransfer} from "../gen/types.gen.ts";
 import {useAppData} from "../hooks/useAppData.ts";
 import {useMonth} from "../stores/useMonth.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
-import {amountInMonth, potOf, summarizeMonth} from "../utils/budget.utils.ts";
+import {amountInMonth, potOf, summarizeMonth, isSavingsAccount} from "../utils/budget.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
 import {card, cardTitle} from "../utils/ui.ts";
 
@@ -24,15 +24,16 @@ export default function TransfersPage() {
     const format = (v: number) => new Intl.NumberFormat(numberLocale(), {style: "currency", currency: mainCurrency, maximumFractionDigits: 0}).format(v);
     const transfers = data.contracts.filter((c) => c.kind === EntryKindTransfer);
     const summary = summarizeMonth(data.contracts, data.persons, data.accounts, month, mode, mainCurrency);
-    const total = transfers.reduce((s, c) => s + amountInMonth(c, month, mode), 0);
     // money moving between pots: private → household cash (contributions) and back (payouts, e.g. pocket money)
     const accountById = new Map(data.accounts.map((a) => [a.id, a]));
-    let contributions = 0, payouts = 0;
+    let betweenPots = 0, contributions = 0, payouts = 0;
     for (const c of transfers) {
+        const target = accountById.get(c.target_account_id ?? -1);
         const from = potOf(accountById.get(c.account_id ?? -1));
-        const to = potOf(accountById.get(c.target_account_id ?? -1));
-        if (from === to) continue;
+        const to = potOf(target);
+        if (from === to || isSavingsAccount(target)) continue;
         const amount = amountInMonth(c, month, mode);
+        betweenPots += amount;
         if (to === "household") contributions += amount;
         else if (from === "household") payouts += amount;
     }
@@ -41,10 +42,11 @@ export default function TransfersPage() {
         .sort((a, b) => amountInMonth(b, month, "average") - amountInMonth(a, month, "average"));
 
     const kpis = [
-        {label: t('transfers.total'), value: total, icon: ArrowsRightLeftIcon, color: 1},
-        {label: t('transfers.contributions'), value: contributions, icon: HomeIcon, color: 3},
-        {label: t('transfers.payouts'), value: payouts, icon: WalletIcon, color: 7},
-        {label: t('overview.saving'), value: summary.savings, icon: BanknotesIcon, color: 6},
+        {
+            label: t('transfers.betweenPots'), value: betweenPots, icon: ArrowsRightLeftIcon, color: 1,
+            hint: t('transfers.betweenPotsHint', {in: format(contributions), out: format(payouts)}),
+        },
+        {label: t('overview.saving'), value: summary.savings, icon: BanknotesIcon, color: 6, hint: t('transfers.savingHint')},
     ];
 
     return (
@@ -53,13 +55,14 @@ export default function TransfersPage() {
                               persons={data.persons} accounts={data.accounts} categories={data.categories} goals={data.goals}/>
             <PageHeader title={t('transfers.title')} subtitle={t('transfers.subtitle')}
                         actions={<Button onClick={() => setAdding(true)} className="hover:cursor-pointer"><PlusIcon/>{t('transfers.add')}</Button>}/>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {kpis.map((k) => (
                     <div key={k.label} className={card + " flex items-center gap-4"}>
                         <IconTile iconComponent={k.icon} color={k.color} className="size-11"/>
                         <div>
                             <div className="text-sm text-zinc-500 dark:text-zinc-400">{k.label}</div>
                             <div className="text-2xl font-semibold text-zinc-950 dark:text-white">{format(k.value)}</div>
+                            <div className="text-xs text-zinc-400 dark:text-zinc-500">{k.hint}</div>
                         </div>
                     </div>
                 ))}
