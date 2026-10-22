@@ -1,6 +1,6 @@
 import {
     BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime,
-    EntryKindExpense, EntryKindTransfer,
+    EntryKindExpense, EntryKindIncome, EntryKindTransfer,
     type AccountDto, type CategoryDto, type CompanyDto, type ContractDto, type ContractHolderDto, type DocumentDto,
     type PersonDto, type SavingsGoalDto, type ShareDto
 } from "../gen/types.gen.ts";
@@ -23,6 +23,8 @@ import ConfirmDialog, {type ConfirmDialogProps} from "./dialogs/ConfirmDialog.ts
 import ChooseIconDialog from "./dialogs/ChooseIconDialog.tsx";
 import {CheckIcon, ChevronRightIcon, DocumentIcon, PencilIcon, XMarkIcon} from "@heroicons/react/16/solid";
 import SharesEditor from "./SharesEditor.tsx";
+import EarnerSelect from "./EarnerSelect.tsx";
+import {costOwner, earnerOfAccount, earnerShares, type Pot} from "../utils/budget.utils.ts";
 import EntryIcon from "./EntryIcon.tsx";
 import {categoryLabel, defaultShares, entryKinds, entryPeriods, isContractCategory} from "../utils/household.utils.ts";
 import {Switch, SwitchField} from "./catalyst/switch.tsx";
@@ -84,12 +86,17 @@ export default function ContractForm({contract, holders, companies, categories, 
         ? Boolean(contract.is_contract)
         : isContractCategory(categories.find((c) => c.id === contract.category_id || (!contract.category_id && c.key === "other"))));
     const [contractTouched, setContractTouched] = useState(isEdit);
+    // earner of an income; new entries follow the chosen account until set by hand
+    const [earner, setEarner] = useState<Pot>(isEdit && contract.kind === EntryKindIncome
+        ? costOwner(contract as ContractDto, persons, accounts) : earnerOfAccount(contract.account_id, accounts));
+    const [earnerTouched, setEarnerTouched] = useState(isEdit);
     const [showDetails, setShowDetails] = useState(Boolean(contract.is_contract) || Boolean(
         contract.company || contract.contract_number || contract.customer_number || contract.contract_holder
         || contract.contact_person || contract.contact_email || contract.contact_phone || contract.notes
         || contract.documents?.length));
 
     const isExpense = kind === EntryKindExpense;
+    const isIncome = kind === EntryKindIncome;
     const isTransfer = kind === EntryKindTransfer;
     const hasBilling = billingPeriod !== BillingPeriodNone;
     const hasRecurringBilling = hasBilling && billingPeriod !== BillingPeriodOneTime;
@@ -330,7 +337,8 @@ export default function ContractForm({contract, holders, companies, categories, 
                 <div className="grid grid-cols-2 gap-2">
                     <Field>
                         <Label>{isExpense ? t('entry.paidFrom') : isTransfer ? t('entry.fromAccount') : t('entry.toAccount')}</Label>
-                        <Select name="account_id" defaultValue={contract.account_id ?? ""}>
+                        <Select name="account_id" defaultValue={contract.account_id ?? ""}
+                                onChange={(e) => !earnerTouched && setEarner(earnerOfAccount(Number(e.target.value) || null, accounts))}>
                             <option value="">{t('common.noAccount')}</option>
                             {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                         </Select>
@@ -375,6 +383,17 @@ export default function ContractForm({contract, holders, companies, categories, 
                     </Field>
                 )}
 
+                {isIncome && (
+                    <Field>
+                        <Label>{t('income.earner')}</Label>
+                        <Description>{t('income.earnerHint')}</Description>
+                        <EarnerSelect persons={persons} value={earner} onChange={(v) => {
+                            setEarner(v);
+                            setEarnerTouched(true);
+                        }}/>
+                        <input type="hidden" name="shares" value={JSON.stringify(earnerShares(earner, persons))}/>
+                    </Field>
+                )}
                 {isExpense && (
                     <Field>
                         <Label>{t('entry.whoCarries')}</Label>

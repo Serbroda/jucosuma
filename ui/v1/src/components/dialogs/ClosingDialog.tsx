@@ -36,6 +36,8 @@ export default function ClosingDialog({open, onClose, month, data}: {
     const [starts, setStarts] = useState<Record<number, string>>({});
     const [actuals, setActuals] = useState<Record<number, string>>({});
     const [notes, setNotes] = useState("");
+    // account balances are optional; shown when the closing already has some or on request
+    const [showBalances, setShowBalances] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
 
@@ -61,6 +63,7 @@ export default function ClosingDialog({open, onClose, month, data}: {
             .map((a) => [a.id, formatDecimal(a.balance) || "0,00"])));
         setActuals(Object.fromEntries((closing?.actuals ?? []).map((a) => [a.category_id, formatDecimal(a.amount) || "0,00"])));
         setNotes(closing?.notes ?? "");
+        setShowBalances((closing?.balances.length ?? 0) > 0);
         setError(null);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, monthKey]);
@@ -76,12 +79,11 @@ export default function ClosingDialog({open, onClose, month, data}: {
         .filter((b): b is { account_id: number; balance: number } => b.balance != null);
 
     const save = async () => {
-        const balances = toBalances(ends);
-        if (balances.length === 0) return setError(t('closing.errorBalances'));
+        const balances = showBalances ? toBalances(ends) : [];
         setSaving(true);
         setError(null);
         // first closing: store the start balances as closing of the previous month
-        if (needsStart) {
+        if (needsStart && balances.length > 0) {
             const startBalances = toBalances(starts);
             if (startBalances.length > 0) {
                 const err = await sendJson("PUT", `/month_closings/${previousKey}`, {balances: startBalances, actuals: []});
@@ -109,57 +111,6 @@ export default function ClosingDialog({open, onClose, month, data}: {
     return (
         <FormDialog open={open} onClose={onClose} onSubmit={save} saving={saving} error={error} size="2xl"
                     title={t('closing.dialogTitle', {month: month.format("MMMM YYYY")})}>
-            <div>
-                <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('closing.balancesTitle', {date: monthEnd})}</div>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                    {needsStart ? t('closing.balancesHintFirst') : t('closing.balancesHint')}
-                </p>
-                <div className="overflow-x-auto -mx-2 mt-2">
-                    <table className={table}>
-                        <thead>
-                        <tr>
-                            <th className={th}>{t('closing.account')}</th>
-                            {needsStart && <th className={th + " text-right"}>{t('closing.startBalance')}</th>}
-                            <th className={th + " text-right"}>{t('closing.endBalance')}</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {data.accounts.map((a) => {
-                            const exp = expected(a.id);
-                            return (
-                                <tr key={a.id} className="border-t border-zinc-100 dark:border-zinc-800">
-                                    <td className={td}>
-                                        <div className="font-medium text-zinc-950 dark:text-white">{a.name}</div>
-                                        <div className="text-xs text-zinc-400 dark:text-zinc-500">{accountOwnerLabel(a, data.persons)}</div>
-                                    </td>
-                                    {needsStart && (
-                                        <td className={td + (needsStart ? " w-28 sm:w-36" : " w-36")}>
-                                            <Input inputMode="decimal" className="text-right" placeholder="0,00"
-                                                   aria-label={`${t('closing.startBalance')} ${a.name}`}
-                                                   value={starts[a.id] ?? ""}
-                                                   onChange={(e) => setStarts({...starts, [a.id]: e.target.value})}/>
-                                        </td>
-                                    )}
-                                    <td className={td + (needsStart ? " w-28 sm:w-36" : " w-36")}>
-                                        <Input inputMode="decimal" className="text-right"
-                                               aria-label={`${t('closing.endBalance')} ${a.name}`}
-                                               placeholder={exp != null ? formatDecimal(exp) || "0,00" : "0,00"}
-                                               value={ends[a.id] ?? ""}
-                                               onChange={(e) => setEnds({...ends, [a.id]: e.target.value})}/>
-                                        {exp != null && (
-                                            <div className="text-[11px] text-zinc-400 dark:text-zinc-500 text-right mt-0.5">
-                                                {t('closing.expected', {amount: format(exp)})}
-                                            </div>
-                                        )}
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
             <div>
                 <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('closing.actualsTitle')}</div>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
@@ -194,6 +145,68 @@ export default function ClosingDialog({open, onClose, month, data}: {
                     </div>
                 )}
             </div>
+
+            {showBalances ? (
+                <div>
+                    <div className="text-sm font-semibold text-zinc-950 dark:text-white">{t('closing.balancesTitle', {date: monthEnd})}</div>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                        {needsStart ? t('closing.balancesHintFirst') : t('closing.balancesHint')}
+                    </p>
+                    <div className="overflow-x-auto -mx-2 mt-2">
+                        <table className={table}>
+                            <thead>
+                            <tr>
+                                <th className={th}>{t('closing.account')}</th>
+                                {needsStart && <th className={th + " text-right"}>{t('closing.startBalance')}</th>}
+                                <th className={th + " text-right"}>{t('closing.endBalance')}</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {data.accounts.map((a) => {
+                                const exp = expected(a.id);
+                                return (
+                                    <tr key={a.id} className="border-t border-zinc-100 dark:border-zinc-800">
+                                        <td className={td}>
+                                            <div className="font-medium text-zinc-950 dark:text-white">{a.name}</div>
+                                            <div className="text-xs text-zinc-400 dark:text-zinc-500">{accountOwnerLabel(a, data.persons)}</div>
+                                        </td>
+                                        {needsStart && (
+                                            <td className={td + (needsStart ? " w-28 sm:w-36" : " w-36")}>
+                                                <Input inputMode="decimal" className="text-right" placeholder="0,00"
+                                                       aria-label={`${t('closing.startBalance')} ${a.name}`}
+                                                       value={starts[a.id] ?? ""}
+                                                       onChange={(e) => setStarts({...starts, [a.id]: e.target.value})}/>
+                                            </td>
+                                        )}
+                                        <td className={td + (needsStart ? " w-28 sm:w-36" : " w-36")}>
+                                            <Input inputMode="decimal" className="text-right"
+                                                   aria-label={`${t('closing.endBalance')} ${a.name}`}
+                                                   placeholder={exp != null ? formatDecimal(exp) || "0,00" : "0,00"}
+                                                   value={ends[a.id] ?? ""}
+                                                   onChange={(e) => setEnds({...ends, [a.id]: e.target.value})}/>
+                                            {exp != null && (
+                                                <div className="text-[11px] text-zinc-400 dark:text-zinc-500 text-right mt-0.5">
+                                                    {t('closing.expected', {amount: format(exp)})}
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+            ) : (
+                <div>
+                    <button type="button" onClick={() => setShowBalances(true)}
+                            className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline hover:cursor-pointer">
+                        {t('closing.addBalances')}
+                    </button>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{t('closing.addBalancesHint')}</p>
+                </div>
+            )}
 
             <Field>
                 <Label>{t('entryForm.notes')}</Label>

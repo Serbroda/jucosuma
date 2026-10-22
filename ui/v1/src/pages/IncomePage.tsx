@@ -12,7 +12,7 @@ import {BillingPeriodOneTime, EntryKindIncome} from "../gen/types.gen.ts";
 import {useAppData} from "../hooks/useAppData.ts";
 import {useMonth} from "../stores/useMonth.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
-import {amountInMonth, potOf} from "../utils/budget.utils.ts";
+import {amountInMonth, costOwner, potOf} from "../utils/budget.utils.ts";
 import {personSlot} from "../utils/household.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
 import {slotColor} from "../lib/icons.ts";
@@ -33,29 +33,45 @@ export default function IncomePage() {
     const household = data.persons.filter((p) => p.in_household);
     const incomes = data.contracts.filter((c) => c.kind === EntryKindIncome && (!c.currency || c.currency === mainCurrency));
 
-    /** Income of a month per pot: person id for private accounts, "household" for shared ones. */
-    const byPot = (m: typeof month) => {
+    /**
+     * Income of a month per earner (person id or "household" for shared income) and, per earner,
+     * the pots it flows into. The earner is independent of the account: a salary paid into the
+     * joint account still belongs to the person who earns it.
+     */
+    const byEarner = (m: typeof month) => {
         const result: Record<string, number> = {};
+        const flows: Record<string, Record<string, number>> = {};
         for (const c of incomes) {
             const amount = amountInMonth(c, m, mode);
             if (!amount) continue;
+            const earner = String(costOwner(c, data.persons, data.accounts));
             const pot = String(potOf(data.accounts.find((a) => a.id === c.account_id)));
-            result[pot] = (result[pot] ?? 0) + amount;
+            result[earner] = (result[earner] ?? 0) + amount;
+            flows[earner] = {...flows[earner], [pot]: (flows[earner]?.[pot] ?? 0) + amount};
         }
-        return result;
+        return {result, flows};
     };
 
-    const current = useMemo(() => byPot(month), // eslint-disable-next-line react-hooks/exhaustive-deps
-        [data, month.format("YYYY-MM")]);
+    const {result: current, flows} = useMemo(() => byEarner(month), // eslint-disable-next-line react-hooks/exhaustive-deps
+        [data, month.format("YYYY-MM"), mode]);
     const total = Object.values(current).reduce((s, v) => s + v, 0);
+    const potLabel = (pot: string) => pot === "household"
+        ? t('overview.potHousehold') : data.persons.find((p) => String(p.id) === pot)?.name ?? t('common.unknown');
+    /** "→ Haushaltskasse" or, for several pots, "→ Haushaltskasse 3.000 € · Danny 1.083 €". */
+    const flowText = (earner: string) => {
+        const parts = Object.entries(flows[earner] ?? {});
+        if (parts.length === 0) return null;
+        if (parts.length === 1) return t('income.flowsInto', {pots: potLabel(parts[0][0])});
+        return t('income.flowsInto', {pots: parts.map(([pot, v]) => `${potLabel(pot)} ${format(v)}`).join(" · ")});
+    };
 
     const series = [
         ...household.map((p) => ({key: String(p.id), label: p.name, color: slotColor(personSlot(data.persons, p.id))})),
-        {key: "household", label: t('overview.potHousehold'), color: "var(--chart-other)"},
+        {key: "household", label: t('income.earnerShared'), color: "var(--chart-other)"},
     ];
     const columns = Array.from({length: 6}, (_, i) => {
         const m = month.subtract(5 - i, "month");
-        return {key: m.format("YYYY-MM"), label: m.format("MMM"), values: byPot(m), highlight: i === 5};
+        return {key: m.format("YYYY-MM"), label: m.format("MMM"), values: byEarner(m).result, highlight: i === 5};
     });
 
     const listed = incomes
@@ -84,7 +100,9 @@ export default function IncomePage() {
                             <div>
                                 <div className="text-sm text-zinc-500 dark:text-zinc-400">{p.name}</div>
                                 <div className="text-2xl font-semibold text-zinc-950 dark:text-white">{format(amount)}</div>
-                                <div className="text-xs text-zinc-400 dark:text-zinc-500">{total > 0 ? Math.round(amount / total * 100) : 0} %</div>
+                                <div className="text-xs text-zinc-400 dark:text-zinc-500">
+                                    {total > 0 ? Math.round(amount / total * 100) : 0} %{flowText(String(p.id)) && <> · {flowText(String(p.id))}</>}
+                                </div>
                             </div>
                         </div>
                     );
@@ -93,8 +111,9 @@ export default function IncomePage() {
                     <div className={card + " flex items-center gap-4"}>
                         <IconTile iconComponent={UserGroupIcon} className="size-12"/>
                         <div>
-                            <div className="text-sm text-zinc-500 dark:text-zinc-400">{t('overview.potHousehold')}</div>
+                            <div className="text-sm text-zinc-500 dark:text-zinc-400">{t('income.earnerShared')}</div>
                             <div className="text-2xl font-semibold text-zinc-950 dark:text-white">{format(current.household)}</div>
+                            <div className="text-xs text-zinc-400 dark:text-zinc-500">{flowText("household")}</div>
                         </div>
                     </div>
                 )}
@@ -114,7 +133,7 @@ export default function IncomePage() {
                         {value: "once", label: t('income.tabOnce')},
                     ]}/>
                 </div>
-                <EntryTable entries={listed} data={data} columns={["interval", "account", "person", "category"]}
+                <EntryTable entries={listed} data={data} columns={["interval", "earner", "account", "category"]}
                             emptyText={t('income.empty')} amountTone="income"/>
             </div>
         </div>

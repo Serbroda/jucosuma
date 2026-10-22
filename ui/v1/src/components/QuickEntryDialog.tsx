@@ -9,6 +9,8 @@ import {Button} from "./catalyst/button.tsx";
 import {Checkbox, CheckboxField} from "./catalyst/checkbox.tsx";
 import {useAuth} from "../stores/useAuth.ts";
 import SharesEditor from "./SharesEditor.tsx";
+import EarnerSelect from "./EarnerSelect.tsx";
+import {earnerOfAccount, earnerShares, type Pot} from "../utils/budget.utils.ts";
 import {
     BillingPeriodMonthly,
     BillingPeriodOneTime,
@@ -60,6 +62,8 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
     const [accountId, setAccountId] = useState<number | undefined>();
     const [targetAccountId, setTargetAccountId] = useState<number | undefined>();
     const [shares, setShares] = useState<ShareDto[]>([]);
+    const [earner, setEarner] = useState<Pot>("household");
+    const [earnerTouched, setEarnerTouched] = useState(false);
     const [error, setError] = useState("");
     const [saving, setSaving] = useState(false);
     const [savedName, setSavedName] = useState("");
@@ -67,6 +71,7 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
     const {user} = useAuth();
 
     const isExpense = kind === EntryKindExpense;
+    const isIncome = kind === EntryKindIncome;
     const isTransfer = kind === EntryKindTransfer;
 
     const initialShares = (forKind: string) => forKind === EntryKindExpense ? defaultShares(persons) : [];
@@ -92,9 +97,12 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
         setGoalId(undefined);
         setAmount("");
         setError("");
-        setAccountId(recallAccount(keepKind, "from", accounts));
+        const recalled = recallAccount(keepKind, "from", accounts);
+        setAccountId(recalled);
         setTargetAccountId(recallAccount(keepKind, "to", accounts));
         setShares(initialShares(keepKind));
+        setEarner(earnerOfAccount(recalled, accounts));
+        setEarnerTouched(false);
     };
 
     useEffect(() => {
@@ -145,7 +153,7 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
             currency: "EUR",
             account_id: accountId,
             target_account_id: isTransfer ? targetAccountId : undefined,
-            shares: isExpense ? shares : [],
+            shares: isExpense ? shares : isIncome ? earnerShares(earner, persons) : [],
             split_between: 1,
             owner_id: onlyMe ? user?.id : undefined,
         };
@@ -273,7 +281,11 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                         <Field>
                             <Label>{isExpense ? t('entry.paidFrom') : isTransfer ? t('entry.fromAccount') : t('entry.toAccount')}</Label>
                             <Select value={accountId ?? ""}
-                                    onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : undefined)}>
+                                    onChange={(e) => {
+                                        const id = e.target.value ? Number(e.target.value) : undefined;
+                                        setAccountId(id);
+                                        if (!earnerTouched) setEarner(earnerOfAccount(id, accounts));
+                                    }}>
                                 {accountOptions}
                             </Select>
                         </Field>
@@ -303,6 +315,16 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                                 <option value="">{t('goals.noGoal')}</option>
                                 {goals.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                             </Select>
+                        </Field>
+                    )}
+
+                    {isIncome && (
+                        <Field>
+                            <Label>{t('income.earner')}</Label>
+                            <EarnerSelect persons={persons} value={earner} onChange={(v) => {
+                                setEarner(v);
+                                setEarnerTouched(true);
+                            }}/>
                         </Field>
                     )}
 

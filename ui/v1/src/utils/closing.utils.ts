@@ -2,6 +2,7 @@ import type {Dayjs} from "dayjs";
 import type {AccountDto, CategoryDto, ContractDto, MonthClosingDto, PersonDto} from "../gen/types.gen.ts";
 import {EntryKindExpense} from "../gen/types.gen.ts";
 import {amountInMonth, type Pot, potOf, summarizeMonth} from "./budget.utils.ts";
+import dayjs from "../lib/dayjs";
 
 export type PotComparison = {
     pot: Pot;
@@ -94,4 +95,76 @@ export function variableCategories(
     }
     for (const closing of closings) for (const a of closing.actuals) ids.add(a.category_id);
     return categories.filter((c) => c.type === EntryKindExpense && ids.has(c.id));
+}
+
+export type CategoryTrend = {
+    category: CategoryDto;
+    months: number;              // months with an actual amount
+    total: number;               // sum of actual amounts
+    average: number;             // average actual per tracked month
+    plan: number;                // current monthly plan (average mode)
+    trend?: number;              // last 3 tracked months vs. the months before, as fraction (+0.12 = +12 %)
+    recommendation: number;      // suggested monthly budget
+};
+
+export type VariableCostsYear = {
+    months: { month: Dayjs; closed: boolean; values: Record<string, number> }[];
+    categories: CategoryTrend[];
+    total: number;
+    trackedMonths: number;
+};
+
+const RECENT = 3;
+
+/**
+ * Actual variable costs of the last 12 months (up to and including `endMonth`) per category, with
+ * a trend and a suggested monthly budget. The suggestion is the average of the tracked months with
+ * the last three weighted double, rounded up to 10, so it follows a rising or falling tendency
+ * without overreacting to a single month.
+ */
+export function variableCostsYear(
+    endMonth: Dayjs,
+    closings: MonthClosingDto[],
+    contracts: ContractDto[],
+    persons: PersonDto[],
+    accounts: AccountDto[],
+    categories: CategoryDto[],
+    mainCurrency: string,
+): VariableCostsYear {
+    const months = Array.from({length: 12}, (_, i) => endMonth.startOf("month").subtract(11 - i, "month")).map((m) => {
+        const closing = closings.find((c) => c.month === m.format("YYYY-MM"));
+        const values: Record<string, number> = {};
+        for (const a of closing?.actuals ?? []) values[String(a.category_id)] = a.amount;
+        return {month: m, closed: !!closing, values};
+    });
+
+    const currentPlan = summarizeMonth(contracts, persons, accounts, dayjs().startOf("month"), "average", mainCurrency, "all");
+    const ids = new Set(months.flatMap((m) => Object.keys(m.values)));
+    const trends = categories.filter((c) => ids.has(String(c.id))).map((category): CategoryTrend => {
+        const series = months.map((m) => m.values[String(category.id)]).filter((v): v is number => v != null);
+        const total = series.reduce((s, v) => s + v, 0);
+        const average = series.length ? total / series.length : 0;
+        const avg = (values: number[]) => values.reduce((s, v) => s + v, 0) / values.length;
+        const recent = series.slice(-RECENT);
+        const earlier = series.slice(0, -RECENT);
+        const trend = earlier.length > 0 && avg(earlier) > 0 ? avg(recent) / avg(earlier) - 1 : undefined;
+        const weights = series.map((_, i) => (i >= series.length - RECENT ? 2 : 1));
+        const weighted = series.reduce((s, v, i) => s + v * weights[i], 0) / weights.reduce((s, w) => s + w, 0);
+        return {
+            category,
+            months: series.length,
+            total,
+            average,
+            plan: currentPlan.byCategory.find((c) => c.id === category.id)?.amount ?? 0,
+            trend,
+            recommendation: Math.ceil(weighted / 10) * 10,
+        };
+    }).sort((a, b) => b.total - a.total);
+
+    return {
+        months,
+        categories: trends,
+        total: trends.reduce((s, c) => s + c.total, 0),
+        trackedMonths: months.filter((m) => Object.keys(m.values).length > 0).length,
+    };
 }

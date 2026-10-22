@@ -16,6 +16,7 @@ import {
     type ContractDto,
     type PersonDto,
     type SavingsGoalDto,
+    type ShareDto,
 } from "../gen/types.gen.ts";
 import {categoryLabel} from "./household.utils.ts";
 
@@ -119,6 +120,18 @@ export type AccountFlow = { account: AccountDto; inflow: number; outflow: number
  */
 export type Scope = "all" | "household" | number;
 export type Pot = "household" | number;
+
+/** Default earner of an income: the owner of the receiving account, otherwise the household. */
+export function earnerOfAccount(accountId: number | undefined | null, accounts: AccountDto[]): Pot {
+    return accounts.find((a) => a.id === accountId)?.person_id ?? "household";
+}
+
+/** Shares that store the earner of an income: one person, or all household members for shared income. */
+export function earnerShares(earner: Pot, persons: PersonDto[]): ShareDto[] {
+    return earner === "household"
+        ? persons.filter((p) => p.in_household).map((p) => ({person_id: p.id, weight: 1}))
+        : [{person_id: earner, weight: 1}];
+}
 
 /** The pot an account belongs to; entries without account belong to the household. */
 export function potOf(account: AccountDto | undefined): Pot {

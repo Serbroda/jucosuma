@@ -1,8 +1,9 @@
+import {costOwner} from "../utils/budget.utils.ts";
 import {useLoaderData} from "react-router";
 import {Heading, Subheading} from "../components/catalyst/heading.tsx";
 import {Divider} from "../components/catalyst/divider.tsx";
 import type {AccountDto, ContractDto, PersonDto} from "../gen/types.gen.ts";
-import {BillingPeriodNone, BillingPeriodOneTime, EntryKindExpense, EntryKindTransfer} from "../gen/types.gen.ts";
+import {BillingPeriodNone, BillingPeriodOneTime, EntryKindExpense, EntryKindIncome, EntryKindTransfer} from "../gen/types.gen.ts";
 import {accountName, categoryLabel, entryKindLabel, noticeLabel} from "../utils/household.utils.ts";
 import {useTranslation} from "react-i18next";
 import {
@@ -172,6 +173,15 @@ export default function ContractPage() {
                     {c?.kind === EntryKindTransfer && accountName(c?.target_account_id, accounts) && <>
                         <DescriptionTerm>{t('entry.toAccount')}</DescriptionTerm>
                         <DescriptionDetails>{accountName(c?.target_account_id, accounts)}</DescriptionDetails>
+                    </>}
+                    {c?.kind === EntryKindIncome && <>
+                        <DescriptionTerm>{t('income.earner')}</DescriptionTerm>
+                        <DescriptionDetails>
+                            {(() => {
+                                const earner = costOwner(c, persons, accounts);
+                                return earner === "household" ? t('income.earnerShared') : persons.find((p) => p.id === earner)?.name;
+                            })()}
+                        </DescriptionDetails>
                     </>}
                     {c?.kind === EntryKindExpense && totalWeight > 0 && <>
                         <DescriptionTerm>{t('entryDetail.carriedBy')}</DescriptionTerm>

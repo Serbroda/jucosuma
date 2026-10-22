@@ -401,7 +401,7 @@ export default function OverviewPage() {
 
                 {/* Side column */}
                 <div className="flex flex-col gap-6 min-w-0">
-                    {scopeComparison && (
+                    {(scopeComparison || comparison.categories.length > 0) && (
                         <div className={card}>
                             <div className="flex items-baseline justify-between mb-3">
                                 <div className={cardTitle}>{t('closing.cardTitle')}</div>
@@ -410,24 +410,26 @@ export default function OverviewPage() {
                                     {t('closing.cardMore')}
                                 </button>
                             </div>
-                            <div className="grid grid-cols-3 gap-2 text-center">
-                                <div>
-                                    <div className="text-xs text-zinc-400 dark:text-zinc-500">{t('closing.cardPlanned')}</div>
-                                    <div className="text-sm font-medium tabular-nums text-zinc-950 dark:text-white">{formatShort(scopeComparison.planned)}</div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-zinc-400 dark:text-zinc-500">{t('closing.cardActual')}</div>
-                                    <div className="text-sm font-medium tabular-nums text-zinc-950 dark:text-white">{formatShort(scopeComparison.actual)}</div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-zinc-400 dark:text-zinc-500">{t('closing.deviation')}</div>
-                                    <div className={classNames("text-sm font-semibold tabular-nums",
-                                        scopeComparison.deviation < -0.5 ? "text-red-600 dark:text-red-400"
-                                            : scopeComparison.deviation > 0.5 ? "text-green-700 dark:text-green-400" : "text-zinc-500")}>
-                                        {scopeComparison.deviation > 0 ? "+" : ""}{formatShort(scopeComparison.deviation)}
+                            {scopeComparison && (
+                                <div className="grid grid-cols-3 gap-2 text-center">
+                                    <div>
+                                        <div className="text-xs text-zinc-400 dark:text-zinc-500">{t('closing.cardPlanned')}</div>
+                                        <div className="text-sm font-medium tabular-nums text-zinc-950 dark:text-white">{formatShort(scopeComparison.planned)}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-zinc-400 dark:text-zinc-500">{t('closing.cardActual')}</div>
+                                        <div className="text-sm font-medium tabular-nums text-zinc-950 dark:text-white">{formatShort(scopeComparison.actual)}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-zinc-400 dark:text-zinc-500">{t('closing.deviation')}</div>
+                                        <div className={classNames("text-sm font-semibold tabular-nums",
+                                            scopeComparison.deviation < -0.5 ? "text-red-600 dark:text-red-400"
+                                                : scopeComparison.deviation > 0.5 ? "text-green-700 dark:text-green-400" : "text-zinc-500")}>
+                                            {scopeComparison.deviation > 0 ? "+" : ""}{formatShort(scopeComparison.deviation)}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
                             {comparison.categories.slice(0, 3).map((c) => (
                                 <div key={c.category.id} className="flex items-center justify-between text-xs mt-2 text-zinc-500 dark:text-zinc-400">
                                     <span className="truncate">{categoryLabel(c.category.name, c.category.key)}</span>

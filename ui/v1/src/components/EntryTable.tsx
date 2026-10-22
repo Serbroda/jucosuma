@@ -8,7 +8,7 @@ import RowActions from "./ui/RowActions.tsx";
 import IconTile from "./ui/IconTile.tsx";
 import {EntryKindTransfer, type ContractDto} from "../gen/types.gen.ts";
 import type {AppData} from "../hooks/useAppData.ts";
-import {type Pot, potOf, splitText} from "../utils/budget.utils.ts";
+import {type Pot, potOf, splitText, costOwner} from "../utils/budget.utils.ts";
 import {accountName} from "../utils/household.utils.ts";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
@@ -17,7 +17,7 @@ import {sendJson} from "../lib/api.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
 import {classNames} from "../utils/dom.utils.ts";
 
-export type EntryColumn = "interval" | "account" | "transfer" | "split" | "person" | "category" | "goal";
+export type EntryColumn = "interval" | "earner" | "account" | "transfer" | "split" | "person" | "category" | "goal";
 
 /** Table of entries with configurable columns and edit/delete actions. */
 export default function EntryTable({entries, data, columns, emptyText, amountTone}: {
@@ -46,6 +46,7 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
                     <th className={classNames(th, "pl-5")}>{t('common.name')}</th>
                     <th className={classNames(th, "text-right")}>{t('entry.amount')}</th>
                     {has("interval") && <th className={classNames(th, "hidden md:table-cell")}>{t('entry.interval')}</th>}
+                    {has("earner") && <th className={classNames(th, "hidden sm:table-cell")}>{t('income.earner')}</th>}
                     {has("account") && <th className={classNames(th, "hidden md:table-cell")}>{t('overview.paidVia')}</th>}
                     {has("transfer") && <th className={classNames(th, "hidden md:table-cell")}>{t('transfers.fromTo')}</th>}
                     {has("split") && <th className={classNames(th, "hidden lg:table-cell")}>{t('overview.split')}</th>}
@@ -81,6 +82,14 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
                                 {format(c.costs ?? 0, c.currency)}
                             </td>
                             {has("interval") && <td className={classNames(td, "hidden md:table-cell whitespace-nowrap")}>{billingPeriodLabel(c.billing_period)}</td>}
+                            {has("earner") && (
+                                <td className={classNames(td, "hidden sm:table-cell whitespace-nowrap")}>
+                                    {(() => {
+                                        const earner = costOwner(c, data.persons, data.accounts);
+                                        return earner === "household" ? t('income.earnerShared') : data.persons.find((p) => p.id === earner)?.name;
+                                    })()}
+                                </td>
+                            )}
                             {has("account") && (
                                 <td className={classNames(td, "hidden md:table-cell whitespace-nowrap")}>{accountName(c.account_id, data.accounts) ?? "–"}</td>
                             )}

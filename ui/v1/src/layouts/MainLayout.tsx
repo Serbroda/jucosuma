@@ -7,11 +7,9 @@ import {
     BuildingLibraryIcon,
     Cog6ToothIcon,
     HomeIcon,
-    MoonIcon,
     ReceiptPercentIcon,
     ShieldCheckIcon,
     SparklesIcon,
-    SunIcon,
     TagIcon,
     UserGroupIcon,
     UsersIcon,
@@ -32,17 +30,14 @@ import {
     SidebarSpacer,
 } from "../components/catalyst/sidebar.tsx";
 import {Avatar} from "../components/catalyst/avatar.tsx";
-import {usePreferences} from "../stores/usePreferences.ts";
 import {useAuth} from "../stores/useAuth.ts";
 import logo from '../assets/logo.svg'
 
 function MainLayout() {
-    const {theme, setTheme} = usePreferences()
     const {user, logout} = useAuth()
     const {t} = useTranslation()
     const {pathname} = useLocation()
     const isAdmin = user?.role === 'admin'
-    const dark = theme === "dark"
 
     const handleLogout = async () => {
         await logout()
@@ -67,8 +62,6 @@ function MainLayout() {
     // pages without month context (the closing page has its own month list)
     const showMonth = !['/settings', '/users', '/contracts', '/closing'].some((p) => pathname.startsWith(p))
 
-    const ThemeIcon = dark ? SunIcon : MoonIcon
-
     return (
         <div className="text-black dark:text-white">
             <SidebarLayout
@@ -76,9 +69,6 @@ function MainLayout() {
                     <Navbar>
                         <NavbarSpacer/>
                         <NavbarSection>
-                            <NavbarItem onClick={() => setTheme(dark ? "light" : "dark")} aria-label={t('nav.toggleTheme')}>
-                                <ThemeIcon/>
-                            </NavbarItem>
                             <NavbarItem onClick={handleLogout} aria-label={t('nav.logout')}>
                                 <ArrowRightStartOnRectangleIcon/>
                             </NavbarItem>
@@ -113,10 +103,6 @@ function MainLayout() {
                                 <SidebarItem href="/settings" current={isCurrent('/settings')}>
                                     <Cog6ToothIcon/>
                                     <SidebarLabel>{t('nav.settings')}</SidebarLabel>
-                                </SidebarItem>
-                                <SidebarItem onClick={() => setTheme(dark ? "light" : "dark")}>
-                                    <ThemeIcon/>
-                                    <SidebarLabel>{dark ? t('nav.lightMode') : t('nav.darkMode')}</SidebarLabel>
                                 </SidebarItem>
                             </SidebarSection>
                         </SidebarBody>

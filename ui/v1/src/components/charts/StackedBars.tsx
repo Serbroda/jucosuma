@@ -42,6 +42,9 @@ export default function StackedBars({series, columns, format}: {
     const plotH = HEIGHT - PAD.top - PAD.bottom;
     const band = plotW / Math.max(1, columns.length);
     const barW = Math.min(MAX_BAR, band * 0.5);
+    // narrow charts (phones, 12 months) label every second column, counted back from the last one
+    const labelStep = band < 34 ? 2 : 1;
+    const showLabel = (i: number) => (columns.length - 1 - i) % labelStep === 0 || columns[i].highlight;
     const y = (v: number) => PAD.top + plotH - (v / top) * plotH;
     const axis = (v: number) => new Intl.NumberFormat(numberLocale(), {maximumFractionDigits: 0}).format(v);
 
@@ -89,7 +92,7 @@ export default function StackedBars({series, columns, format}: {
                             })}
                             <text x={x + barW / 2} y={HEIGHT - 8} textAnchor="middle" fontSize={11}
                                   fill={col.highlight ? "var(--chart-ink)" : "var(--chart-muted)"} fontWeight={col.highlight ? 600 : 400}>
-                                {col.label}
+                                {showLabel(i) ? col.label : ""}
                             </text>
                             <rect x={PAD.left + band * i} y={PAD.top} width={band} height={plotH + PAD.bottom} fill="transparent"
                                   onPointerEnter={() => setHover(i)} onPointerLeave={() => setHover(null)}/>

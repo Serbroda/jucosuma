@@ -5,6 +5,8 @@ import {CheckCircleIcon, ClipboardDocumentCheckIcon} from "@heroicons/react/20/s
 import PageHeader from "../components/ui/PageHeader.tsx";
 import IconTile from "../components/ui/IconTile.tsx";
 import ClosingDialog from "../components/dialogs/ClosingDialog.tsx";
+import VariableCostsYear from "../components/VariableCostsYear.tsx";
+import SegmentedControl from "../components/SegmentedControl.tsx";
 import ConfirmDialog from "../components/dialogs/ConfirmDialog.tsx";
 import {Button} from "../components/catalyst/button.tsx";
 import {useAppData} from "../hooks/useAppData.ts";
@@ -43,12 +45,16 @@ export default function ClosingPage() {
         : data.closings.some((c) => c.month === lastMonth.format("YYYY-MM")) ? dayjs().startOf("month") : lastMonth;
     const monthKey = month.format("YYYY-MM");
     const setMonth = (m: typeof month) => setSearchParams({month: m.format("YYYY-MM")}, {replace: true});
+    const view = searchParams.get("view") === "year" ? "year" : "month";
+    const setView = (v: "month" | "year") => setSearchParams(v === "year" ? {view: "year"} : {month: monthKey}, {replace: true});
     const {mainCurrency} = usePreferences();
     const revalidator = useRevalidator();
     const [editing, setEditing] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
 
-    const format = (v: number) => new Intl.NumberFormat(numberLocale(), {style: "currency", currency: mainCurrency}).format(v);
+    const format = (v: number, digits = 2) => new Intl.NumberFormat(numberLocale(), {
+        style: "currency", currency: mainCurrency, minimumFractionDigits: digits, maximumFractionDigits: digits,
+    }).format(v);
     const compare = (m: typeof month) => compareMonth(m, data.closings, data.contracts, data.persons, data.accounts, data.categories, mainCurrency);
     const current = useMemo(() => compare(month), // eslint-disable-next-line react-hooks/exhaustive-deps
         [data, monthKey, mainCurrency]);
@@ -91,9 +97,18 @@ export default function ClosingPage() {
                             {current.closing ? t('closing.edit', {month: month.format("MMMM")}) : t('closing.close', {month: month.format("MMMM")})}
                         </Button>}/>
 
+            <div className="self-start max-w-full">
+                <SegmentedControl value={view} onChange={setView} options={[
+                    {value: "month", label: t('closing.viewMonth', {month: month.format("MMMM YYYY")})},
+                    {value: "year", label: t('closing.viewYear')},
+                ]}/>
+            </div>
+
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
                 <div className="xl:col-span-2 flex flex-col gap-6 min-w-0">
-                    {!current.closing ? (
+                    {view === "year" ? (
+                        <VariableCostsYear data={data} mainCurrency={mainCurrency} format={(v, digits = 0) => format(v, digits)}/>
+                    ) : !current.closing ? (
                         <div className={card + " text-center py-10"}>
                             <IconTile iconComponent={ClipboardDocumentCheckIcon} color={1} className="size-12 mx-auto"/>
                             <div className="mt-3 font-medium text-zinc-950 dark:text-white">{t('closing.openTitle', {month: month.format("MMMM YYYY")})}</div>
@@ -104,42 +119,45 @@ export default function ClosingPage() {
                         </div>
                     ) : (
                         <>
-                            <div className={card}>
-                                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mb-3">
-                                    <div className={cardTitle}>{t('closing.potsTitle')}</div>
-                                    {comparable && (
-                                        <div className="text-sm text-zinc-500 dark:text-zinc-400">
-                                            {t('closing.totalDeviation')} <Deviation value={totalDeviation} format={format}/>
-                                        </div>
-                                    )}
-                                </div>
-                                {!comparable && <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">{t('closing.notComparable')}</p>}
-                                <div className="overflow-x-auto -mx-5">
-                                    <table className={table}>
-                                        <thead>
-                                        <tr>
-                                            <th className={th + " pl-5"}>{t('overview.pot')}</th>
-                                            <th className={th + " text-right hidden sm:table-cell"}>{t('closing.planned')}</th>
-                                            <th className={th + " text-right"}>{t('closing.actualChange')}</th>
-                                            <th className={th + " text-right pr-5"}>{t('closing.deviation')}</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        {current.pots.map((p) => (
-                                            <tr key={String(p.pot)} className={tr}>
-                                                <td className={td + " pl-5 font-medium text-zinc-950 dark:text-white"}>{potLabel(p.pot)}</td>
-                                                <td className={td + " text-right tabular-nums hidden sm:table-cell"}>{format(p.planned)}</td>
-                                                <td className={td + " text-right tabular-nums"}>{p.actual != null ? format(p.actual) : "–"}</td>
-                                                <td className={td + " text-right pr-5"}>
-                                                    {p.deviation != null ? <Deviation value={p.deviation} format={format}/> : "–"}
-                                                </td>
+                            {/* pot comparison only when the closing has account balances */}
+                            {current.closing.balances.length > 0 && (
+                                <div className={card}>
+                                    <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mb-3">
+                                        <div className={cardTitle}>{t('closing.potsTitle')}</div>
+                                        {comparable && (
+                                            <div className="text-sm text-zinc-500 dark:text-zinc-400">
+                                                {t('closing.totalDeviation')} <Deviation value={totalDeviation} format={format}/>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {!comparable && <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">{t('closing.notComparable')}</p>}
+                                    <div className="overflow-x-auto -mx-5">
+                                        <table className={table}>
+                                            <thead>
+                                            <tr>
+                                                <th className={th + " pl-5"}>{t('overview.pot')}</th>
+                                                <th className={th + " text-right hidden sm:table-cell"}>{t('closing.planned')}</th>
+                                                <th className={th + " text-right"}>{t('closing.actualChange')}</th>
+                                                <th className={th + " text-right pr-5"}>{t('closing.deviation')}</th>
                                             </tr>
-                                        ))}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                            {current.pots.map((p) => (
+                                                <tr key={String(p.pot)} className={tr}>
+                                                    <td className={td + " pl-5 font-medium text-zinc-950 dark:text-white"}>{potLabel(p.pot)}</td>
+                                                    <td className={td + " text-right tabular-nums hidden sm:table-cell"}>{format(p.planned)}</td>
+                                                    <td className={td + " text-right tabular-nums"}>{p.actual != null ? format(p.actual) : "–"}</td>
+                                                    <td className={td + " text-right pr-5"}>
+                                                        {p.deviation != null ? <Deviation value={p.deviation} format={format}/> : "–"}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-3">{t('closing.potsHint')}</p>
                                 </div>
-                                <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-3">{t('closing.potsHint')}</p>
-                            </div>
+                            )}
 
                             <div className={card}>
                                 <div className={cardTitle + " mb-3"}>{t('closing.categoriesTitle')}</div>
@@ -197,7 +215,7 @@ export default function ClosingPage() {
                             <li key={m.month.format("YYYY-MM")}>
                                 <button onClick={() => setMonth(m.month)}
                                         className={classNames("w-full flex items-center gap-3 rounded-lg -mx-2 px-2 py-2 text-left hover:cursor-pointer",
-                                            m.month.isSame(month, "month") ? "bg-zinc-100 dark:bg-zinc-800" : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50")}>
+                                            view === "month" && m.month.isSame(month, "month") ? "bg-zinc-100 dark:bg-zinc-800" : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50")}>
                                     {m.closed
                                         ? <CheckCircleIcon className="size-5 text-green-600 dark:text-green-400" aria-label={t('closing.closed')}/>
                                         : <span className="size-5 rounded-full border-2 border-zinc-300 dark:border-zinc-600" aria-label={t('closing.open')}/>}
