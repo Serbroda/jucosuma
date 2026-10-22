@@ -1,82 +1,83 @@
 # Jucosuma – Just a Contract and Subscription Manager
 
-Jucosuma (**Ju**st a **Co**ntract and **Su**bscription **Ma**nager) is a lightweight web application for creating, editing, and managing contracts and subscriptions.  
-With a Go backend API, a modern **ReactJS** frontend styled with **Tailwind CSS**, Jucosuma delivers a fast and responsive workflow for contract and subscription management.
+Jucosuma (**Ju**st a **Co**ntract and **Su**bscription **Ma**nager) started as a contract manager and has grown into a
+self-hosted **household budget book**: plan income, costs, transfers and savings for a household, keep an eye on
+contracts and cancellation deadlines, and compare plan and reality once a month.
+
+It is a single Go binary with an embedded **React** frontend (Tailwind CSS) and a **SQLite** database.
 
 ---
 
 ## 🎯 Motivation
 
-Jucosuma is heavily inspired by the excellent iOS app **“Contract”** by Benedikt Betz. While “Contract” offers a beautiful native experience on iOS, I wanted a self-hostable, browser-based solution that multiple household members can access and use without relying on proprietary app stores or individual devices.  
-Jucosuma brings the clean contract management concepts of the iOS app to the web, with collaboration in mind.
+Jucosuma is heavily inspired by the excellent iOS app **“Contract”** by Benedikt Betz. While “Contract” offers a
+beautiful native experience on iOS, I wanted a self-hostable, browser-based solution that multiple household members
+can use without relying on proprietary app stores or individual devices.
+
+Over time the question changed from *“which contracts do we have?”* to *“where does our money go each month?”* –
+so Jucosuma now covers the whole household budget, with shared and private money, while keeping the clean contract
+overview it started with.
 
 ---
 
 ## 🥋 The Sumo Story – Why a Sumo Wrestler Logo?
 
-The name **Jucosuma** is an abbreviation of its functionality – but it also *sounds a lot like* **Yokozuna**, the highest rank in professional sumo wrestling.  
-This coincidence inspired the idea for the logo: a sumo wrestler sitting cross-legged, holding a contract. It's a playful nod to the name similarity and gives the app a unique, recognizable mascot.
+The name **Jucosuma** is an abbreviation of its functionality – but it also *sounds a lot like* **Yokozuna**, the
+highest rank in professional sumo wrestling. This coincidence inspired the logo: a sumo wrestler sitting
+cross-legged, holding a contract. It's a playful nod to the name similarity and gives the app a recognizable mascot.
 
 ---
 
 ## 📝 Features
 
-- **Contract Management**  
-  – Create, edit, and delete contracts  
-- **Subscription Tracking**  
-  – Monitor durations, costs, and statuses  
-- **Icon Selection**  
-  – Choose contract icons directly in the UI  
-- **Fast & Responsive UI**  
-  – Built with ReactJS and Tailwind CSS  
-- **Go Backend API**  
-  – Lightweight, efficient, self-hostable  
+**Planning**
+- **Income, expenses and transfers** as recurring or one-off entries (weekly to every two years), with category,
+  account, start and end date. Quick entry dialog for everyday use, full form for details.
+- **Amount history** – an entry can change its amount from a date on (insurance increase, new grocery budget,
+  pay rise). Every month is calculated with the amount valid then; past months stay correct.
+- **Who pays, who carries** – expenses can be split between household members and external people (e.g. a family
+  plan shared with friends). Only the household's share counts.
+- **Earner** – income belongs to the person who earns it, independent of the account it is paid into.
+
+**Overview**
+- **Pots** – money belongs to the pot of its account: the shared household budget and one pot per person.
+  The overview shows income → costs → savings → *available per month* for each pot or in total.
+- **Charts** – costs by category (donut), money flow (Sankey), last six months.
+- **Fixed vs. variable costs** – entries marked as contract are fixed costs, everything else is variable.
+
+**Contracts & insurances**
+- Contract overview with provider, contract number, documents, term, notice period and the computed
+  **cancellation deadline**, plus upcoming deadlines on the dashboard.
+
+**Savings**
+- Savings goals with target amount and date, monthly rate from transfers, projected “reached on” date.
+- Accounts can count as savings (overnight money, depots, a buffer account).
+
+**Monthly closing (plan vs. actual)**
+- Once a month enter what you really spent on variable costs – optionally also the account balances.
+- Plan vs. actual per category, and with balances per pot.
+- **Last 12 months**: shares, actual vs. plan per month, trend and a suggested monthly budget per category.
+
+**Household**
+- Logins per person, admin and user roles, persons linked to logins.
+- **Private entries** are only visible to their owner – also not to admins.
+- Categories with colour and icon, accounts with owner and balance.
+- German and English, chosen per user; light and dark mode; works on phones.
+- CSV/JSON export and import.
 
 ---
 
 ## 🔧 Installation
 
-### Prerequisites
+### Docker
 
-- Go 1.20+  
-- Node.js 18+ & npm (for React build)  
-
-### Local Setup
-
-1. Clone the repository  
-   ```bash
-   git clone https://github.com/Serbroda/jucosuma.git
-   cd jucosuma
-   ```
-2. Install Go modules  
-   ```bash
-   go mod tidy
-   ```
-3. Install frontend dependencies and build  
-   ```bash
-   cd ui/v1
-   npm install
-   npm run build
-   cd ../..
-   ```
-4. Start the application  
-   ```bash
-   go run cmd/web/main.go
-   ```
-5. Open in your browser  
-   ```
-   http://localhost:8080
-   ```
-
-### Docker Setup
-
-#### Build docker image
+Build the image:
 
 ```bash
-make docker-build
+make build-docker
 ```
 
-#### Start via docker
+Run it:
 
 ```bash
 docker run --name jucosuma -d \
@@ -86,38 +87,100 @@ docker run --name jucosuma -d \
   jucosuma:latest
 ```
 
----
+or with the included `docker-compose.yml`:
 
-## 🚀 Usage
+```bash
+docker compose up -d
+```
 
-- **Create New Contracts:**  
-  Click “Add Contract”, fill in the required fields, and choose an icon.  
-- **Edit Existing Contracts:**  
-  Click “Edit” next to an entry, update fields, and save.  
-- **Track Subscriptions:**  
-  Manage payment cycles, costs, and renewal dates.
+### From source
+
+Prerequisites: Go 1.24+, Node.js 20+ and npm.
+
+```bash
+git clone https://github.com/Serbroda/jucosuma.git
+cd jucosuma
+
+# build the frontend (it is embedded into the Go binary)
+cd ui/v1 && npm install && npm run build && cd ../..
+
+# run
+go run ./cmd/web
+```
+
+Then open <http://localhost:8080>.
+
+`make build` builds the frontend and binaries for macOS, Linux and Windows into `bin/`.
+
+### First login
+
+On the first start with an empty database an **admin** user is created with a random password, written to
+`admin_password.txt` in the working directory (in Docker: `docker exec jucosuma cat /app/admin_password.txt`).
+You have to change it on the first login. Then create persons and logins for your household under
+*Persons* and *Users*.
+
+Database migrations run automatically on start-up.
 
 ---
 
 ## ⚙️ Configuration
 
-| Variable     | Description                       | Example        |
-|--------------|-----------------------------------|----------------|
-| `DSN`        | SQLite Database connection string | `contracts.db` |
-| `ADDR`       | HTTP server address               | `:8080`        |
-| `UPLOADS_DIR`| Upload directory for files        | `./uploads`    |
+Every setting can be passed as flag or environment variable.
+
+| Flag            | Variable      | Description                 | Default       |
+|-----------------|---------------|-----------------------------|---------------|
+| `--addr`        | `ADDR`        | HTTP server address         | `:8080`       |
+| `--db-path`     | `DB_PATH`     | SQLite database file        | `jucosuma.db` |
+| `--uploads-dir` | `UPLOADS_DIR` | Directory for uploaded files| `./uploads`   |
+
+In the Docker image the database lives in `/app/data/jucosuma.db` and uploads in `/app/uploads`.
+
+---
+
+## 🛠️ Development
+
+| Part      | Stack                                                                  |
+|-----------|------------------------------------------------------------------------|
+| Backend   | Go, echo, SQLite, goose migrations, sqlc                               |
+| Frontend  | React 19, React Router, Tailwind CSS 4, Catalyst UI, zustand, i18next  |
+| Glue      | tygo generates the TypeScript types from the Go DTOs                   |
+
+Run backend and frontend dev server side by side:
+
+```bash
+go run ./cmd/web                 # API on :8080
+cd ui/v1 && npm run dev          # frontend with hot reload, talks to :8080 (see ui/v1/.env)
+```
+
+Code generation after changing SQL queries or DTOs:
+
+```bash
+go generate ./...                # sqlc (internal/db/sqlc) and TypeScript types (ui)
+```
+
+Tests and checks:
+
+```bash
+go test ./...
+cd ui/v1 && npx tsc -b && npx eslint src
+```
+
+Useful scripts:
+
+- `scripts/seed-demo.py` – fills an empty instance with a complete demo household (see the script header).
+- `scripts/pull-db.sh` – replaces the local `jucosuma.db` with a copy from the server (keeps a backup).
+
+Planned work is tracked in [ROADMAP.md](ROADMAP.md).
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions:
+Contributions are welcome:
 
-1. Open an issue – feature request or bug  
-2. Fork the repository & create a branch  
-3. Submit a pull request with a clear description  
-
-Please follow our [Code of Conduct](CODE_OF_CONDUCT.md) and commit conventions.
+1. Open an issue – feature request or bug
+2. Fork the repository & create a branch
+3. Submit a pull request with a clear description
 
 ---
 
