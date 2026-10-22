@@ -380,3 +380,89 @@ export interface SaveBackupSettingsDto {
   enabled: boolean;
   keep: number /* int */;
 }
+
+//////////
+// source: notifications.go
+
+/**
+ * NotificationDto is a reminder in the bell.
+ */
+export interface NotificationDto {
+  id: number /* int64 */;
+  type: string;
+  title: string;
+  body: string;
+  link?: string;
+  created_at: string /* RFC3339 */;
+  read: boolean;
+}
+export interface NotificationListDto {
+  items: NotificationDto[];
+  unread: number /* int64 */;
+}
+/**
+ * NotificationChannelDto is an external channel of the current user (ntfy, email, …).
+ */
+export interface NotificationChannelDto {
+  id: number /* int64 */;
+  kind: string;
+  name: string;
+  config: { [key: string]: string };
+  enabled: boolean;
+}
+export interface SaveNotificationChannelDto {
+  kind: string;
+  name: string;
+  config: { [key: string]: string };
+  enabled: boolean;
+}
+/**
+ * NotificationPreferenceDto tells whether a reminder type goes to a channel ("inapp" or a channel id).
+ */
+export interface NotificationPreferenceDto {
+  type: string;
+  channel: string;
+  enabled: boolean;
+}
+export interface NotificationKindDto {
+  kind: string;
+  available: boolean;
+}
+/**
+ * NotificationSettingsDto is everything the personal notification settings page needs.
+ */
+export interface NotificationSettingsDto {
+  types: string[];
+  kinds: NotificationKindDto[];
+  channels: NotificationChannelDto[];
+  preferences: NotificationPreferenceDto[];
+  default_ntfy_server: string;
+}
+/**
+ * NotificationServerDto are the notification settings of the installation (admin). The SMTP
+ * password is never sent to the browser.
+ */
+export interface NotificationServerDto {
+  public_url: string;
+  ntfy_server: string;
+  smtp_host: string;
+  smtp_port: number /* int */;
+  smtp_username: string;
+  smtp_from: string;
+  smtp_security: string;
+  password_set: boolean;
+}
+export interface SaveNotificationServerDto {
+  public_url: string;
+  ntfy_server: string;
+  smtp_host: string;
+  smtp_port: number /* int */;
+  smtp_username: string;
+  smtp_from: string;
+  smtp_security: string;
+  /**
+   * SMTPPassword: empty keeps the stored password, ClearPassword removes it
+   */
+  smtp_password: string;
+  clear_password: boolean;
+}

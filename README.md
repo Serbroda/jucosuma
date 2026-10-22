@@ -58,6 +58,13 @@ cross-legged, holding a contract. It's a playful nod to the name similarity and 
 - Plan vs. actual per category, and with balances per pot.
 - **Last 12 months**: shares, actual vs. plan per month, trend and a suggested monthly budget per category.
 
+**Reminders**
+- Cancellation deadlines (30 and 7 days before), contracts running out, large non-monthly payments,
+  planned amount changes, open monthly closings and – for admins – failed backups.
+- Delivered to a personal **bell** in the app and to own channels: **ntfy** and **email**. Every person
+  chooses per reminder and channel what they get; private entries only ever reach their owner.
+- Channels are pluggable (`internal/notify`), so further kinds like browser push can be added.
+
 **Household**
 - Logins per person, admin and user roles, persons linked to logins.
 - **Private entries** are only visible to their owner – also not to admins.
@@ -136,6 +143,16 @@ Every setting can be passed as flag or environment variable.
 | `--backup-keep` | `BACKUP_KEEP` | Number of daily backups to keep, `0` disables backups | `14` |
 
 In the Docker image the database lives in `/app/data/jucosuma.db` and uploads in `/app/uploads`.
+
+### Reminders
+
+Reminders are checked every hour. Admins set up under *Settings → General*:
+
+- **Address of the app** – used for links in ntfy messages and emails.
+- **ntfy server** – default for channels without their own server (`https://ntfy.sh` if empty).
+- **SMTP** – server, port, encryption, login and sender; required before anybody can add an email channel.
+
+Every person then adds channels and picks what they want under *Settings → Notifications*.
 
 ### Backups
 

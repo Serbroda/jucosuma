@@ -14,6 +14,8 @@ import {
     WalletIcon,
 } from "@heroicons/react/20/solid";
 import MonthPicker from "../components/ui/MonthPicker.tsx";
+import NotificationBell from "../components/NotificationBell.tsx";
+import {classNames} from "../utils/dom.utils.ts";
 import {SidebarLayout} from "../components/catalyst/sidebar-layout.tsx";
 import {Navbar, NavbarItem, NavbarSection, NavbarSpacer} from "../components/catalyst/navbar.tsx";
 import {
@@ -69,6 +71,7 @@ function MainLayout() {
                     <Navbar>
                         <NavbarSpacer/>
                         <NavbarSection>
+                            <NotificationBell/>
                             <NavbarItem onClick={handleLogout} aria-label={t('nav.logout')}>
                                 <ArrowRightStartOnRectangleIcon/>
                             </NavbarItem>
@@ -117,7 +120,11 @@ function MainLayout() {
                     </Sidebar>
                 }
             >
-                {showMonth && <div className="flex justify-end mb-4"><MonthPicker/></div>}
+                {/* on phones the bell sits in the navbar above */}
+                <div className={classNames("flex-wrap items-center justify-end gap-2 mb-4", showMonth ? "flex" : "hidden lg:flex")}>
+                    {showMonth && <MonthPicker/>}
+                    <div className="hidden lg:block"><NotificationBell/></div>
+                </div>
                 <Outlet/>
             </SidebarLayout>
         </div>

@@ -46,6 +46,17 @@ func (app *application) routes() *echo.Echo {
 	auth.PUT("/month_closings/:month", app.saveMonthClosing)
 	auth.DELETE("/month_closings/:month", app.deleteMonthClosing)
 
+	// Reminders: bell, own channels and choices
+	auth.GET("/notifications", app.getNotifications)
+	auth.POST("/notifications/:id/read", app.markNotificationRead)
+	auth.POST("/notifications/read-all", app.markAllNotificationsRead)
+	auth.GET("/notification-settings", app.getNotificationSettings)
+	auth.PUT("/notification-preferences", app.saveNotificationPreference)
+	auth.POST("/notification-channels", app.createNotificationChannel)
+	auth.PUT("/notification-channels/:id", app.updateNotificationChannel)
+	auth.DELETE("/notification-channels/:id", app.deleteNotificationChannel)
+	auth.POST("/notification-channels/:id/test", app.testNotificationChannel)
+
 	// Savings goals
 	auth.GET("/savings_goals", app.getSavingsGoals)
 	auth.POST("/savings_goals", app.createSavingsGoal)
@@ -93,6 +104,10 @@ func (app *application) routes() *echo.Echo {
 	admin.GET("/backups", app.getBackupSettings)
 	admin.PUT("/backups", app.saveBackupSettings)
 	admin.POST("/backups/run", app.runBackup)
+	admin.GET("/notification-server", app.getNotificationServer)
+	admin.PUT("/notification-server", app.saveNotificationServer)
+	admin.POST("/notification-server/test-email", app.testEmail)
+	admin.POST("/notifications/check", app.checkReminders)
 
 	return e
 }

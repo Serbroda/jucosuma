@@ -134,6 +134,41 @@ type MonthClosingBalance struct {
 	Balance   float64 `db:"balance"`
 }
 
+type Notification struct {
+	ID        int64      `db:"id"`
+	UserID    int64      `db:"user_id"`
+	Type      string     `db:"type"`
+	DedupeKey string     `db:"dedupe_key"`
+	Title     string     `db:"title"`
+	Body      string     `db:"body"`
+	Link      *string    `db:"link"`
+	InApp     int64      `db:"in_app"`
+	CreatedAt time.Time  `db:"created_at"`
+	ReadAt    *time.Time `db:"read_at"`
+}
+
+type NotificationChannel struct {
+	ID        int64     `db:"id"`
+	UserID    int64     `db:"user_id"`
+	Kind      string    `db:"kind"`
+	Name      string    `db:"name"`
+	Config    string    `db:"config"`
+	Enabled   int64     `db:"enabled"`
+	CreatedAt time.Time `db:"created_at"`
+}
+
+type NotificationPreference struct {
+	UserID  int64  `db:"user_id"`
+	Type    string `db:"type"`
+	Channel string `db:"channel"`
+	Enabled int64  `db:"enabled"`
+}
+
+type NotificationProfile struct {
+	UserID   int64   `db:"user_id"`
+	Language *string `db:"language"`
+}
+
 type Person struct {
 	ID          int64      `db:"id"`
 	Name        string     `db:"name"`

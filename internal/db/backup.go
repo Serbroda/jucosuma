@@ -19,7 +19,7 @@ type BackupConfig func() (enabled bool, keep int)
 
 // StartBackups writes a backup of the database into dir once a day and keeps the newest backups
 // as configured. It checks every hour, so a missed day (server off) is caught up soon after start.
-func StartBackups(db *sql.DB, dir string, config BackupConfig) {
+func StartBackups(db *sql.DB, dir string, config BackupConfig, onError func(error)) {
 	run := func() {
 		enabled, keep := config()
 		if !enabled {
@@ -27,6 +27,9 @@ func StartBackups(db *sql.DB, dir string, config BackupConfig) {
 		}
 		if path, err := BackupOnce(db, dir, keep, time.Now(), false); err != nil {
 			log.Printf("Database backup failed: %v", err)
+			if onError != nil {
+				onError(err)
+			}
 		} else if path != "" {
 			log.Printf("Database backup written to %s", path)
 		}

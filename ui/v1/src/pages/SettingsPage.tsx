@@ -4,6 +4,7 @@ import {ArrowDownTrayIcon, ArrowUpTrayIcon} from "@heroicons/react/20/solid";
 import PageHeader from "../components/ui/PageHeader.tsx";
 import ImportDialog from "../components/ImportDialog.tsx";
 import BackupSettingsCard from "../components/BackupSettingsCard.tsx";
+import NotificationServerCard from "../components/NotificationServerCard.tsx";
 import {Description, Field, Label} from "../components/catalyst/fieldset.tsx";
 import {Select} from "../components/catalyst/select.tsx";
 import {Button} from "../components/catalyst/button.tsx";
@@ -56,6 +57,7 @@ export default function SettingsPage() {
                 </div>
             </div>
 
+            {user?.role === 'admin' && <NotificationServerCard/>}
             {user?.role === 'admin' && <BackupSettingsCard/>}
 
             <div className={card}>

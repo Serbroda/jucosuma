@@ -9,6 +9,7 @@ import {contractAction} from "./actions/contracts.ts";
 import ContractPage from "./pages/ContractPage.tsx";
 import SettingsPage from "./pages/SettingsPage.tsx";
 import SettingsLayout from "./layouts/SettingsLayout.tsx";
+import NotificationSettingsPage from "./pages/NotificationSettingsPage.tsx";
 import LoginPage from "./pages/LoginPage.tsx";
 import ChangePasswordPage from "./pages/ChangePasswordPage.tsx";
 import AuthGuard from "./components/AuthGuard.tsx";
@@ -52,6 +53,7 @@ const router = createHashRouter([
                             {index: true, element: <SettingsPage/>},
                             {path: 'categories', element: <CategoriesPage/>, loader: contractsLoader},
                             {path: 'persons', element: <PersonsPage/>, loader: contractsLoader},
+                            {path: 'notifications', element: <NotificationSettingsPage/>},
                         ],
                     },
                     // old addresses of the management pages

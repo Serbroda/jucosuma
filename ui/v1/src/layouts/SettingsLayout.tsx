@@ -8,6 +8,7 @@ export default function SettingsLayout() {
     const tabs = [
         {to: "/settings", label: t('settings.tabGeneral'), end: true},
         {to: "/settings/categories", label: t('nav.categories')},
+        {to: "/settings/notifications", label: t('settings.tabNotifications')},
         {to: "/settings/persons", label: t('settings.tabPersons')},
     ];
     return (

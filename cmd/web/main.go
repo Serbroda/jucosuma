@@ -61,7 +61,8 @@ func main() {
 		backupDir:         *backupDir,
 		backupDefaultKeep: *backupKeep,
 	}
-	db.StartBackups(dbConn, app.backupDir, app.backupConfig)
+	db.StartBackups(dbConn, app.backupDir, app.backupConfig, app.backupFailed)
+	app.StartReminders()
 
 	if err := app.seedAdmin("admin_password.txt"); err != nil {
 		log.Fatalf("Failed to seed admin: %v", err)

@@ -88,3 +88,11 @@ func (app *application) runBackup(c echo.Context) error {
 	}
 	return app.getBackupSettings(c)
 }
+
+// backupFailed tells the admins (bell and their channels), once per day.
+func (app *application) backupFailed(err error) {
+	day := time.Now().Format("2006-01-02")
+	app.notifyAdmins(context.Background(), func(t texts) reminder {
+		return reminder{Type: reminderBackupFailed, Key: "backup:" + day, Title: t.f("backupTitle"), Body: t.f("backupBody", err.Error()), Link: "/settings"}
+	})
+}
