@@ -108,7 +108,7 @@ export type CategoryTrend = {
 };
 
 export type VariableCostsYear = {
-    months: { month: Dayjs; closed: boolean; values: Record<string, number> }[];
+    months: { month: Dayjs; closed: boolean; values: Record<string, number>; planned: number }[];
     categories: CategoryTrend[];
     total: number;
     trackedMonths: number;
@@ -135,7 +135,7 @@ export function variableCostsYear(
         const closing = closings.find((c) => c.month === m.format("YYYY-MM"));
         const values: Record<string, number> = {};
         for (const a of closing?.actuals ?? []) values[String(a.category_id)] = a.amount;
-        return {month: m, closed: !!closing, values};
+        return {month: m, closed: !!closing, values, planned: 0};
     });
 
     const currentPlan = summarizeMonth(contracts, persons, accounts, dayjs().startOf("month"), "average", mainCurrency, "all");
@@ -161,8 +161,17 @@ export function variableCostsYear(
         };
     }).sort((a, b) => b.total - a.total);
 
+    // planned amount per month (due in that month) for the tracked categories, to compare with the actuals
+    const tracked = new Set(trends.map((c) => c.category.id));
+    const withPlan = months.map((m) => ({
+        ...m,
+        planned: summarizeMonth(contracts, persons, accounts, m.month, "due", mainCurrency, "all").byCategory
+            .filter((c) => c.id != null && tracked.has(c.id))
+            .reduce((s, c) => s + c.amount, 0),
+    }));
+
     return {
-        months,
+        months: withPlan,
         categories: trends,
         total: trends.reduce((s, c) => s + c.total, 0),
         trackedMonths: months.filter((m) => Object.keys(m.values).length > 0).length,

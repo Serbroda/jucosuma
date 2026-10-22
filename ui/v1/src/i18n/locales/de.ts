@@ -614,7 +614,7 @@ const de: Translation<typeof en> = {
         yearPerMonth: "pro Monat, für die erfassten Kategorien",
         yearShares: "Anteile",
         yearCenter: "12 Monate",
-        yearMonthly: "Pro Monat",
+        yearMonthly: "Ist und Plan pro Monat",
         yearTrendTitle: "Tendenz und empfohlenes Budget",
         yearTrendHint: "Empfehlung: Durchschnitt der erfassten Monate, die letzten drei doppelt gewichtet, auf 10 € aufgerundet. Tendenz: letzte drei Monate im Vergleich zu den Monaten davor.",
         yearAvg: "Ø Ist",

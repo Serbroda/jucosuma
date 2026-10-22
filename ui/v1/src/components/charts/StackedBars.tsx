@@ -1,13 +1,17 @@
 import {useEffect, useRef, useState} from "react";
 import {numberLocale} from "../../utils/number.utils.ts";
+import {classNames} from "../../utils/dom.utils.ts";
 
 export type StackSeries = { key: string; label: string; color: string };
 export type StackColumn = { key: string; label: string; values: Record<string, number>; highlight?: boolean };
+/** Optional comparison value per column (e.g. the plan), drawn as a neutral bar next to the stack. */
+export type StackReference = { label: string; values: Record<string, number> };
 
 const HEIGHT = 200;
 const PAD = {top: 12, right: 8, bottom: 26, left: 52};
 const GAP = 2;
 const MAX_BAR = 28;
+const REF_COLOR = "var(--chart-reference)";
 
 function niceMax(max: number): { top: number; ticks: number[] } {
     if (max <= 0) return {top: 1, ticks: [0]};
@@ -20,10 +24,11 @@ function niceMax(max: number): { top: number; ticks: number[] } {
 }
 
 /** Stacked columns with legend and per-column tooltip. Bottom segment first. */
-export default function StackedBars({series, columns, format}: {
+export default function StackedBars({series, columns, format, reference}: {
     series: StackSeries[];
     columns: StackColumn[];
     format: (v: number) => string;
+    reference?: StackReference;
 }) {
     const ref = useRef<HTMLDivElement>(null);
     const [width, setWidth] = useState(600);
@@ -37,11 +42,14 @@ export default function StackedBars({series, columns, format}: {
     }, []);
 
     const totals = columns.map((c) => series.reduce((s, ser) => s + (c.values[ser.key] ?? 0), 0));
-    const {top, ticks} = niceMax(Math.max(...totals, 0));
+    const refValue = (i: number) => reference?.values[columns[i].key] ?? 0;
+    const {top, ticks} = niceMax(Math.max(...totals, ...columns.map((_, i) => refValue(i)), 0));
     const plotW = Math.max(0, width - PAD.left - PAD.right);
     const plotH = HEIGHT - PAD.top - PAD.bottom;
     const band = plotW / Math.max(1, columns.length);
-    const barW = Math.min(MAX_BAR, band * 0.5);
+    // with a reference the stack and the reference bar share the band side by side
+    const barW = reference ? Math.min(MAX_BAR, (band * 0.7 - GAP) / 2) : Math.min(MAX_BAR, band * 0.5);
+    const groupW = reference ? barW * 2 + GAP : barW;
     // narrow charts (phones, 12 months) label every second column, counted back from the last one
     const labelStep = band < 34 ? 2 : 1;
     const showLabel = (i: number) => (columns.length - 1 - i) % labelStep === 0 || columns[i].highlight;
@@ -50,13 +58,18 @@ export default function StackedBars({series, columns, format}: {
 
     return (
         <div ref={ref} className="relative">
-            {series.length > 1 && (
+            {(series.length > 1 || reference) && (
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-600 dark:text-zinc-300 mb-2 justify-end">
                     {series.map((s) => (
                         <span key={s.key} className="flex items-center gap-1.5">
                             <span className="size-2.5 rounded-sm" style={{background: s.color}}/>{s.label}
                         </span>
                     ))}
+                    {reference && (
+                        <span className="flex items-center gap-1.5">
+                            <span className="size-2.5 rounded-sm border-[1.5px]" style={{borderColor: REF_COLOR}}/>{reference.label}
+                        </span>
+                    )}
                 </div>
             )}
             <svg width={width} height={HEIGHT} className="block" role="img">
@@ -70,7 +83,7 @@ export default function StackedBars({series, columns, format}: {
                     </g>
                 ))}
                 {columns.map((col, i) => {
-                    const x = PAD.left + band * i + (band - barW) / 2;
+                    const x = PAD.left + band * i + (band - groupW) / 2;
                     const parts = series.map((s) => ({s, v: col.values[s.key] ?? 0})).filter((p) => p.v > 0);
                     let acc = 0;
                     return (
@@ -90,7 +103,17 @@ export default function StackedBars({series, columns, format}: {
                                           d={`M${x},${yTop + h} V${yTop + r} Q${x},${yTop} ${x + r},${yTop} H${x + barW - r} Q${x + barW},${yTop} ${x + barW},${yTop + r} V${yTop + h} Z`}/>
                                 );
                             })}
-                            <text x={x + barW / 2} y={HEIGHT - 8} textAnchor="middle" fontSize={11}
+                            {reference && refValue(i) > 0 && (() => {
+                                const rx = x + barW + GAP;
+                                const yTop = y(refValue(i));
+                                const h = Math.max(0, y(0) - yTop);
+                                const r = Math.min(4, barW / 2, h);
+                                // outlined and light so the plan reads as a reference, not as another stack
+                                return <path fill={REF_COLOR} fillOpacity={0.15} stroke={REF_COLOR} strokeWidth={1.5}
+                                             strokeLinejoin="round"
+                                             d={`M${rx},${yTop + h} V${yTop + r} Q${rx},${yTop} ${rx + r},${yTop} H${rx + barW - r} Q${rx + barW},${yTop} ${rx + barW},${yTop + r} V${yTop + h} Z`}/>;
+                            })()}
+                            <text x={x + groupW / 2} y={HEIGHT - 8} textAnchor="middle" fontSize={11}
                                   fill={col.highlight ? "var(--chart-ink)" : "var(--chart-muted)"} fontWeight={col.highlight ? 600 : 400}>
                                 {showLabel(i) ? col.label : ""}
                             </text>
@@ -116,6 +139,23 @@ export default function StackedBars({series, columns, format}: {
                             <span className="text-zinc-500 dark:text-zinc-400">Σ</span>
                             <span className="font-semibold tabular-nums text-zinc-950 dark:text-white">{format(totals[hover])}</span>
                         </div>
+                    )}
+                    {reference && (
+                        <>
+                            <div className="flex justify-between pt-1">
+                                <span className="text-zinc-500 dark:text-zinc-400">{reference.label}</span>
+                                <span className="font-semibold tabular-nums text-zinc-950 dark:text-white">{format(refValue(hover))}</span>
+                            </div>
+                            {totals[hover] > 0 && refValue(hover) > 0 && (
+                                <div className="flex justify-between">
+                                    <span className="text-zinc-500 dark:text-zinc-400">Δ</span>
+                                    <span className={classNames("font-semibold tabular-nums", totals[hover] > refValue(hover)
+                                        ? "text-red-600 dark:text-red-400" : "text-green-700 dark:text-green-400")}>
+                                        {totals[hover] > refValue(hover) ? "+" : ""}{format(totals[hover] - refValue(hover))}
+                                    </span>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             )}

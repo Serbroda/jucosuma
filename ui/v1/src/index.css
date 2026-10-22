@@ -141,6 +141,7 @@
     --chart-ink: #0b0b0b;
     --chart-muted: #898781;
     --chart-grid: #e1e0d9;
+    --chart-reference: #71717a; /* plan bars next to actuals */
     --chart-surface: #ffffff;
     --chart-ribbon-opacity: 0.28;
 }
@@ -159,6 +160,7 @@
     --chart-ink: #ffffff;
     --chart-muted: #898781;
     --chart-grid: #2c2c2a;
+    --chart-reference: #a1a1aa; /* plan bars next to actuals */
     --chart-surface: #18181b;
     --chart-ribbon-opacity: 0.38;
 }

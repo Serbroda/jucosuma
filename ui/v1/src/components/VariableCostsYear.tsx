@@ -73,7 +73,10 @@ export default function VariableCostsYear({data, mainCurrency, format}: {
                 </div>
                 <div className={card + " min-w-0"}>
                     <div className={cardTitle + " mb-2"}>{t('closing.yearMonthly')}</div>
-                    <StackedBars series={series} columns={columns} format={(v) => format(v, 2)}/>
+                    <StackedBars series={series} columns={columns} format={(v) => format(v, 2)} reference={{
+                        label: t('closing.planned'),
+                        values: Object.fromEntries(year.months.map((m) => [m.month.format("YYYY-MM"), m.planned])),
+                    }}/>
                 </div>
             </div>
 

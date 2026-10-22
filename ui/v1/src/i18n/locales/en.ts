@@ -610,7 +610,7 @@ const en = {
         yearPerMonth: "per month, for the tracked categories",
         yearShares: "Shares",
         yearCenter: "12 months",
-        yearMonthly: "Per month",
+        yearMonthly: "Actual vs. plan per month",
         yearTrendTitle: "Trend and suggested budget",
         yearTrendHint: "Suggestion: average of the tracked months, the last three weighted double, rounded up to 10. Trend: last three months compared with the months before.",
         yearAvg: "Ø actual",
