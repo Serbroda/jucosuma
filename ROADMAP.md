@@ -67,13 +67,35 @@ Goal: a household finance overview — what comes in, what the household actuall
 - [x] Plan vs. actual per pot (planned account change in "due" mode vs. real balance change) and per variable category.
 - [x] Closing page with the last 12 months, reminder on the overview for the previous month, plan-vs-actual card for closed months.
 - [x] Saving the latest closing updates the account balances.
+- [x] Account balances are optional; actual amounts of variable costs alone are enough.
+- [x] Last 12 months view: shares, actual vs. plan per month, trend and suggested monthly budget per category.
 - [ ] Bank statement import (ING CSV) with categorisation rules, if itemised actuals are needed.
 - [ ] Asset history chart from closing balances.
 
+### Stage 3b — Entry details ✅
+
+- [x] Amount history per entry (amount valid from a date on); every month uses the amount valid then, incl. savings goal projections.
+- [x] Earner for income, independent of the receiving account.
+- [x] Website and editable links per entry (e.g. customer portal, documents in Paperless); only http(s) links.
+
+### Stage 4 — Split key & settlement (idea, not needed with a joint account)
+
+For households without a joint account – shared costs are paid from private accounts and split by a key –
+and as a helper for households with one.
+
+- [ ] Household setting for the split key of shared ("household") costs: equal, by income (from the earners
+      of the income entries) or fixed (e.g. 70/30). Single entries can still use their own shares.
+- [ ] Settlement per month: per person *paid* (account owner) minus *borne* (split key) → "Julia settles
+      500 € with Danny". Shown as overview card only when it is not 0 (with a joint account typically 0, except
+      when someone paid a shared cost privately).
+- [ ] "Available per month" per person based on the borne instead of the paid costs when settling.
+- [ ] Suggested contributions to a joint account from the split key (e.g. 61/39 of 2,000 € shared costs).
+- Pots and the account logic stay unchanged; no separate household "mode".
+
 ### Later
 
-- [ ] Sankey diagram of money flows (income → joint account → expenses / savings / personal accounts) — data is already available via accounts and transfers.
+- [x] Sankey diagram of money flows (income → joint account → expenses / savings / personal accounts) — data is already available via accounts and transfers.
 - [x] German UI translation (i18next, language per user under Settings).
 - [x] Translated predefined categories via stable `categories.key` (user-created categories keep their name); renaming a category updates its entries.
 - [x] Private entries are visible only to their owner — also for admins (list, detail, export, documents, suggestions).
-- [ ] Income categories.
+- [x] Income categories.
