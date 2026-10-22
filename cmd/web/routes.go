@@ -82,6 +82,7 @@ func (app *application) routes() *echo.Echo {
 	auth.GET("/companies", app.getCompanies)
 	auth.GET("/used_icons", app.getUsedIcons)
 	auth.GET("/search_logos", app.searchLogos)
+	auth.POST("/icon_from_url", app.iconFromURL)
 
 	// Household: persons and accounts (all users can manage)
 	auth.GET("/user_options", app.getUserOptions)
