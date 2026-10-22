@@ -117,6 +117,7 @@ const de: Translation<typeof en> = {
         addPersons: "Lege auf der Seite <link>Haushalt</link> Personen an, um Kosten aufzuteilen.",
     },
     entry: {
+        onlyMeSharedWarning: "Bezahlt vom Gemeinschaftskonto: Die anderen sehen diesen Posten dann nicht in der Haushaltskasse.",
         newEntry: "Neuer Posten",
         whoCarries: "Zuordnung",
         whoseIncome: "Wessen Einnahme?",
@@ -227,6 +228,10 @@ const de: Translation<typeof en> = {
         },
     },
     overview: {
+        fromSavingsNode: "aus Ersparnissen",
+        netSavings: "netto, {{amount}} aus Ersparnissen entnommen",
+        unassignedHint_one: "{{count}} Posten hat kein Konto (bzw. eine Umbuchung kein Zielkonto). Ohne Konto zählt er zur Haushaltskasse, Umbuchungen ohne Ziel werden ignoriert.",
+        unassignedHint_other: "{{count}} Posten haben kein Konto (bzw. Umbuchungen kein Zielkonto). Ohne Konto zählen sie zur Haushaltskasse, Umbuchungen ohne Ziel werden ignoriert.",
         pot: "Topf",
         potHousehold: "Haushaltskasse",
         potAll: "Gesamt",
@@ -531,6 +536,8 @@ const de: Translation<typeof en> = {
         empty: "Noch keine Personen.",
     },
     contracts: {
+        startDate: "Vertragsbeginn",
+        startDateHint: "Laufzeitende und Kündigungsfrist werden ab diesem Datum berechnet.",
         isContract: "Ist ein Vertrag",
         isContractHint: "Erscheint unter Verträge mit Laufzeit und Kündigungsfristen.",
         title: "Verträge & Versicherungen",

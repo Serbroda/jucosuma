@@ -295,7 +295,10 @@ export default function ContractForm({contract, holders, companies, categories, 
 
                 <div className="grid grid-cols-2 gap-2">
                     <Field>
-                        <Label>{billingPeriod === BillingPeriodOneTime ? t('entry.date') : t('entry.startDate')} *</Label>
+                        <Label>
+                            {billingPeriod === BillingPeriodOneTime ? t('entry.date')
+                                : isExpense && isContract ? t('contracts.startDate') : t('entry.startDate')} *
+                        </Label>
                         <Input
                             type="date"
                             name="start_date"
@@ -306,6 +309,9 @@ export default function ContractForm({contract, holders, companies, categories, 
                                     : dayjs().format("YYYY-MM-DD")
                             }
                         />
+                        {isExpense && isContract && billingPeriod !== BillingPeriodOneTime && (
+                            <Description>{t('contracts.startDateHint')}</Description>
+                        )}
                     </Field>
                     <Field>
                         <Label>{t('entry.endDate')}</Label>

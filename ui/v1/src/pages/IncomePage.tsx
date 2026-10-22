@@ -21,7 +21,7 @@ import {card, cardTitle} from "../utils/ui.ts";
 export default function IncomePage() {
     const data = useAppData();
     const {t} = useTranslation();
-    const {month} = useMonth();
+    const {month, mode} = useMonth();
     const {mainCurrency} = usePreferences();
     const [tab, setTab] = useState<"recurring" | "once">("recurring");
     const [adding, setAdding] = useState(false);
@@ -37,7 +37,7 @@ export default function IncomePage() {
     const byPot = (m: typeof month) => {
         const result: Record<string, number> = {};
         for (const c of incomes) {
-            const amount = amountInMonth(c, m, "average");
+            const amount = amountInMonth(c, m, mode);
             if (!amount) continue;
             const pot = String(potOf(data.accounts.find((a) => a.id === c.account_id)));
             result[pot] = (result[pot] ?? 0) + amount;

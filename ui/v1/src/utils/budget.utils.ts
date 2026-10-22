@@ -139,7 +139,8 @@ export type MonthSummary = {
     transfersOutBy: Record<string, number>; // by target pot
     expenses: number;          // costs paid from the scope (external persons' shares excluded)
     externalShare: number;     // part of those costs borne by external persons
-    savings: number;           // transfers into savings accounts / goals paid from the scope
+    savings: number;           // net savings: deposits − withdrawals − costs paid from savings accounts
+    fromSavings: number;       // withdrawals and costs paid from savings accounts
     available: number;         // income + transfersIn − transfersOut − expenses − savings
     householdCosts: number;    // of the expenses: assigned to the household
     privateCosts: Record<number, number>; // of the expenses: assigned to one person
@@ -174,7 +175,7 @@ export function summarizeMonth(
     const entries: MonthEntry[] = [];
 
     let income = 0, expenses = 0, externalShare = 0, savings = 0, householdCosts = 0;
-    let transfersIn = 0, transfersOut = 0, unassignedAccount = 0;
+    let transfersIn = 0, transfersOut = 0, unassignedAccount = 0, fromSavings = 0;
 
     for (const c of contracts) {
         if (c.currency && c.currency !== mainCurrency) continue;
@@ -208,19 +209,31 @@ export function summarizeMonth(
                 cat.amount += own;
                 byCategory.set(groupKey, cat);
                 if (from) from.outflow += own;
+                // paid from a savings account: spends money that was already set aside
+                if (isSavingsAccount(account)) {
+                    savings -= own;
+                    fromSavings += own;
+                }
             }
-        } else if (c.kind === EntryKindTransfer) {
+        } else if (c.kind === EntryKindTransfer && target) {
             if (from) from.outflow += amount;
             if (to) to.inflow += amount;
             const targetPot = potOf(target);
-            // transfers into a savings goal or a savings account (from a non-savings account) are savings
-            const isSaving = !isSavingsAccount(account) && (c.goal_id != null || isSavingsAccount(target));
-            if (isSaving) {
-                if (inScope(pot)) {
-                    own = amount;
-                    savings += amount;
-                }
-            } else if (scope !== "all" && pot !== targetPot) {
+            // deposit: into a savings goal or a savings account from a non-savings account
+            const isDeposit = !isSavingsAccount(account) && (c.goal_id != null || isSavingsAccount(target));
+            // withdrawal: from a savings account back to a regular account
+            const isWithdrawal = isSavingsAccount(account) && !isSavingsAccount(target);
+            if (isDeposit && inScope(pot)) {
+                own = amount;
+                savings += amount;
+            }
+            if (isWithdrawal && inScope(pot)) {
+                own = amount;
+                savings -= amount;
+                fromSavings += amount;
+            }
+            // money moving between pots (a deposit stays with the pot that saves it)
+            if (!isDeposit && scope !== "all" && pot !== targetPot) {
                 if (pot === scope) {
                     own = amount;
                     transfersOut += amount;
@@ -233,10 +246,11 @@ export function summarizeMonth(
             }
         }
 
-        const touchesScope = inScope(pot) || (c.kind === EntryKindTransfer && inScope(potOf(target)));
+        const touchesScope = inScope(pot) || (c.kind === EntryKindTransfer && target != null && inScope(potOf(target)));
         if (!touchesScope) continue;
         entries.push({entry: c, amount, own});
-        if (!account) unassignedAccount++;
+        // entries without account are counted for the household; transfers need both accounts
+        if (!account || (c.kind === EntryKindTransfer && !target)) unassignedAccount++;
     }
 
     return {
@@ -248,6 +262,7 @@ export function summarizeMonth(
         expenses,
         externalShare,
         savings,
+        fromSavings,
         available: income + transfersIn - transfersOut - expenses - savings,
         householdCosts,
         privateCosts,

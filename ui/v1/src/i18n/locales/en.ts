@@ -113,6 +113,7 @@ const en = {
         addPersons: "Add persons on the <link>Household</link> page to split costs.",
     },
     entry: {
+        onlyMeSharedWarning: "Paid from a shared account: other household members will miss this entry in the household cash.",
         newEntry: "New entry",
         whoCarries: "Assign to",
         whoseIncome: "Whose income?",
@@ -223,6 +224,10 @@ const en = {
         },
     },
     overview: {
+        fromSavingsNode: "from savings",
+        netSavings: "net, {{amount}} taken from savings",
+        unassignedHint_one: "{{count}} entry has no account (or a transfer no target account). Without account it counts for the household cash, transfers without target are ignored.",
+        unassignedHint_other: "{{count}} entries have no account (or transfers no target account). Without account they count for the household cash, transfers without target are ignored.",
         pot: "Pot",
         potHousehold: "Household cash",
         potAll: "Total",
@@ -527,6 +532,8 @@ const en = {
         empty: "No people yet.",
     },
     contracts: {
+        startDate: "Contract start",
+        startDateHint: "Term end and cancellation deadline are calculated from this date.",
         isContract: "Is a contract",
         isContractHint: "Shown on the contracts page with term and cancellation deadlines.",
         title: "Contracts & insurances",

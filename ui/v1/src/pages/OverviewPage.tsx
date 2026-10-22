@@ -170,6 +170,8 @@ export default function OverviewPage() {
         }
         const targets: SankeyNode[] = categorySegments.map((s) => ({...s, key: `cat:${s.key}`}));
         if (summary.savings > 0) targets.push({key: "savings", label: t('overview.saving'), value: summary.savings, color: SAVINGS_COLOR});
+        // more spent from savings than saved: the difference comes from the savings
+        if (summary.savings < 0) sources.push({key: "fromSavings", label: t('overview.fromSavingsNode'), value: -summary.savings, color: SAVINGS_COLOR});
         for (const [pot, value] of Object.entries(summary.transfersOutBy)) {
             targets.push({key: `to:${pot}`, label: t('overview.toPot', {pot: potLabel(pot)}), value, color: TRANSFER_COLOR});
         }
@@ -255,6 +257,12 @@ export default function OverviewPage() {
                 />
             </div>
 
+            {summary.unassignedAccount > 0 && (
+                <div role="status" className="-mt-2 rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-2.5 text-sm text-amber-800 dark:text-amber-300">
+                    {t('overview.unassignedHint', {count: summary.unassignedAccount})}
+                </div>
+            )}
+
             {needsSetup && (
                 <div className={classNames(card, "bg-zinc-50 dark:bg-zinc-800/40")}>
                     <div className="text-sm text-zinc-950 dark:text-white font-medium">{t('overview.setupTitle')}</div>
@@ -293,11 +301,11 @@ export default function OverviewPage() {
                 </KpiCard>
                 <KpiCard icon={ChartBarIcon} tint="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
                          label={t('overview.saving')} value={formatShort(summary.savings)}>
-                    {inflow > 0 && (
-                        <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                            {t('overview.ofIncomeShort', {percent: Math.round(summary.savings / inflow * 100)})}
-                        </div>
-                    )}
+                    <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                        {summary.fromSavings > 0
+                            ? t('overview.netSavings', {amount: formatShort(summary.fromSavings)})
+                            : inflow > 0 ? t('overview.ofIncomeShort', {percent: Math.round(summary.savings / inflow * 100)}) : null}
+                    </div>
                 </KpiCard>
                 <KpiCard icon={WalletIcon}
                          tint={summary.available < 0 ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"

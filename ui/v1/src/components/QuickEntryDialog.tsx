@@ -330,6 +330,9 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                             <Label>{t('entry.onlyMe')}</Label>
                         </CheckboxField>
                     </div>
+                    {onlyMe && accounts.find((a) => a.id === accountId)?.person_id == null && (
+                        <p className="text-xs text-amber-700 dark:text-amber-400 -mt-2">{t('entry.onlyMeSharedWarning')}</p>
+                    )}
 
                     {accounts.length === 0 && (
                         <p className="text-xs text-zinc-500 dark:text-zinc-400">
