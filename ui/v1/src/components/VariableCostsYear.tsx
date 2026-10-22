@@ -11,6 +11,8 @@ import {classNames} from "../utils/dom.utils.ts";
 import {slotColor} from "../lib/icons.ts";
 import {card, cardTitle, table, td, th, tr} from "../utils/ui.ts";
 import dayjs from "../lib/dayjs";
+import SortableTh from "./ui/SortableTh.tsx";
+import {useSort} from "../utils/sort.utils.ts";
 
 /** Actual variable costs of the last 12 months: shares, monthly bars and a suggested budget per category. */
 export default function VariableCostsYear({data, mainCurrency, format}: {
@@ -21,6 +23,13 @@ export default function VariableCostsYear({data, mainCurrency, format}: {
     const {t} = useTranslation();
     const year = useMemo(() => variableCostsYear(dayjs(), data.closings, data.contracts, data.persons, data.accounts, data.categories, mainCurrency),
         [data, mainCurrency]);
+    const {sorted, sort, toggle} = useSort("variableYear", year.categories, {
+        category: (c) => categoryLabel(c.category.name, c.category.key),
+        average: (c) => c.average,
+        plan: (c) => c.plan,
+        trend: (c) => c.trend,
+        recommendation: (c) => c.recommendation,
+    });
 
     if (year.categories.length === 0) {
         return (
@@ -87,15 +96,15 @@ export default function VariableCostsYear({data, mainCurrency, format}: {
                     <table className={table}>
                         <thead>
                         <tr>
-                            <th className={th + " pl-5"}>{t('entry.category')}</th>
-                            <th className={th + " text-right hidden sm:table-cell"}>{t('closing.yearAvg')}</th>
-                            <th className={th + " text-right"}>{t('closing.yearPlan')}</th>
-                            <th className={th + " text-right hidden sm:table-cell"}>{t('closing.yearTrend')}</th>
-                            <th className={th + " text-right pr-5"}>{t('closing.yearSuggestion')}</th>
+                            <SortableTh sortKey="category" sort={sort} onSort={toggle} className={th + " pl-5"}>{t('entry.category')}</SortableTh>
+                            <SortableTh sortKey="average" sort={sort} onSort={toggle} className={th + " text-right hidden sm:table-cell"} align="right">{t('closing.yearAvg')}</SortableTh>
+                            <SortableTh sortKey="plan" sort={sort} onSort={toggle} className={th + " text-right"} align="right">{t('closing.yearPlan')}</SortableTh>
+                            <SortableTh sortKey="trend" sort={sort} onSort={toggle} className={th + " text-right hidden sm:table-cell"} align="right">{t('closing.yearTrend')}</SortableTh>
+                            <SortableTh sortKey="recommendation" sort={sort} onSort={toggle} className={th + " text-right pr-5"} align="right">{t('closing.yearSuggestion')}</SortableTh>
                         </tr>
                         </thead>
                         <tbody>
-                        {year.categories.map((c) => {
+                        {sorted.map((c) => {
                             const off = c.plan > 0 ? Math.abs(c.recommendation - c.plan) / c.plan > 0.1 : c.recommendation > 0;
                             return (
                                 <tr key={c.category.id} className={tr}>

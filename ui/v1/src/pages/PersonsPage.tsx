@@ -23,6 +23,8 @@ import {apiBasePath} from "../config.ts";
 import {card, table, td, th, tr} from "../utils/ui.ts";
 import {useAuth} from "../stores/useAuth.ts";
 import UsersPage from "./UsersPage.tsx";
+import SortableTh from "../components/ui/SortableTh.tsx";
+import {useSort} from "../utils/sort.utils.ts";
 
 export default function PersonsPage() {
     const data = useAppData();
@@ -43,6 +45,13 @@ export default function PersonsPage() {
     const shareOf = (p: PersonDto) => summary.privateCosts[p.id] ?? 0;
     const entriesOf = (p: PersonDto) => data.contracts.filter((c) => c.shares.some((s) => s.person_id === p.id)).length;
     const initials = (name: string) => name.trim().slice(0, 2);
+    const {sorted, sort, toggle} = useSort("persons", data.persons, {
+        name: (p) => p.name,
+        membership: (p) => p.in_household ? t('household.member') : t('household.external'),
+        login: (p) => logins.find((l) => l.id === p.user_id)?.username,
+        entries: entriesOf,
+        costs: (p) => p.in_household ? shareOf(p) : null,
+    });
 
     return (
         <div className="flex flex-col gap-6">
@@ -55,16 +64,16 @@ export default function PersonsPage() {
                     <table className={table}>
                         <thead>
                         <tr>
-                            <th className={classNames(th, "pl-5")}>{t('common.name')}</th>
-                            <th className={th}>{t('household.membership')}</th>
-                            <th className={classNames(th, "hidden sm:table-cell")}>{t('household.login')}</th>
-                            <th className={classNames(th, "text-right hidden md:table-cell")}>{t('persons.entries')}</th>
-                            <th className={classNames(th, "text-right")}>{t('persons.costsIn', {month: month.format("MMM")})}</th>
+                            <SortableTh sortKey="name" sort={sort} onSort={toggle} className={classNames(th, "pl-5")}>{t('common.name')}</SortableTh>
+                            <SortableTh sortKey="membership" sort={sort} onSort={toggle} className={th}>{t('household.membership')}</SortableTh>
+                            <SortableTh sortKey="login" sort={sort} onSort={toggle} className={classNames(th, "hidden sm:table-cell")}>{t('household.login')}</SortableTh>
+                            <SortableTh sortKey="entries" sort={sort} onSort={toggle} className={classNames(th, "text-right hidden md:table-cell")} align="right">{t('persons.entries')}</SortableTh>
+                            <SortableTh sortKey="costs" sort={sort} onSort={toggle} className={classNames(th, "text-right")} align="right">{t('persons.costsIn', {month: month.format("MMM")})}</SortableTh>
                             <th className={classNames(th, "w-10 pr-5")}/>
                         </tr>
                         </thead>
                         <tbody>
-                        {data.persons.map((p) => {
+                        {sorted.map((p) => {
                             const slot = p.in_household ? personSlot(data.persons, p.id) : undefined;
                             return (
                                 <tr key={p.id} className={tr}>
