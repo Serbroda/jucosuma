@@ -6,17 +6,18 @@ import EntryIcon from "./EntryIcon.tsx";
 import CategoryBadge from "./ui/CategoryBadge.tsx";
 import RowActions from "./ui/RowActions.tsx";
 import IconTile from "./ui/IconTile.tsx";
+import {Badge} from "./catalyst/badge.tsx";
 import {
     BillingPeriodAnnually, BillingPeriodEveryTwoYears, BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime,
-    BillingPeriodQuarterly, BillingPeriodSemiannual, BillingPeriodWeekly, EntryKindTransfer, type ContractDto,
+    BillingPeriodQuarterly, BillingPeriodSemiannual, BillingPeriodWeekly, EntryKindTransfer, TransferTypeSaving, TransferTypeWithdrawal, type ContractDto,
 } from "../gen/types.gen.ts";
 
 /** Order of billing periods when sorting by interval (shortest first). */
 const periodOrder = [BillingPeriodWeekly, BillingPeriodMonthly, BillingPeriodQuarterly, BillingPeriodSemiannual,
     BillingPeriodAnnually, BillingPeriodEveryTwoYears, BillingPeriodOneTime, BillingPeriodNone];
 import type {AppData} from "../hooks/useAppData.ts";
-import {type Pot, potOf, splitText, costOwner} from "../utils/budget.utils.ts";
-import {accountName, categoryLabel, isDefaultAssignment} from "../utils/household.utils.ts";
+import {type Pot, potOf, splitText, costOwner, transferTypeOf} from "../utils/budget.utils.ts";
+import {accountName, categoryLabel, goalStyle, isDefaultAssignment} from "../utils/household.utils.ts";
 import {useSort} from "../utils/sort.utils.ts";
 import SortableTh from "./ui/SortableTh.tsx";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
@@ -26,7 +27,7 @@ import {sendJson} from "../lib/api.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
 import {classNames} from "../utils/dom.utils.ts";
 
-export type EntryColumn = "interval" | "earner" | "account" | "transfer" | "split" | "person" | "category" | "goal";
+export type EntryColumn = "interval" | "earner" | "account" | "transfer" | "transferType" | "split" | "person" | "category" | "goal";
 
 /** Table of entries with configurable columns and edit/delete actions. */
 export default function EntryTable({entries, data, columns, emptyText, amountTone, sortId}: {
@@ -52,6 +53,8 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
         const earner = costOwner(c, data.persons, data.accounts);
         return earner === "household" ? t('income.earnerShared') : data.persons.find((p) => p.id === earner)?.name;
     };
+    const accountById = new Map(data.accounts.map((a) => [a.id, a]));
+    const transferTypeLabel = (c: ContractDto) => t(`transferType.${transferTypeOf(c, accountById) as "saving" | "withdrawal" | "move"}`);
     const {sorted, sort, toggle} = useSort(`entries:${sortId ?? columns.join(",")}`, entries, {
         name: (c) => c.name,
         amount: (c) => c.costs,
@@ -59,6 +62,7 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
         earner: earnerLabel,
         account: (c) => accountName(c.account_id, data.accounts),
         transfer: (c) => `${accountName(c.account_id, data.accounts) ?? ""} ${accountName(c.target_account_id, data.accounts) ?? ""}`,
+        transferType: transferTypeLabel,
         split: (c) => isDefaultAssignment(c, data.persons, data.accounts) ? "" : splitText(c, data.persons, data.accounts, t('common.household'), i18n.language),
         person: (c) => potLabel(potOf(data.accounts.find((a) => a.id === c.account_id))),
         goal: (c) => data.goals.find((g) => g.id === c.goal_id)?.name,
@@ -82,6 +86,7 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
                     {has("earner") && head("earner", t('income.earner'), classNames(th, "hidden sm:table-cell"))}
                     {has("account") && head("account", t('overview.paidVia'), classNames(th, "hidden md:table-cell"))}
                     {has("transfer") && head("transfer", t('transfers.fromTo'), classNames(th, "hidden md:table-cell"))}
+                    {has("transferType") && head("transferType", t('transferType.label'), classNames(th, "hidden sm:table-cell"))}
                     {has("split") && head("split", t('overview.split'), classNames(th, "hidden lg:table-cell"))}
                     {has("person") && head("person", t('overview.pot'), classNames(th, "hidden lg:table-cell"))}
                     {has("goal") && head("goal", t('goals.goal'), classNames(th, "hidden lg:table-cell"))}
@@ -99,8 +104,8 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
                                 <button onClick={() => navigate(`/contracts/${c.id}`)}
                                         className="flex w-full items-center gap-3 min-w-0 text-left hover:cursor-pointer">
                                     {c.kind === EntryKindTransfer && !c.icon_source ? (
-                                        <IconTile icon={goal?.icon} iconComponent={goal ? undefined : ArrowsRightLeftIcon}
-                                                  color={goal?.color} className="size-8"/>
+                                        <IconTile icon={goal && goalStyle(goal).icon} iconComponent={goal ? undefined : ArrowsRightLeftIcon}
+                                                  color={goal && goalStyle(goal).color} className="size-8"/>
                                     ) : (
                                         <EntryIcon name={c.name} icon={c.icon_source} category={categoryOf(c)} className="size-8"/>
                                     )}
@@ -127,12 +132,24 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
                                 <td className={classNames(td, "hidden md:table-cell whitespace-nowrap")}>{accountName(c.account_id, data.accounts) ?? "–"}</td>
                             )}
                             {has("transfer") && (
-                                <td className={classNames(td, "hidden md:table-cell whitespace-nowrap")}>
-                                    <span className="inline-flex items-center gap-1.5">
+                                <td className={classNames(td, "hidden md:table-cell min-w-64")}>
+                                    <span className="inline-flex flex-wrap items-center gap-x-1.5">
                                         {accountName(c.account_id, data.accounts) ?? "–"}
                                         <ArrowRightIcon className="size-3 text-zinc-400"/>
                                         {accountName(c.target_account_id, data.accounts) ?? "–"}
                                     </span>
+                                </td>
+                            )}
+                            {has("transferType") && (
+                                <td className={classNames(td, "hidden sm:table-cell")}>
+                                    {(() => {
+                                        const type = transferTypeOf(c, accountById);
+                                        return (
+                                            <Badge color={type === TransferTypeSaving ? "green" : type === TransferTypeWithdrawal ? "amber" : "zinc"}>
+                                                {transferTypeLabel(c)}
+                                            </Badge>
+                                        );
+                                    })()}
                                 </td>
                             )}
                             {has("split") && (
@@ -151,7 +168,7 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
                                 <td className={classNames(td, "hidden lg:table-cell")}>
                                     {goal ? (
                                         <span className="inline-flex items-center gap-2">
-                                            <IconTile icon={goal.icon} color={goal.color} className="size-6"/>{goal.name}
+                                            <IconTile {...goalStyle(goal)} className="size-6"/>{goal.name}
                                         </span>
                                     ) : "–"}
                                 </td>

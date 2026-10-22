@@ -6,7 +6,8 @@ import {Field, Label} from "../catalyst/fieldset.tsx";
 import {Input} from "../catalyst/input.tsx";
 import {Select} from "../catalyst/select.tsx";
 import SegmentedControl from "../SegmentedControl.tsx";
-import {ColorPicker, IconPicker} from "../ui/ColorIconPicker.tsx";
+import IconField from "../ui/IconField.tsx";
+import {goalStyle} from "../../utils/household.utils.ts";
 import {GoalKindInvesting, GoalKindSaving, type AccountDto, type ContractDto, type PersonDto, type SavingsGoalDto} from "../../gen/types.gen.ts";
 import {Button} from "../catalyst/button.tsx";
 import {PlusIcon} from "@heroicons/react/16/solid";
@@ -48,8 +49,8 @@ export default function GoalDialog({open, onClose, goal, persons, accounts, coun
         if (!open) return;
         setName(goal?.name ?? "");
         setKind(goal?.kind ?? GoalKindSaving);
-        setIcon(goal?.icon ?? "sparkles");
-        setColor(goal?.color ?? 3);
+        setIcon(goal?.icon ?? undefined);
+        setColor(goal?.color ?? undefined);
         setPersonId(goal?.person_id != null ? String(goal.person_id) : "");
         setAccountId(goal?.account_id != null ? String(goal.account_id) : "");
         setTarget(formatDecimal(goal?.target_amount));
@@ -81,6 +82,8 @@ export default function GoalDialog({open, onClose, goal, persons, accounts, coun
         revalidator.revalidate();
         onClose();
     };
+
+    const kindDefault = goalStyle({kind});
 
     return (
         <FormDialog open={open} onClose={onClose} onSubmit={save} saving={saving} error={error}
@@ -153,14 +156,11 @@ export default function GoalDialog({open, onClose, goal, persons, accounts, coun
                     {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </Select>
             </Field>
-            <Field>
-                <Label>{t('categories.color')}</Label>
-                <div className="mt-2"><ColorPicker value={color} onChange={setColor}/></div>
-            </Field>
-            <Field>
-                <Label>{t('categories.icon')}</Label>
-                <div className="mt-2"><IconPicker value={icon} color={color} onChange={setIcon}/></div>
-            </Field>
+            <IconField icon={icon} color={color} defaultIcon={kindDefault.icon} defaultColor={kindDefault.color}
+                       onChange={(i, c) => {
+                           setIcon(i);
+                           setColor(c);
+                       }}/>
         </FormDialog>
     );
 }

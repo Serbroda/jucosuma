@@ -33,7 +33,8 @@ import {useAppData} from "../hooks/useAppData.ts";
 import {useMonth} from "../stores/useMonth.ts";
 import {slotColor} from "../lib/icons.ts";
 import {amountInMonth, costOwner, potOf, type Scope, summarizeMonth} from "../utils/budget.utils.ts";
-import {accountOwnerLabel, categoryLabel, daysUntil} from "../utils/household.utils.ts";
+import {accountOwnerLabel, accountStyle, categoryLabel, daysUntil} from "../utils/household.utils.ts";
+import IconTile from "../components/ui/IconTile.tsx";
 import {compareMonth} from "../utils/closing.utils.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
@@ -501,12 +502,15 @@ export default function OverviewPage() {
                                 .filter((a) => scope === "all" || potOf(a) === scope)
                                 .map((a) => {
                                     const IconCmp = accountIcon(a);
+                                    const own = a.icon || a.color != null ? accountStyle(a) : undefined;
                                     const flow = flowByAccount.get(a.id) ?? 0;
                                     return (
                                         <li key={a.id} className="flex items-center gap-3">
-                                            <div className="size-9 shrink-0 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300">
-                                                <IconCmp className="size-4"/>
-                                            </div>
+                                            {own ? <IconTile icon={own.icon} color={own.color} className="size-9"/> : (
+                                                <div className="size-9 shrink-0 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300">
+                                                    <IconCmp className="size-4"/>
+                                                </div>
+                                            )}
                                             <div className="min-w-0 grow">
                                                 <div className="text-sm text-zinc-950 dark:text-white truncate">{a.name}</div>
                                                 <div className="text-xs text-zinc-400 dark:text-zinc-500 truncate">{accountOwnerLabel(a, persons)}</div>

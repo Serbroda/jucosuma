@@ -1,43 +1,26 @@
 import {useState} from "react";
 import {useRevalidator} from "react-router";
 import {useTranslation} from "react-i18next";
-import {BanknotesIcon, BuildingLibraryIcon, ChartBarIcon, PlusIcon, WalletIcon} from "@heroicons/react/20/solid";
+import {PlusIcon} from "@heroicons/react/20/solid";
 import PageHeader from "../components/ui/PageHeader.tsx";
 import IconTile from "../components/ui/IconTile.tsx";
 import RowActions from "../components/ui/RowActions.tsx";
 import SegmentedControl from "../components/SegmentedControl.tsx";
 import AccountDialog from "../components/dialogs/AccountDialog.tsx";
 import {Button} from "../components/catalyst/button.tsx";
-import {
-    AccountTypeCash,
-    AccountTypeChecking,
-    AccountTypeDepot,
-    AccountTypeOther,
-    AccountTypeSavings,
-    type AccountDto,
-} from "../gen/types.gen.ts";
+import {AccountTypeChecking, AccountTypeDepot, AccountTypeSavings, type AccountDto} from "../gen/types.gen.ts";
 import {useAppData} from "../hooks/useAppData.ts";
 import {useMonth} from "../stores/useMonth.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
 import {summarizeMonth} from "../utils/budget.utils.ts";
-import {accountOwnerLabel, accountTypeLabel} from "../utils/household.utils.ts";
+import {accountOwnerLabel, accountStyle, accountTypeLabel, accountTypeStyle as typeStyle} from "../utils/household.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import {sendJson} from "../lib/api.ts";
-import type {IconComponent} from "../lib/icons.ts";
 import {card, cardTitle, table, td, th, tr} from "../utils/ui.ts";
 import dayjs from "../lib/dayjs";
 import SortableTh from "../components/ui/SortableTh.tsx";
 import {useSort} from "../utils/sort.utils.ts";
-
-/** Icon and colour slot per account type. */
-const typeStyle: Record<string, { icon: IconComponent; color: number }> = {
-    [AccountTypeChecking]: {icon: BuildingLibraryIcon, color: 1},
-    [AccountTypeSavings]: {icon: BanknotesIcon, color: 3},
-    [AccountTypeDepot]: {icon: ChartBarIcon, color: 7},
-    [AccountTypeCash]: {icon: WalletIcon, color: 4},
-    [AccountTypeOther]: {icon: WalletIcon, color: 2},
-};
 
 export default function AccountsPage() {
     const data = useAppData();
@@ -89,7 +72,7 @@ export default function AccountsPage() {
                     <div className="flex flex-col gap-2.5">
                         {byType.map(({type, sum}) => (
                             <div key={type} className="flex items-center gap-3 text-sm">
-                                <IconTile iconComponent={typeStyle[type].icon} color={typeStyle[type].color} className="size-6"/>
+                                <IconTile icon={typeStyle[type].icon} color={typeStyle[type].color} className="size-6"/>
                                 <span className="w-36 truncate text-zinc-700 dark:text-zinc-300">{accountTypeLabel(type)}</span>
                                 <div className="grow h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
                                     <div className="h-full rounded-full" style={{width: `${Math.max(0, sum) / maxType * 100}%`, background: `var(--chart-${typeStyle[type].color})`}}/>
@@ -126,13 +109,13 @@ export default function AccountsPage() {
                         </thead>
                         <tbody>
                         {sorted.map((a) => {
-                            const style = typeStyle[a.type] ?? typeStyle[AccountTypeOther];
+                            const style = accountStyle(a);
                             const net = flow.get(a.id) ?? 0;
                             return (
                                 <tr key={a.id} className={tr}>
                                     <td className={classNames(td, "pl-5")}>
                                         <button onClick={() => setEditing(a)} className="flex items-center gap-3 text-left hover:cursor-pointer">
-                                            <IconTile iconComponent={style.icon} color={style.color} className="size-8"/>
+                                            <IconTile icon={style.icon} color={style.color} className="size-8"/>
                                             <span className="font-medium text-zinc-950 dark:text-white">{a.name}</span>
                                             {a.is_savings && (
                                                 <span className="rounded-md bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-xs text-zinc-500 dark:text-zinc-400">

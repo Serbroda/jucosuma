@@ -6,11 +6,11 @@ import IconTile from "../components/ui/IconTile.tsx";
 import EntryTable from "../components/EntryTable.tsx";
 import QuickEntryDialog from "../components/QuickEntryDialog.tsx";
 import {Button} from "../components/catalyst/button.tsx";
-import {EntryKindTransfer} from "../gen/types.gen.ts";
+import {EntryKindTransfer, TransferTypeSaving} from "../gen/types.gen.ts";
 import {useAppData} from "../hooks/useAppData.ts";
 import {useMonth} from "../stores/useMonth.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
-import {amountInMonth, potOf, summarizeMonth, isSavingsAccount} from "../utils/budget.utils.ts";
+import {amountInMonth, potOf, summarizeMonth, transferTypeOf} from "../utils/budget.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
 import {card, cardTitle} from "../utils/ui.ts";
 
@@ -31,7 +31,8 @@ export default function TransfersPage() {
         const target = accountById.get(c.target_account_id ?? -1);
         const from = potOf(accountById.get(c.account_id ?? -1));
         const to = potOf(target);
-        if (from === to || isSavingsAccount(target)) continue;
+        // money set aside stays with the pot that saves it
+        if (from === to || transferTypeOf(c, accountById) === TransferTypeSaving) continue;
         const amount = amountInMonth(c, month, mode);
         betweenPots += amount;
         if (to === "household") contributions += amount;
@@ -69,7 +70,7 @@ export default function TransfersPage() {
             </div>
             <div className={card}>
                 <div className={cardTitle + " mb-3"}>{t('transfers.listTitle')}</div>
-                <EntryTable entries={listed} data={data} columns={["interval", "transfer", "goal"]} emptyText={t('transfers.empty')}/>
+                <EntryTable entries={listed} data={data} columns={["interval", "transfer", "transferType", "goal"]} emptyText={t('transfers.empty')}/>
                 <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-3">{t('transfers.hint')}</p>
             </div>
         </div>

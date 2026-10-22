@@ -13,7 +13,8 @@ func Migrate(db *sql.DB, dialect string, migrations embed.FS, migrationsDir stri
 		panic(err)
 	}
 
-	if err := goose.Up(db, migrationsDir); err != nil {
+	// feature branches add migrations in parallel: apply older ones a database has not seen yet
+	if err := goose.Up(db, migrationsDir, goose.WithAllowMissing()); err != nil {
 		panic(err)
 	}
 }

@@ -6,6 +6,7 @@ import {Description, Field, Label} from "../catalyst/fieldset.tsx";
 import {Input} from "../catalyst/input.tsx";
 import {Select} from "../catalyst/select.tsx";
 import {Checkbox, CheckboxField} from "../catalyst/checkbox.tsx";
+import IconField from "../ui/IconField.tsx";
 import {
     AccountTypeChecking,
     AccountTypeDepot,
@@ -13,7 +14,7 @@ import {
     type AccountDto,
     type PersonDto,
 } from "../../gen/types.gen.ts";
-import {accountTypes} from "../../utils/household.utils.ts";
+import {accountStyle, accountTypes} from "../../utils/household.utils.ts";
 import {formatDecimal, parseAmount} from "../../utils/number.utils.ts";
 import {sendJson} from "../../lib/api.ts";
 import dayjs from "../../lib/dayjs";
@@ -32,6 +33,8 @@ export default function AccountDialog({open, onClose, account, persons}: {
     const [iban, setIban] = useState("");
     const [balance, setBalance] = useState("");
     const [isSavings, setIsSavings] = useState(false);
+    const [icon, setIcon] = useState<string | undefined>();
+    const [color, setColor] = useState<number | undefined>();
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
 
@@ -43,6 +46,8 @@ export default function AccountDialog({open, onClose, account, persons}: {
         setIban(account?.iban ?? "");
         setBalance(formatDecimal(account?.balance));
         setIsSavings(account?.is_savings ?? false);
+        setIcon(account?.icon ?? undefined);
+        setColor(account?.color ?? undefined);
         setError(null);
     }, [open, account]);
 
@@ -61,12 +66,16 @@ export default function AccountDialog({open, onClose, account, persons}: {
             balance_date: newBalance !== account?.balance ? dayjs().format("YYYY-MM-DD") : account?.balance_date ?? null,
             goal_amount: account?.goal_amount ?? null,
             goal_date: account?.goal_date ?? null,
+            icon: icon ?? null,
+            color: color ?? null,
         });
         setSaving(false);
         if (err) return setError(err);
         revalidator.revalidate();
         onClose();
     };
+
+    const typeDefault = accountStyle({type});
 
     return (
         <FormDialog open={open} onClose={onClose} onSubmit={save} saving={saving} error={error}
@@ -104,6 +113,11 @@ export default function AccountDialog({open, onClose, account, persons}: {
                            placeholder={t('savings.optional')} className="text-right"/>
                 </Field>
             </div>
+            <IconField icon={icon} color={color} defaultIcon={typeDefault.icon} defaultColor={typeDefault.color}
+                       onChange={(i, c) => {
+                           setIcon(i);
+                           setColor(c);
+                       }}/>
             <CheckboxField>
                 <Checkbox checked={isSavings} onChange={setIsSavings}/>
                 <Label>{t('accounts.isSavings')}</Label>

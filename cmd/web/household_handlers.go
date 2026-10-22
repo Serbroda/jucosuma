@@ -139,6 +139,8 @@ func (app *application) createAccount(c echo.Context) error {
 		BalanceDate: (*time.Time)(payload.BalanceDate),
 		GoalAmount:  payload.GoalAmount,
 		GoalDate:    (*time.Time)(payload.GoalDate),
+		Icon:        utils.TrimToNil(payload.Icon),
+		Color:       payload.Color,
 	})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to create account: "+err.Error())
@@ -170,6 +172,8 @@ func (app *application) updateAccount(c echo.Context) error {
 		BalanceDate: (*time.Time)(payload.BalanceDate),
 		GoalAmount:  payload.GoalAmount,
 		GoalDate:    (*time.Time)(payload.GoalDate),
+		Icon:        utils.TrimToNil(payload.Icon),
+		Color:       payload.Color,
 	})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to update account: "+err.Error())
@@ -489,6 +493,16 @@ func normalizeKind(kind dtos.EntryKind) string {
 	default:
 		return strings.ToUpper(string(dtos.EntryKindExpense))
 	}
+}
+
+// transferType is the stored type of a transfer; other kinds have none, and without a value (older
+// exports) the type is derived from the accounts.
+func transferType(kind dtos.EntryKind, value *string) *string {
+	if kind != dtos.EntryKindTransfer || value == nil || *value == "" {
+		return nil
+	}
+	upper := strings.ToUpper(*value)
+	return &upper
 }
 
 func boolToInt64(b bool) int64 {

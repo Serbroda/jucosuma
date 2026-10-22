@@ -51,6 +51,7 @@ export const contractAction: ActionFunction = async ({request, params}) => {
         account_id: optionalId(form.get("account_id")),
         target_account_id: optionalId(form.get("target_account_id")),
         goal_id: optionalId(form.get("goal_id")),
+        transfer_type: (form.get("transfer_type") as string) || undefined,
         is_contract: form.get("is_contract") === "true",
         is_variable: form.get("is_variable") === "true",
         term_months: optionalId(form.get("term_months")),

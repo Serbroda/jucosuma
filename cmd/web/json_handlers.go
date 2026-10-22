@@ -118,6 +118,7 @@ func (app *application) importContractsJSON(c echo.Context) error {
 			AccountID:       p.AccountID,
 			TargetAccountID: targetAccountID,
 			GoalID:          goalID,
+			TransferType:    transferType(p.Kind, p.TransferType),
 		})
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to import contract '"+p.Name+"': "+err.Error())

@@ -22,9 +22,9 @@ UPDATE persons SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?;
 SELECT * FROM accounts WHERE deleted_at IS NULL ORDER BY sort_order ASC, name ASC;
 
 -- name: InsertAccount :one
-INSERT INTO accounts (name, type, person_id, sort_order, is_savings, iban, balance, balance_date, goal_amount, goal_date, created_at, updated_at)
+INSERT INTO accounts (name, type, person_id, sort_order, is_savings, iban, balance, balance_date, goal_amount, goal_date, icon, color, created_at, updated_at)
 VALUES (sqlc.arg('name'), sqlc.arg('type'), sqlc.arg('person_id'), sqlc.arg('sort_order'), sqlc.arg('is_savings'), sqlc.arg('iban'),
-        sqlc.arg('balance'), sqlc.arg('balance_date'), sqlc.arg('goal_amount'), sqlc.arg('goal_date'),
+        sqlc.arg('balance'), sqlc.arg('balance_date'), sqlc.arg('goal_amount'), sqlc.arg('goal_date'), sqlc.arg('icon'), sqlc.arg('color'),
         CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 RETURNING *;
 
@@ -40,6 +40,8 @@ SET name       = sqlc.arg('name'),
     balance_date = sqlc.arg('balance_date'),
     goal_amount  = sqlc.arg('goal_amount'),
     goal_date    = sqlc.arg('goal_date'),
+    icon         = sqlc.arg('icon'),
+    color        = sqlc.arg('color'),
     updated_at = CURRENT_TIMESTAMP
 WHERE id = sqlc.arg('id') AND deleted_at IS NULL;
 

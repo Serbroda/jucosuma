@@ -401,6 +401,9 @@ const de: Translation<typeof en> = {
         importFailed: "Import fehlgeschlagen",
     },
     icons: {
+        change: "Ändern",
+        done: "Fertig",
+        default: "Standard",
         symbols: "Symbole",
         symbolsTitle: "Symbol wählen",
         remove: "Icon entfernen",
@@ -495,7 +498,7 @@ const de: Translation<typeof en> = {
     transfers: {
         betweenPots: "Zwischen Töpfen",
         betweenPotsHint: "{{in}} an die Haushaltskasse · {{out}} aus der Haushaltskasse",
-        savingHint: "Auf Sparkonten und Sparziele",
+        savingHint: "Umbuchungen der Art „Sparen“, abzüglich Entnahmen",
         contributions: "Beiträge an Haushaltskasse",
         payouts: "Auszahlungen aus Haushaltskasse",
         title: "Umbuchungen",
@@ -506,7 +509,7 @@ const de: Translation<typeof en> = {
         listTitle: "Umbuchungen in diesem Monat",
         fromTo: "Von → Nach",
         empty: "Keine Umbuchungen in diesem Monat.",
-        hint: "Umbuchungen zwischen Töpfen (z. B. Beiträge an die Haushaltskasse oder Taschengeld) verschieben Geld; Umbuchungen auf ein Sparziel oder Sparkonto zählen als Sparen.",
+        hint: "Umbuchungen zwischen Töpfen (z. B. Beiträge an die Haushaltskasse oder Taschengeld) verschieben Geld; die Art „Sparen“ zählt als Sparrate, „Entnahme“ holt Geld aus dem Ersparten zurück. Vorbelegt wird sie aus den Konten und dem Sparziel.",
     },
     goals: {
         payments: "Monatliche Einzahlungen",
@@ -645,6 +648,16 @@ const de: Translation<typeof en> = {
         dialogHint: "Gilt ab dem Monat dieses Datums. Frühere Monate, Monatsabschlüsse und die 12-Monats-Ansicht rechnen weiter mit dem alten Betrag.",
         errorInvalid: "Bitte Datum und Betrag angeben.",
         formHint: "Korrigiert den heute gültigen Betrag. Für eine Änderung ab einem Datum nutze „Betrag ändern ab …“ darunter.",
+    },
+    transferType: {
+        label: "Art",
+        saving: "Sparen",
+        withdrawal: "Entnahme",
+        move: "Verschieben",
+        savingHint: "Geld wird weggelegt – zählt als Sparrate und mindert, was im Monat verfügbar ist.",
+        withdrawalHint: "Geld kommt aus dem Ersparten zurück und steht im Monat wieder zur Verfügung.",
+        moveHint: "Geld wechselt nur Konto oder Topf, z. B. Haushaltsbeitrag, Taschengeld oder Umschichten zwischen Sparkonten.",
+        savingFromSavings: "Das Geld liegt schon auf einem Sparkonto. Als Sparen wird es noch einmal vom verfügbaren Geld abgezogen – meist passt hier „Verschieben“.",
     },
     costType: {
         label: "Kostenart",
