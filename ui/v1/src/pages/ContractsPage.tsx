@@ -14,13 +14,15 @@ import {ContractStatusActive, type ContractDto} from "../gen/types.gen.ts";
 import {useAppData} from "../hooks/useAppData.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
 import {splitText} from "../utils/budget.utils.ts";
-import {daysUntil, isContractEntry, noticeLabel} from "../utils/household.utils.ts";
+import {categoryLabel, daysUntil, isContractEntry, noticeLabel} from "../utils/household.utils.ts";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
 import {classNames, safeHref} from "../utils/dom.utils.ts";
 import {sendJson} from "../lib/api.ts";
 import {card, cardTitle, table, td, th, tr} from "../utils/ui.ts";
 import dayjs from "../lib/dayjs";
+import SortableTh from "../components/ui/SortableTh.tsx";
+import {useSort} from "../utils/sort.utils.ts";
 
 type Filter = "insurance" | "all" | "cancelled";
 
@@ -52,6 +54,18 @@ export default function ContractsPage() {
     const insurances = contracts.filter(isInsurance);
     const insuranceYear = insurances.reduce((s, c) => s + yearly(c), 0);
     const contractsYear = contracts.reduce((s, c) => s + yearly(c), 0);
+    const {sorted, sort, toggle} = useSort(`contracts:${filter}`, listed, {
+        name: (c) => c.name,
+        number: (c) => c.contract_number,
+        concerns: (c) => splitText(c, data.persons, data.accounts, t('common.household'), i18n.language),
+        premium: (c) => c.costs,
+        yearly: (c) => yearly(c),
+        cancelBy: (c) => c.status !== ContractStatusActive ? c.term_end : c.cancel_by,
+        category: (c) => {
+            const cat = categoryOf(c);
+            return cat ? categoryLabel(cat.name, cat.key) : c.category;
+        },
+    });
 
     const deadlines = contracts
         .map((c) => ({c, date: c.cancel_by ?? (c.status !== ContractStatusActive ? c.term_end : undefined)}))
@@ -121,18 +135,18 @@ export default function ContractsPage() {
                     <table className={table}>
                         <thead>
                         <tr>
-                            <th className={classNames(th, "pl-5")}>{t('common.name')}</th>
-                            <th className={classNames(th, "hidden lg:table-cell")}>{t('entryForm.contractNumber')}</th>
-                            <th className={classNames(th, "hidden md:table-cell")}>{t('contracts.concerns')}</th>
-                            <th className={classNames(th, "text-right")}>{t('contracts.premium')}</th>
-                            <th className={classNames(th, "text-right hidden sm:table-cell")}>{t('contracts.perYear')}</th>
-                            <th className={classNames(th, "hidden md:table-cell")}>{t('contracts.cancelBy')}</th>
-                            {filter !== "insurance" && <th className={classNames(th, "hidden xl:table-cell")}>{t('entry.category')}</th>}
+                            <SortableTh sortKey="name" sort={sort} onSort={toggle} className={classNames(th, "pl-5")}>{t('common.name')}</SortableTh>
+                            <SortableTh sortKey="number" sort={sort} onSort={toggle} className={classNames(th, "hidden lg:table-cell")}>{t('entryForm.contractNumber')}</SortableTh>
+                            <SortableTh sortKey="concerns" sort={sort} onSort={toggle} className={classNames(th, "hidden md:table-cell")}>{t('contracts.concerns')}</SortableTh>
+                            <SortableTh sortKey="premium" sort={sort} onSort={toggle} className={classNames(th, "text-right")} align="right">{t('contracts.premium')}</SortableTh>
+                            <SortableTh sortKey="yearly" sort={sort} onSort={toggle} className={classNames(th, "text-right hidden sm:table-cell")} align="right">{t('contracts.perYear')}</SortableTh>
+                            <SortableTh sortKey="cancelBy" sort={sort} onSort={toggle} className={classNames(th, "hidden md:table-cell")}>{t('contracts.cancelBy')}</SortableTh>
+                            {filter !== "insurance" && <SortableTh sortKey="category" sort={sort} onSort={toggle} className={classNames(th, "hidden xl:table-cell")}>{t('entry.category')}</SortableTh>}
                             <th className={classNames(th, "w-10 pr-5")}/>
                         </tr>
                         </thead>
                         <tbody>
-                        {listed.map((c) => (
+                        {sorted.map((c) => (
                             <tr key={c.id} className={tr}>
                                 <td className={classNames(td, "pl-5")}>
                                     <div className="flex items-center gap-2 min-w-0">

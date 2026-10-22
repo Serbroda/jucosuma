@@ -6,10 +6,19 @@ import EntryIcon from "./EntryIcon.tsx";
 import CategoryBadge from "./ui/CategoryBadge.tsx";
 import RowActions from "./ui/RowActions.tsx";
 import IconTile from "./ui/IconTile.tsx";
-import {EntryKindTransfer, type ContractDto} from "../gen/types.gen.ts";
+import {
+    BillingPeriodAnnually, BillingPeriodEveryTwoYears, BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime,
+    BillingPeriodQuarterly, BillingPeriodSemiannual, BillingPeriodWeekly, EntryKindTransfer, type ContractDto,
+} from "../gen/types.gen.ts";
+
+/** Order of billing periods when sorting by interval (shortest first). */
+const periodOrder = [BillingPeriodWeekly, BillingPeriodMonthly, BillingPeriodQuarterly, BillingPeriodSemiannual,
+    BillingPeriodAnnually, BillingPeriodEveryTwoYears, BillingPeriodOneTime, BillingPeriodNone];
 import type {AppData} from "../hooks/useAppData.ts";
 import {type Pot, potOf, splitText, costOwner} from "../utils/budget.utils.ts";
-import {accountName, isDefaultAssignment} from "../utils/household.utils.ts";
+import {accountName, categoryLabel, isDefaultAssignment} from "../utils/household.utils.ts";
+import {useSort} from "../utils/sort.utils.ts";
+import SortableTh from "./ui/SortableTh.tsx";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
 import {table, td, th, tr} from "../utils/ui.ts";
@@ -20,8 +29,10 @@ import {classNames} from "../utils/dom.utils.ts";
 export type EntryColumn = "interval" | "earner" | "account" | "transfer" | "split" | "person" | "category" | "goal";
 
 /** Table of entries with configurable columns and edit/delete actions. */
-export default function EntryTable({entries, data, columns, emptyText, amountTone}: {
+export default function EntryTable({entries, data, columns, emptyText, amountTone, sortId}: {
     entries: ContractDto[];
+    /** remembers the sorting per table; defaults to the column set */
+    sortId?: string;
     data: AppData;
     columns: EntryColumn[];
     emptyText: string;
@@ -37,27 +48,49 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
     const potLabel = (pot: Pot) => pot === "household"
         ? t('overview.potHousehold') : data.persons.find((p) => p.id === pot)?.name ?? t('common.unknown');
     const categoryOf = (c: ContractDto) => data.categories.find((cat) => cat.id === c.category_id);
+    const earnerLabel = (c: ContractDto) => {
+        const earner = costOwner(c, data.persons, data.accounts);
+        return earner === "household" ? t('income.earnerShared') : data.persons.find((p) => p.id === earner)?.name;
+    };
+    const {sorted, sort, toggle} = useSort(`entries:${sortId ?? columns.join(",")}`, entries, {
+        name: (c) => c.name,
+        amount: (c) => c.costs,
+        interval: (c) => periodOrder.indexOf(c.billing_period),
+        earner: earnerLabel,
+        account: (c) => accountName(c.account_id, data.accounts),
+        transfer: (c) => `${accountName(c.account_id, data.accounts) ?? ""} ${accountName(c.target_account_id, data.accounts) ?? ""}`,
+        split: (c) => isDefaultAssignment(c, data.persons, data.accounts) ? "" : splitText(c, data.persons, data.accounts, t('common.household'), i18n.language),
+        person: (c) => potLabel(potOf(data.accounts.find((a) => a.id === c.account_id))),
+        goal: (c) => data.goals.find((g) => g.id === c.goal_id)?.name,
+        category: (c) => {
+            const cat = categoryOf(c);
+            return cat ? categoryLabel(cat.name, cat.key) : c.category;
+        },
+    });
+    const head = (key: EntryColumn | "name" | "amount", label: string, className: string, align?: "right") => (
+        <SortableTh sortKey={key} sort={sort} onSort={toggle} className={className} align={align}>{label}</SortableTh>
+    );
 
     return (
         <div className="overflow-x-auto -mx-5">
             <table className={table}>
                 <thead>
                 <tr>
-                    <th className={classNames(th, "pl-5")}>{t('common.name')}</th>
-                    <th className={classNames(th, "text-right")}>{t('entry.amount')}</th>
-                    {has("interval") && <th className={classNames(th, "hidden md:table-cell")}>{t('entry.interval')}</th>}
-                    {has("earner") && <th className={classNames(th, "hidden sm:table-cell")}>{t('income.earner')}</th>}
-                    {has("account") && <th className={classNames(th, "hidden md:table-cell")}>{t('overview.paidVia')}</th>}
-                    {has("transfer") && <th className={classNames(th, "hidden md:table-cell")}>{t('transfers.fromTo')}</th>}
-                    {has("split") && <th className={classNames(th, "hidden lg:table-cell")}>{t('overview.split')}</th>}
-                    {has("person") && <th className={classNames(th, "hidden lg:table-cell")}>{t('overview.pot')}</th>}
-                    {has("goal") && <th className={classNames(th, "hidden lg:table-cell")}>{t('goals.goal')}</th>}
-                    {has("category") && <th className={classNames(th, "hidden sm:table-cell")}>{t('entry.category')}</th>}
+                    {head("name", t('common.name'), classNames(th, "pl-5"))}
+                    {head("amount", t('entry.amount'), classNames(th, "text-right"), "right")}
+                    {has("interval") && head("interval", t('entry.interval'), classNames(th, "hidden md:table-cell"))}
+                    {has("earner") && head("earner", t('income.earner'), classNames(th, "hidden sm:table-cell"))}
+                    {has("account") && head("account", t('overview.paidVia'), classNames(th, "hidden md:table-cell"))}
+                    {has("transfer") && head("transfer", t('transfers.fromTo'), classNames(th, "hidden md:table-cell"))}
+                    {has("split") && head("split", t('overview.split'), classNames(th, "hidden lg:table-cell"))}
+                    {has("person") && head("person", t('overview.pot'), classNames(th, "hidden lg:table-cell"))}
+                    {has("goal") && head("goal", t('goals.goal'), classNames(th, "hidden lg:table-cell"))}
+                    {has("category") && head("category", t('entry.category'), classNames(th, "hidden sm:table-cell"))}
                     <th className={classNames(th, "w-10 pr-5")}/>
                 </tr>
                 </thead>
                 <tbody>
-                {entries.map((c) => {
+                {sorted.map((c) => {
                     const goal = data.goals.find((g) => g.id === c.goal_id);
                     return (
                         <tr key={c.id} className={tr}>

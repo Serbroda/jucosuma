@@ -18,6 +18,8 @@ import {numberLocale} from "../utils/number.utils.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import {sendJson} from "../lib/api.ts";
 import {card, table, td, th, tr} from "../utils/ui.ts";
+import SortableTh from "../components/ui/SortableTh.tsx";
+import {useSort} from "../utils/sort.utils.ts";
 
 export default function CategoriesPage() {
     const data = useAppData();
@@ -32,6 +34,13 @@ export default function CategoriesPage() {
     const entriesOf = (cat: CategoryDto) => data.contracts.filter((c) =>
         c.category_id === cat.id && c.kind === cat.type);
     const listed = data.categories.filter((c) => c.type === type);
+    const sumOf = (cat: typeof listed[number]) => entriesOf(cat)
+        .reduce((s, c) => s + amountInMonth(c, month, mode) * (c.kind === EntryKindExpense ? c.household_share : 1), 0);
+    const {sorted, sort, toggle} = useSort(`categories:${type}`, listed, {
+        name: (c) => categoryLabel(c.name, c.key),
+        entries: (c) => entriesOf(c).length,
+        sum: sumOf,
+    });
 
     return (
         <div className="flex flex-col gap-6">
@@ -50,16 +59,16 @@ export default function CategoriesPage() {
                     <table className={table}>
                         <thead>
                         <tr>
-                            <th className={classNames(th, "pl-5")}>{t('common.name')}</th>
-                            <th className={classNames(th, "text-right")}>{t('categories.entries')}</th>
-                            <th className={classNames(th, "text-right")}>{t('categories.sumIn', {month: month.format("MMM")})}</th>
+                            <SortableTh sortKey="name" sort={sort} onSort={toggle} className={classNames(th, "pl-5")}>{t('common.name')}</SortableTh>
+                            <SortableTh sortKey="entries" sort={sort} onSort={toggle} className={classNames(th, "text-right")} align="right">{t('categories.entries')}</SortableTh>
+                            <SortableTh sortKey="sum" sort={sort} onSort={toggle} className={classNames(th, "text-right")} align="right">{t('categories.sumIn', {month: month.format("MMM")})}</SortableTh>
                             <th className={classNames(th, "w-10 pr-5")}/>
                         </tr>
                         </thead>
                         <tbody>
-                        {listed.map((cat) => {
+                        {sorted.map((cat) => {
                             const entries = entriesOf(cat);
-                            const sum = entries.reduce((s, c) => s + amountInMonth(c, month, mode) * (c.kind === EntryKindExpense ? c.household_share : 1), 0);
+                            const sum = sumOf(cat);
                             return (
                                 <tr key={cat.id} className={tr}>
                                     <td className={classNames(td, "pl-5")}>

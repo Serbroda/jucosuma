@@ -27,6 +27,8 @@ import {sendJson} from "../lib/api.ts";
 import type {IconComponent} from "../lib/icons.ts";
 import {card, cardTitle, table, td, th, tr} from "../utils/ui.ts";
 import dayjs from "../lib/dayjs";
+import SortableTh from "../components/ui/SortableTh.tsx";
+import {useSort} from "../utils/sort.utils.ts";
 
 /** Icon and colour slot per account type. */
 const typeStyle: Record<string, { icon: IconComponent; color: number }> = {
@@ -57,6 +59,14 @@ export default function AccountsPage() {
         .filter((x) => x.sum !== 0);
     const maxType = Math.max(...byType.map((x) => x.sum), 1);
     const listed = data.accounts.filter((a) => filter === "all" || a.type === filter);
+    const {sorted, sort, toggle} = useSort(`accounts:${filter}`, listed, {
+        name: (a) => a.name,
+        type: (a) => accountTypeLabel(a.type),
+        owner: (a) => accountOwnerLabel(a, data.persons),
+        iban: (a) => a.iban?.slice(-4),
+        flow: (a) => flow.get(a.id) ?? 0,
+        balance: (a) => a.balance,
+    });
 
     return (
         <div className="flex flex-col gap-6">
@@ -105,17 +115,17 @@ export default function AccountsPage() {
                     <table className={table}>
                         <thead>
                         <tr>
-                            <th className={classNames(th, "pl-5")}>{t('common.name')}</th>
-                            <th className={classNames(th, "hidden md:table-cell")}>{t('household.accountType')}</th>
-                            <th className={classNames(th, "hidden sm:table-cell")}>{t('household.owner')}</th>
-                            <th className={classNames(th, "hidden lg:table-cell")}>{t('accounts.ibanShort')}</th>
-                            <th className={classNames(th, "text-right hidden md:table-cell")}>{t('accounts.monthly', {month: month.format("MMM")})}</th>
-                            <th className={classNames(th, "text-right")}>{t('accounts.currentBalance')}</th>
+                            <SortableTh sortKey="name" sort={sort} onSort={toggle} className={classNames(th, "pl-5")}>{t('common.name')}</SortableTh>
+                            <SortableTh sortKey="type" sort={sort} onSort={toggle} className={classNames(th, "hidden md:table-cell")}>{t('household.accountType')}</SortableTh>
+                            <SortableTh sortKey="owner" sort={sort} onSort={toggle} className={classNames(th, "hidden sm:table-cell")}>{t('household.owner')}</SortableTh>
+                            <SortableTh sortKey="iban" sort={sort} onSort={toggle} className={classNames(th, "hidden lg:table-cell")}>{t('accounts.ibanShort')}</SortableTh>
+                            <SortableTh sortKey="flow" sort={sort} onSort={toggle} className={classNames(th, "text-right hidden md:table-cell")} align="right">{t('accounts.monthly', {month: month.format("MMM")})}</SortableTh>
+                            <SortableTh sortKey="balance" sort={sort} onSort={toggle} className={classNames(th, "text-right")} align="right">{t('accounts.currentBalance')}</SortableTh>
                             <th className={classNames(th, "w-10 pr-5")}/>
                         </tr>
                         </thead>
                         <tbody>
-                        {listed.map((a) => {
+                        {sorted.map((a) => {
                             const style = typeStyle[a.type] ?? typeStyle[AccountTypeOther];
                             const net = flow.get(a.id) ?? 0;
                             return (
