@@ -244,6 +244,7 @@ export default function OverviewPage() {
                 accounts={accounts}
                 categories={categories}
                 goals={goals}
+                contracts={contracts}
             />
 
             {/* Header */}
@@ -313,9 +314,9 @@ export default function OverviewPage() {
                 <KpiCard icon={ShoppingBagIcon} tint="bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
                          label={t('overview.costs')} value={formatShort(summary.expenses)}>
                     <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                        {t('overview.costsSplit', {
-                            household: formatShort(summary.householdCosts),
-                            own: formatShort(Object.values(summary.privateCosts).reduce((sum, v) => sum + v, 0)),
+                        {t('overview.costsFixedVariable', {
+                            fixed: formatShort(summary.expenses - summary.variableCosts),
+                            variable: formatShort(summary.variableCosts),
                         })}
                     </div>
                     <div className="mt-1">

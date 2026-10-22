@@ -43,6 +43,7 @@ export interface ContractDto {
   category_id?: number /* int64 */;
   category_key?: string;
   is_contract: boolean;
+  is_variable: boolean;
   term_months?: number /* int64 */;
   notice_period?: number /* int64 */;
   notice_unit?: NoticeUnit;
@@ -88,6 +89,7 @@ export interface CreateContractDto {
   category: string;
   category_id?: number /* int64 */;
   is_contract: boolean;
+  is_variable?: boolean; // nil (older exports): every non-contract expense is variable
   term_months?: number /* int64 */;
   notice_period?: number /* int64 */;
   notice_unit?: string;
@@ -125,6 +127,7 @@ export interface UpdateContractDto {
   category: string;
   category_id?: number /* int64 */;
   is_contract: boolean;
+  is_variable?: boolean;
   term_months?: number /* int64 */;
   notice_period?: number /* int64 */;
   notice_unit?: string;

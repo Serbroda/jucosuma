@@ -73,6 +73,7 @@ type Contract struct {
 	NoticeUnit      *string    `db:"notice_unit"`
 	IsContract      int64      `db:"is_contract"`
 	Website         *string    `db:"website"`
+	IsVariable      int64      `db:"is_variable"`
 }
 
 type ContractAmount struct {

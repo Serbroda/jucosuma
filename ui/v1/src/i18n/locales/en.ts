@@ -235,6 +235,7 @@ const en = {
         },
     },
     overview: {
+        costsFixedVariable: "fixed {{fixed}} · variable {{variable}}",
         modeAverageShort: "Ø month",
         modeDueShort: "Due",
         modeAverageHint: "Yearly or quarterly entries spread over every month.",
@@ -640,6 +641,15 @@ const en = {
         dialogHint: "Applies from the month of this date on. Earlier months, closings and the 12-month view keep the previous amount.",
         errorInvalid: "Please enter a date and an amount.",
         formHint: "Corrects the amount valid today. For a change from a certain date use “Change amount from …” below.",
+    },
+    costType: {
+        label: "Cost type",
+        variable: "Variable",
+        fixed: "Fixed",
+        contract: "Contract",
+        variableHint: "Changes from month to month (e.g. groceries, fuel) – you enter the actual amount in the monthly closing.",
+        fixedHint: "The same every month, without contract data (e.g. broadcasting fee, pocket money).",
+        contractHint: "Fixed, with term and notice period – shown under contracts.",
     },
     closing: {
         addBalances: "+ Add account balances (optional)",

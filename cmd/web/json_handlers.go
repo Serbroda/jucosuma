@@ -92,6 +92,7 @@ func (app *application) importContractsJSON(c echo.Context) error {
 			Category:        categoryName,
 			CategoryID:      categoryID,
 			IsContract:      boolToInt64(p.IsContract && normalizeKind(p.Kind) == "EXPENSE"),
+			IsVariable:      boolToInt64(p.Variable() && normalizeKind(p.Kind) == "EXPENSE"),
 			TermMonths:      p.TermMonths,
 			NoticePeriod:    p.NoticePeriod,
 			NoticeUnit:      noticeUnit(p.NoticePeriod, p.NoticeUnit),

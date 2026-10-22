@@ -42,6 +42,7 @@ func MapContractToContractDto(item sqlc.Contract) ContractDto {
 	}
 
 	dto.IsContract = item.IsContract == 1
+	dto.IsVariable = item.IsVariable == 1
 	dto.TermMonths = item.TermMonths
 	dto.NoticePeriod = item.NoticePeriod
 	if item.NoticeUnit != nil {

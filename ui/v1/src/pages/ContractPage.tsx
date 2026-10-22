@@ -4,7 +4,7 @@ import {Heading, Subheading} from "../components/catalyst/heading.tsx";
 import {Divider} from "../components/catalyst/divider.tsx";
 import type {AccountDto, ContractDto, PersonDto} from "../gen/types.gen.ts";
 import {BillingPeriodNone, BillingPeriodOneTime, EntryKindExpense, EntryKindIncome, EntryKindTransfer} from "../gen/types.gen.ts";
-import {accountName, categoryLabel, entryKindLabel, noticeLabel} from "../utils/household.utils.ts";
+import {accountName, categoryLabel, costTypeOf, entryKindLabel, noticeLabel} from "../utils/household.utils.ts";
 import {useTranslation} from "react-i18next";
 import {
     BanknotesIcon,
@@ -179,6 +179,10 @@ export default function ContractPage() {
                     {c?.kind === EntryKindTransfer && accountName(c?.target_account_id, accounts) && <>
                         <DescriptionTerm>{t('entry.toAccount')}</DescriptionTerm>
                         <DescriptionDetails>{accountName(c?.target_account_id, accounts)}</DescriptionDetails>
+                    </>}
+                    {c?.kind === EntryKindExpense && <>
+                        <DescriptionTerm>{t('costType.label')}</DescriptionTerm>
+                        <DescriptionDetails>{t(`costType.${costTypeOf(c)}`)}</DescriptionDetails>
                     </>}
                     {c?.kind === EntryKindIncome && <>
                         <DescriptionTerm>{t('income.earner')}</DescriptionTerm>

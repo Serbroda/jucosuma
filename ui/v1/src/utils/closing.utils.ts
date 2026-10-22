@@ -70,7 +70,7 @@ export function compareMonth(
     const categoryComparisons = (closing?.actuals ?? []).flatMap((a): CategoryComparison[] => {
         const category = categories.find((c) => c.id === a.category_id);
         if (!category) return [];
-        const planned = plan.byCategory.find((c) => c.id === a.category_id)?.amount ?? 0;
+        const planned = plan.byCategory.find((c) => c.id === a.category_id)?.variable ?? 0;
         return [{category, planned, actual: a.amount, deviation: a.amount - planned}];
     }).sort((x, y) => y.deviation - x.deviation);
 
@@ -78,7 +78,7 @@ export function compareMonth(
 }
 
 /**
- * Categories worth tracking in a closing: expense categories with planned non-contract costs in
+ * Categories worth tracking in a closing: expense categories with planned variable costs in
  * the month (groceries, fuel, leisure …) plus categories tracked in earlier closings.
  */
 export function variableCategories(
@@ -89,7 +89,7 @@ export function variableCategories(
 ): CategoryDto[] {
     const ids = new Set<number>();
     for (const c of contracts) {
-        if (c.kind === EntryKindExpense && !c.is_contract && c.category_id != null && amountInMonth(c, month, "due") > 0) {
+        if (c.kind === EntryKindExpense && c.is_variable && c.category_id != null && amountInMonth(c, month, "due") > 0) {
             ids.add(c.category_id);
         }
     }
@@ -155,7 +155,7 @@ export function variableCostsYear(
             months: series.length,
             total,
             average,
-            plan: currentPlan.byCategory.find((c) => c.id === category.id)?.amount ?? 0,
+            plan: currentPlan.byCategory.find((c) => c.id === category.id)?.variable ?? 0,
             trend,
             recommendation: Math.ceil(weighted / 10) * 10,
         };
@@ -167,7 +167,7 @@ export function variableCostsYear(
         ...m,
         planned: summarizeMonth(contracts, persons, accounts, m.month, "due", mainCurrency, "all").byCategory
             .filter((c) => c.id != null && tracked.has(c.id))
-            .reduce((s, c) => s + c.amount, 0),
+            .reduce((s, c) => s + c.variable, 0),
     }));
 
     return {

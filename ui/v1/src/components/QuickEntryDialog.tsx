@@ -10,6 +10,7 @@ import {Checkbox, CheckboxField} from "./catalyst/checkbox.tsx";
 import {useAuth} from "../stores/useAuth.ts";
 import SharesEditor from "./SharesEditor.tsx";
 import EarnerSelect from "./EarnerSelect.tsx";
+import CostTypeControl from "./CostTypeControl.tsx";
 import {earnerOfAccount, earnerShares, type Pot} from "../utils/budget.utils.ts";
 import {
     BillingPeriodMonthly,
@@ -25,7 +26,7 @@ import {
     type ShareDto,
 } from "../gen/types.gen.ts";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
-import {categoryLabel, isContractCategory, sharesForAccount, entryKinds, entryPeriods, recallAccount, rememberAccount} from "../utils/household.utils.ts";
+import {categoryLabel, type CostType, defaultCostType, sharesForAccount, entryKinds, entryPeriods, recallAccount, rememberAccount} from "../utils/household.utils.ts";
 import {parseAmount} from "../utils/number.utils.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import {apiBasePath} from "../config.ts";
@@ -42,11 +43,13 @@ export interface QuickEntryDialogProps {
     goals?: SavingsGoalDto[];
     /** Entry kind preselected when the dialog opens (default: expense). */
     initialKind?: string;
+    /** Existing entries, used to suggest the cost type of a category. */
+    contracts?: ContractDto[];
     /** Values filled in when the dialog opens, e.g. a payment into a savings goal. */
     prefill?: { name?: string; goalId?: number; targetAccountId?: number };
 }
 
-export default function QuickEntryDialog({isOpen, onClose, persons, accounts, categories, goals = [], initialKind, prefill}: QuickEntryDialogProps) {
+export default function QuickEntryDialog({isOpen, onClose, persons, accounts, categories, goals = [], contracts = [], initialKind, prefill}: QuickEntryDialogProps) {
     const navigate = useNavigate();
     const {t} = useTranslation();
     const revalidator = useRevalidator();
@@ -58,8 +61,8 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
     const [period, setPeriod] = useState<string>(BillingPeriodMonthly);
     const [startDate, setStartDate] = useState(dayjs().format("YYYY-MM-DD"));
     const [categoryId, setCategoryId] = useState<number | undefined>();
-    const [isContract, setIsContract] = useState(false);
-    const [contractTouched, setContractTouched] = useState(false);
+    const [costType, setCostType] = useState<CostType>("variable");
+    const [costTypeTouched, setCostTypeTouched] = useState(false);
     const [goalId, setGoalId] = useState<number | undefined>();
     const [accountId, setAccountId] = useState<number | undefined>();
     const [targetAccountId, setTargetAccountId] = useState<number | undefined>();
@@ -89,14 +92,14 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
     };
 
     /** Picks a category and, unless set by hand, the matching "is contract" default. */
-    const chooseCategory = (id: number | undefined, touched = contractTouched) => {
+    const chooseCategory = (id: number | undefined, touched = costTypeTouched) => {
         setCategoryId(id);
-        if (!touched) setIsContract(isContractCategory(categories.find((c) => c.id === id)));
+        if (!touched) setCostType(defaultCostType(categories.find((c) => c.id === id), contracts));
     };
 
     const reset = (keepKind = kind) => {
         setName("");
-        setContractTouched(false);
+        setCostTypeTouched(false);
         chooseCategory(defaultCategory(keepKind), false);
         setGoalId(undefined);
         setAmount("");
@@ -160,7 +163,8 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
             start_date: startDate,
             // transfers get the server's default category
             category_id: isTransfer ? undefined : categoryId,
-            is_contract: isExpense && isContract,
+            is_contract: isExpense && costType === "contract",
+            is_variable: isExpense && costType === "variable",
             goal_id: isTransfer ? goalId : undefined,
             currency: "EUR",
             account_id: accountId,
@@ -353,16 +357,19 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                         </Field>
                     )}
 
-                    <div className="flex flex-wrap gap-x-6 gap-y-2">
-                        {isExpense && (
-                            <CheckboxField>
-                                <Checkbox checked={isContract} onChange={(v) => {
-                                    setIsContract(v);
-                                    setContractTouched(true);
+                    {isExpense && (
+                        <Field>
+                            <Label>{t('costType.label')}</Label>
+                            <div className="mt-2">
+                                <CostTypeControl value={costType} onChange={(v) => {
+                                    setCostType(v);
+                                    setCostTypeTouched(true);
                                 }}/>
-                                <Label>{t('contracts.isContract')}</Label>
-                            </CheckboxField>
-                        )}
+                            </div>
+                        </Field>
+                    )}
+
+                    <div className="flex flex-wrap gap-x-6 gap-y-2">
                         <CheckboxField>
                             <Checkbox checked={onlyMe} onChange={setOnlyMe}/>
                             <Label>{t('entry.onlyMe')}</Label>

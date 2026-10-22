@@ -239,6 +239,7 @@ const de: Translation<typeof en> = {
         },
     },
     overview: {
+        costsFixedVariable: "fix {{fixed}} · variabel {{variable}}",
         modeAverageShort: "Ø Monat",
         modeDueShort: "Fällig",
         modeAverageHint: "Jährliche oder quartalsweise Posten anteilig auf jeden Monat verteilt.",
@@ -644,6 +645,15 @@ const de: Translation<typeof en> = {
         dialogHint: "Gilt ab dem Monat dieses Datums. Frühere Monate, Monatsabschlüsse und die 12-Monats-Ansicht rechnen weiter mit dem alten Betrag.",
         errorInvalid: "Bitte Datum und Betrag angeben.",
         formHint: "Korrigiert den heute gültigen Betrag. Für eine Änderung ab einem Datum nutze „Betrag ändern ab …“ darunter.",
+    },
+    costType: {
+        label: "Kostenart",
+        variable: "Variabel",
+        fixed: "Fix",
+        contract: "Vertrag",
+        variableHint: "Schwankt von Monat zu Monat (z. B. Lebensmittel, Tanken) – im Monatsabschluss trägst du den Ist-Betrag ein.",
+        fixedHint: "Jeden Monat gleich, ohne Vertragsdaten (z. B. Rundfunkbeitrag, Taschengeld).",
+        contractHint: "Fix, mit Laufzeit und Kündigungsfrist – erscheint unter Verträge.",
     },
     closing: {
         addBalances: "+ Kontostände eintragen (optional)",

@@ -24,11 +24,11 @@ import {CheckIcon, ChevronRightIcon, DocumentIcon, PencilIcon, XMarkIcon} from "
 import SharesEditor from "./SharesEditor.tsx";
 import EarnerSelect from "./EarnerSelect.tsx";
 import AmountHistory from "./AmountHistory.tsx";
+import CostTypeControl from "./CostTypeControl.tsx";
 import LinksEditor, {type EditableLink} from "./LinksEditor.tsx";
 import {costOwner, earnerOfAccount, earnerShares, type Pot} from "../utils/budget.utils.ts";
 import EntryIcon from "./EntryIcon.tsx";
-import {categoryLabel, sharesForAccount, entryKinds, entryPeriods, isContractCategory} from "../utils/household.utils.ts";
-import {Switch, SwitchField} from "./catalyst/switch.tsx";
+import {categoryLabel, type CostType, costTypeOf, defaultCostType, sharesForAccount, entryKinds, entryPeriods} from "../utils/household.utils.ts";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
 import {formatDecimal} from "../utils/number.utils.ts";
 import {Combobox, ComboboxLabel, ComboboxOption} from "./catalyst/combobox.tsx";
@@ -101,10 +101,11 @@ export default function ContractForm({contract, holders, companies, categories, 
         contract.shares ?? (isEdit ? [] : sharesForAccount(contract.account_id, accounts, persons)));
     // new entries: who carries the costs follows the chosen account until set by hand
     const [sharesTouched, setSharesTouched] = useState(isEdit);
-    const [isContract, setIsContract] = useState(isEdit
-        ? Boolean(contract.is_contract)
-        : isContractCategory(categories.find((c) => c.id === contract.category_id || (!contract.category_id && c.key === "other"))));
-    const [contractTouched, setContractTouched] = useState(isEdit);
+    const [costType, setCostType] = useState<CostType>(isEdit
+        ? costTypeOf({is_contract: Boolean(contract.is_contract), is_variable: Boolean(contract.is_variable)})
+        : defaultCostType(categories.find((c) => c.id === contract.category_id || (!contract.category_id && c.key === "other"))));
+    const isContract = costType === "contract";
+    const [costTypeTouched, setCostTypeTouched] = useState(isEdit);
     // earner of an income; new entries follow the chosen account until set by hand
     const [earner, setEarner] = useState<Pot>(isEdit && contract.kind === EntryKindIncome
         ? costOwner(contract as ContractDto, persons, accounts) : earnerOfAccount(contract.account_id, accounts));
@@ -418,8 +419,8 @@ export default function ContractForm({contract, holders, companies, categories, 
                                 name="category_id"
                                 defaultValue={contract.category_id ?? categories.find((c) => c.key === "other")?.id ?? ""}
                                 onChange={(e) => {
-                                    if (!contractTouched) {
-                                        setIsContract(isContractCategory(categories.find((c) => c.id === Number(e.target.value))));
+                                    if (!costTypeTouched) {
+                                        setCostType(defaultCostType(categories.find((c) => c.id === Number(e.target.value))));
                                     }
                                 }}
                             >
@@ -474,16 +475,18 @@ export default function ContractForm({contract, holders, companies, categories, 
                 <input type="hidden" name="split_between" value={contract.split_between ?? 1}/>
 
                 {isExpense && (
-                    <SwitchField>
-                        <Label>{t('contracts.isContract')}</Label>
-                        <Description>{t('contracts.isContractHint')}</Description>
-                        <Switch checked={isContract} onChange={(v) => {
-                            setIsContract(v);
-                            setContractTouched(true);
-                        }}/>
-                    </SwitchField>
+                    <Field>
+                        <Label>{t('costType.label')}</Label>
+                        <div className="mt-2">
+                            <CostTypeControl value={costType} onChange={(v) => {
+                                setCostType(v);
+                                setCostTypeTouched(true);
+                            }}/>
+                        </div>
+                    </Field>
                 )}
-                <input type="hidden" name="is_contract" value={String(isExpense && isContract)}/>
+                <input type="hidden" name="is_contract" value={String(isExpense && costType === "contract")}/>
+                <input type="hidden" name="is_variable" value={String(isExpense && costType === "variable")}/>
 
                 <Field>
                     <Label>{t('entryForm.visibility')}</Label>

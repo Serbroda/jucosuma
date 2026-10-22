@@ -178,7 +178,9 @@ export type MonthSummary = {
     available: number;         // income + transfersIn − transfersOut − expenses − savings
     householdCosts: number;    // of the expenses: assigned to the household
     privateCosts: Record<number, number>; // of the expenses: assigned to one person
-    byCategory: { id?: number; name: string; label: string; amount: number }[];
+    variableCosts: number;     // of the expenses: variable costs (budgets like groceries, fuel); the rest is fixed
+    // amount per category; `variable` is the part from variable entries (plan for actual comparisons)
+    byCategory: { id?: number; name: string; label: string; amount: number; variable: number }[];
     accounts: AccountFlow[];
     entries: MonthEntry[];
     unassignedAccount: number; // number of entries in this month without account
@@ -202,13 +204,13 @@ export function summarizeMonth(
     const flows = new Map<number, AccountFlow>(
         accounts.filter((a) => inScope(potOf(a))).map((a) => [a.id, {account: a, inflow: 0, outflow: 0}]),
     );
-    const byCategory = new Map<string, { id?: number; name: string; label: string; amount: number }>();
+    const byCategory = new Map<string, { id?: number; name: string; label: string; amount: number; variable: number }>();
     const privateCosts: Record<number, number> = {};
     const transfersInBy: Record<string, number> = {};
     const transfersOutBy: Record<string, number> = {};
     const entries: MonthEntry[] = [];
 
-    let income = 0, expenses = 0, externalShare = 0, savings = 0, householdCosts = 0;
+    let income = 0, expenses = 0, externalShare = 0, savings = 0, householdCosts = 0, variableCosts = 0;
     let transfersIn = 0, transfersOut = 0, unassignedAccount = 0, fromSavings = 0;
 
     for (const c of contracts) {
@@ -239,8 +241,12 @@ export function summarizeMonth(
                 else privateCosts[owner] = (privateCosts[owner] ?? 0) + own;
                 const groupKey = c.category_id != null ? String(c.category_id) : c.category;
                 const cat = byCategory.get(groupKey)
-                    ?? {id: c.category_id, name: c.category, label: categoryLabel(c.category, c.category_key), amount: 0};
+                    ?? {id: c.category_id, name: c.category, label: categoryLabel(c.category, c.category_key), amount: 0, variable: 0};
                 cat.amount += own;
+                if (c.is_variable) {
+                    cat.variable += own;
+                    variableCosts += own;
+                }
                 byCategory.set(groupKey, cat);
                 if (from) from.outflow += own;
                 // paid from a savings account: spends money that was already set aside
@@ -300,6 +306,7 @@ export function summarizeMonth(
         available: income + transfersIn - transfersOut - expenses - savings,
         householdCosts,
         privateCosts,
+        variableCosts,
         byCategory: [...byCategory.values()].filter((c) => c.amount > 0).sort((a, b) => b.amount - a.amount),
         accounts: [...flows.values()].filter((f) => f.inflow !== 0 || f.outflow !== 0),
         entries: entries.sort((a, b) => b.own - a.own),

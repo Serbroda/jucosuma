@@ -119,7 +119,7 @@ export default function ClosingDialog({open, onClose, month, data}: {
                 {categories.length > 0 && (
                     <div className="flex flex-col gap-2 mt-3">
                         {categories.map((c) => {
-                            const planned = plan.byCategory.find((b) => b.id === c.id)?.amount ?? 0;
+                            const planned = plan.byCategory.find((b) => b.id === c.id)?.variable ?? 0;
                             return (
                                 <div key={c.id} className="grid grid-cols-[1fr_7rem] sm:grid-cols-[1fr_7rem_8rem] items-center gap-3">
                                     <span className="flex items-center gap-2 min-w-0">

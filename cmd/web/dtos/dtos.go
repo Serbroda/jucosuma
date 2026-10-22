@@ -86,6 +86,7 @@ type ContractDto struct {
 	CategoryID      *int64              `json:"category_id"`
 	CategoryKey     *string             `json:"category_key"`
 	IsContract      bool                `json:"is_contract"`
+	IsVariable      bool                `json:"is_variable"`
 	TermMonths      *int64              `json:"term_months"`
 	NoticePeriod    *int64              `json:"notice_period"`
 	NoticeUnit      *NoticeUnit         `json:"notice_unit"`
@@ -132,6 +133,7 @@ type CreateContractDto struct {
 	Category        string     `json:"category"`
 	CategoryID      *int64     `json:"category_id"`
 	IsContract      bool       `json:"is_contract"`
+	IsVariable      *bool      `json:"is_variable"` // nil (older exports): every non-contract expense is variable
 	TermMonths      *int64     `json:"term_months" validate:"omitempty,min=1,max=120"`
 	NoticePeriod    *int64     `json:"notice_period" validate:"omitempty,min=0,max=365"`
 	NoticeUnit      *string    `json:"notice_unit" validate:"omitempty,oneof=days weeks months"`
@@ -168,6 +170,7 @@ type UpdateContractDto struct {
 	Category        string     `json:"category"`
 	CategoryID      *int64     `json:"category_id"`
 	IsContract      bool       `json:"is_contract"`
+	IsVariable      *bool      `json:"is_variable"`
 	TermMonths      *int64     `json:"term_months" validate:"omitempty,min=1,max=120"`
 	NoticePeriod    *int64     `json:"notice_period" validate:"omitempty,min=0,max=365"`
 	NoticeUnit      *string    `json:"notice_unit" validate:"omitempty,oneof=days weeks months"`
@@ -422,4 +425,16 @@ type ContractLinkDto struct {
 	ID    int64  `json:"id"`
 	Title string `json:"title"`
 	URL   string `json:"url"`
+}
+
+// Variable tells whether an expense counts as variable cost. Contracts are always fixed; without an
+// explicit value (older clients or exports) every expense that is no contract is variable.
+func (d CreateContractDto) Variable() bool {
+	if d.IsContract {
+		return false
+	}
+	if d.IsVariable == nil {
+		return true
+	}
+	return *d.IsVariable
 }

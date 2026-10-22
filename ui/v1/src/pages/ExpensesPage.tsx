@@ -39,14 +39,13 @@ export default function ExpensesPage() {
     const term = search.trim().toLowerCase();
     const listed = expenses
         .filter((c) => amountInMonth(c, month, "average") > 0)
-        // fixed costs are contracts, everything else (budgets, one-off purchases) is variable
-        .filter((c) => filter === "all" || (filter === "variable") === !c.is_contract)
+        .filter((c) => filter === "all" || (filter === "variable") === c.is_variable)
         .filter((c) => !term || c.name.toLowerCase().includes(term) || (c.company ?? "").toLowerCase().includes(term))
         .sort((a, b) => amountInMonth(b, month, "average") - amountInMonth(a, month, "average"));
 
     return (
         <div className="flex flex-col gap-6">
-            <QuickEntryDialog isOpen={adding} initialKind={EntryKindExpense} onClose={() => setAdding(false)}
+            <QuickEntryDialog isOpen={adding} initialKind={EntryKindExpense} onClose={() => setAdding(false)} contracts={data.contracts}
                               persons={data.persons} accounts={data.accounts} categories={data.categories} goals={data.goals}/>
             <div className="flex flex-wrap items-start gap-4">
                 <div className="grow flex flex-col gap-4">

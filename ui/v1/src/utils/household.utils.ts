@@ -173,6 +173,31 @@ export function isContractCategory(category: CategoryDto | undefined): boolean {
     return !!category?.key && CONTRACT_CATEGORY_KEYS.includes(category.key);
 }
 
+/** Cost type of an expense: variable (budget), fixed, or fixed with contract data. */
+export type CostType = "variable" | "fixed" | "contract";
+
+export function costTypeOf(c: Pick<ContractDto, "is_contract" | "is_variable">): CostType {
+    return c.is_contract ? "contract" : c.is_variable ? "variable" : "fixed";
+}
+
+/** Predefined categories whose entries are usually variable (budgets). */
+const VARIABLE_CATEGORY_KEYS = ["groceries", "leisure", "other"];
+
+/**
+ * Suggested cost type for a new expense of a category: contract and variable categories by their
+ * key, otherwise what most existing expenses of the category use (e.g. mobility: ticket vs. fuel).
+ */
+export function defaultCostType(category: CategoryDto | undefined, contracts: ContractDto[] = []): CostType {
+    if (!category) return "variable";
+    if (isContractCategory(category)) return "contract";
+    if (category.key && VARIABLE_CATEGORY_KEYS.includes(category.key)) return "variable";
+    const counts = new Map<CostType, number>();
+    for (const c of contracts) {
+        if (c.kind === EntryKindExpense && c.category_id === category.id) counts.set(costTypeOf(c), (counts.get(costTypeOf(c)) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "fixed";
+}
+
 /** Entries shown on the contracts page: expenses explicitly marked as contract. */
 export function isContractEntry(c: ContractDto): boolean {
     return c.is_contract && c.kind === EntryKindExpense;
