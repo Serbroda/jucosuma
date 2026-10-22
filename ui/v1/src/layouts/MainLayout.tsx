@@ -1,4 +1,5 @@
-import {Outlet, useLocation} from "react-router";
+import {Outlet, useLocation, useMatches} from "react-router";
+import {type ContractDto, EntryKindIncome, EntryKindTransfer} from "../gen/types.gen.ts";
 import {useTranslation} from "react-i18next";
 import {
     ArrowRightStartOnRectangleIcon,
@@ -57,8 +58,15 @@ function MainLayout() {
         {label: t('nav.persons'), url: '/persons', icon: UserGroupIcon},
         ...(isAdmin ? [{label: t('nav.users'), url: '/users', icon: UsersIcon}] : []),
     ]
-    const isCurrent = (url: string) =>
-        url === '/' ? pathname === '/' : pathname.startsWith(url)
+    // entry pages live under /contracts/…; highlight the menu item matching the entry's kind instead
+    const entry = useMatches().map((m) => (m.data as { contract?: ContractDto } | undefined)?.contract).find(Boolean)
+    const entryNav = !entry ? undefined
+        : entry.kind === EntryKindIncome ? '/income'
+            : entry.kind === EntryKindTransfer ? '/transfers'
+                : entry.is_contract ? '/contracts' : '/expenses'
+    const isCurrent = (url: string) => pathname.startsWith('/contracts/')
+        ? url === entryNav
+        : url === '/' ? pathname === '/' : pathname.startsWith(url)
     // pages without month context (the closing page has its own month list)
     const showMonth = !['/settings', '/users', '/contracts', '/closing'].some((p) => pathname.startsWith(p))
 

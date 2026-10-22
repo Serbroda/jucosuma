@@ -305,9 +305,18 @@ func (app *application) mapContracts(ctx context.Context, contracts []sqlc.Contr
 	if err != nil {
 		return nil, err
 	}
+	amounts, err := app.queries.FindAllContractAmounts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	amountsByContract := make(map[int64][]sqlc.ContractAmount)
+	for _, a := range amounts {
+		amountsByContract[a.ContractID] = append(amountsByContract[a.ContractID], a)
+	}
 
 	return utils.MapSlice(contracts, func(item sqlc.Contract) dtos.ContractDto {
 		dto := dtos.MapContractWithShares(item, sharesByContract[item.ID], persons)
+		dtos.ApplyAmounts(&dto, amountsByContract[item.ID])
 		categories.apply(&dto, item)
 		return dto
 	}), nil
@@ -326,7 +335,12 @@ func (app *application) mapContract(ctx context.Context, contract sqlc.Contract)
 	if err != nil {
 		return dtos.ContractDto{}, err
 	}
+	amounts, err := app.queries.FindContractAmountsByContractId(ctx, contract.ID)
+	if err != nil {
+		return dtos.ContractDto{}, err
+	}
 	dto := dtos.MapContractWithShares(contract, shares, persons)
+	dtos.ApplyAmounts(&dto, amounts)
 	categories.apply(&dto, contract)
 	return dto, nil
 }

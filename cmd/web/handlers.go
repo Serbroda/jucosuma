@@ -175,6 +175,22 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			return nil, echo.NewHTTPError(http.StatusNotFound, "contract not found")
 		}
 
+		// The form shows the amount valid today. With an amount history, that may be a later
+		// amount change: then that change is corrected and the base amount stays untouched.
+		baseCosts := payload.Costs
+		amounts, err := qtx.FindContractAmountsByContractId(ctx, *id)
+		if err != nil {
+			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+		if current := currentAmount(amounts); current != nil {
+			baseCosts = existing.Costs
+			if payload.Costs != nil {
+				if err := qtx.UpdateContractAmountCosts(ctx, sqlc.UpdateContractAmountCostsParams{Costs: *payload.Costs, ID: current.ID}); err != nil {
+					return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+				}
+			}
+		}
+
 		err = qtx.UpdateContractById(ctx, sqlc.UpdateContractByIdParams{
 			ID:              *id,
 			Name:            payload.Name,
@@ -191,7 +207,7 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			CustomerNumber:  payload.CustomerNumber,
 			ContractHolder:  utils.TrimToNil(payload.ContractHolder),
 			BillingPeriod:   strings.ToUpper(payload.BillingPeriod),
-			Costs:           payload.Costs,
+			Costs:           baseCosts,
 			Currency:        payload.Currency,
 			NextBillingDate: (*time.Time)(payload.NextBillingDate),
 			ContactPerson:   payload.ContactPerson,

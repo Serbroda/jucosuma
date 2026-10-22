@@ -74,6 +74,13 @@ type Contract struct {
 	IsContract      int64      `db:"is_contract"`
 }
 
+type ContractAmount struct {
+	ID         int64     `db:"id"`
+	ContractID int64     `db:"contract_id"`
+	ValidFrom  time.Time `db:"valid_from"`
+	Costs      float64   `db:"costs"`
+}
+
 type ContractShare struct {
 	ContractID int64   `db:"contract_id"`
 	PersonID   int64   `db:"person_id"`

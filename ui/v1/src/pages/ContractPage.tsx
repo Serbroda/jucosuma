@@ -22,6 +22,7 @@ import Tooltip from "../components/Tooltip.tsx";
 import dayjs from "../lib/dayjs";
 import {formatCurrency} from "../utils/number.utils.ts";
 import EntryIcon from "../components/EntryIcon.tsx";
+import AmountHistory from "../components/AmountHistory.tsx";
 import LineBreakParagraph from "../components/LineBreakParagraph.tsx";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
 
@@ -228,6 +229,8 @@ export default function ContractPage() {
                         <DescriptionDetails>{dayjs(c.next_billing_date).format('DD.MM.YYYY')}</DescriptionDetails>
                     </>}
                 </DescriptionList>
+
+                {hasRecurringBilling && c && <AmountHistory contract={c}/>}
 
                 {hasContact && <>
                     <Subheading className="mt-10">{t('entryForm.contactInformation')}</Subheading>

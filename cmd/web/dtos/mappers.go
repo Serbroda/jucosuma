@@ -64,6 +64,29 @@ func MapContractWithShares(item sqlc.Contract, shares []sqlc.ContractShare, pers
 	return dto
 }
 
+// ApplyAmounts adds the amount history of an entry. costs and the monthly amounts of the DTO
+// then refer to the amount valid today; base_costs keeps the amount from the start date.
+// amounts must be sorted by valid_from.
+func ApplyAmounts(dto *ContractDto, amounts []sqlc.ContractAmount) {
+	dto.BaseCosts = dto.Costs
+	dto.Amounts = []ContractAmountDto{}
+	current := dto.Costs
+	for _, a := range amounts {
+		dto.Amounts = append(dto.Amounts, ContractAmountDto{ID: a.ID, ValidFrom: DateOnly(a.ValidFrom), Costs: a.Costs})
+		if !a.ValidFrom.After(today()) {
+			costs := a.Costs
+			current = &costs
+		}
+	}
+	dto.Costs = current
+	dto.MonthlyAmount = computeMonthlyAmount(current, strings.ToUpper(dto.BillingPeriod))
+	dto.MonthlyCosts = nil
+	if dto.MonthlyAmount != nil {
+		monthly := *dto.MonthlyAmount * dto.HouseholdShare
+		dto.MonthlyCosts = &monthly
+	}
+}
+
 // applyHouseholdShare computes which fraction of an expense is borne by the household
 // (as opposed to external persons) and derives the household's monthly costs from it.
 // Without explicit shares the legacy split_between is used.

@@ -74,6 +74,8 @@ export interface ContractDto {
   shares: ShareDto[];
   household_share: number /* float64 */;
   monthly_amount?: number /* float64 */;
+  base_costs?: number /* float64 */;
+  amounts: ContractAmountDto[];
   created_at?: string /* RFC3339 */;
   updated_at?: string /* RFC3339 */;
   documents: DocumentDto[];
@@ -320,4 +322,16 @@ export interface SaveMonthClosingDto {
   notes?: string;
   balances: ClosingBalanceDto[];
   actuals: ClosingActualDto[];
+}
+/**
+ * ContractAmountDto is an amount change: from valid_from on, the entry costs `costs`.
+ */
+export interface ContractAmountDto {
+  id: number /* int64 */;
+  valid_from: DateOnly;
+  costs: number /* float64 */;
+}
+export interface SaveContractAmountDto {
+  valid_from: DateOnly;
+  costs?: number /* float64 */;
 }

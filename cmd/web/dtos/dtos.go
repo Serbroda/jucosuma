@@ -79,47 +79,49 @@ const (
 )
 
 type ContractDto struct {
-	ID              int64          `json:"id"`
-	Name            string         `json:"name"`
-	Company         *string        `json:"company"`
-	Category        string         `json:"category"`
-	CategoryID      *int64         `json:"category_id"`
-	CategoryKey     *string        `json:"category_key"`
-	IsContract      bool           `json:"is_contract"`
-	TermMonths      *int64         `json:"term_months"`
-	NoticePeriod    *int64         `json:"notice_period"`
-	NoticeUnit      *NoticeUnit    `json:"notice_unit"`
-	TermEnd         *DateOnly      `json:"term_end"`
-	CancelBy        *DateOnly      `json:"cancel_by"`
-	StartDate       DateOnly       `json:"start_date"`
-	EndDate         *DateOnly      `json:"end_date"`
-	ContractNumber  *string        `json:"contract_number"`
-	CustomerNumber  *string        `json:"customer_number"`
-	ContractHolder  *string        `json:"contract_holder"`
-	BillingPeriod   string         `json:"billing_period"`
-	Costs           *float64       `json:"costs"`
-	Currency        *string        `json:"currency"`
-	NextBillingDate *DateOnly      `json:"next_billing_date"`
-	Status          ContractStatus `json:"status"`
-	MonthlyCosts    *float64       `json:"monthly_costs"`
-	ContactPerson   *string        `json:"contact_person"`
-	ContactAddress  *string        `json:"contact_address"`
-	ContactPhone    *string        `json:"contact_phone"`
-	ContactEmail    *string        `json:"contact_email"`
-	IconSource      *string        `json:"icon_source"`
-	Notes           *string        `json:"notes"`
-	OwnerID         *int64         `json:"owner_id"`
-	SplitBetween    int64          `json:"split_between"`
-	Kind            EntryKind      `json:"kind"`
-	AccountID       *int64         `json:"account_id"`
-	TargetAccountID *int64         `json:"target_account_id"`
-	GoalID          *int64         `json:"goal_id"`
-	Shares          []ShareDto     `json:"shares"`
-	HouseholdShare  float64        `json:"household_share"`
-	MonthlyAmount   *float64       `json:"monthly_amount"`
-	CreatedAt       *time.Time     `json:"created_at"`
-	UpdatedAt       *time.Time     `json:"updated_at"`
-	Documents       []DocumentDto  `json:"documents"`
+	ID              int64               `json:"id"`
+	Name            string              `json:"name"`
+	Company         *string             `json:"company"`
+	Category        string              `json:"category"`
+	CategoryID      *int64              `json:"category_id"`
+	CategoryKey     *string             `json:"category_key"`
+	IsContract      bool                `json:"is_contract"`
+	TermMonths      *int64              `json:"term_months"`
+	NoticePeriod    *int64              `json:"notice_period"`
+	NoticeUnit      *NoticeUnit         `json:"notice_unit"`
+	TermEnd         *DateOnly           `json:"term_end"`
+	CancelBy        *DateOnly           `json:"cancel_by"`
+	StartDate       DateOnly            `json:"start_date"`
+	EndDate         *DateOnly           `json:"end_date"`
+	ContractNumber  *string             `json:"contract_number"`
+	CustomerNumber  *string             `json:"customer_number"`
+	ContractHolder  *string             `json:"contract_holder"`
+	BillingPeriod   string              `json:"billing_period"`
+	Costs           *float64            `json:"costs"`
+	Currency        *string             `json:"currency"`
+	NextBillingDate *DateOnly           `json:"next_billing_date"`
+	Status          ContractStatus      `json:"status"`
+	MonthlyCosts    *float64            `json:"monthly_costs"`
+	ContactPerson   *string             `json:"contact_person"`
+	ContactAddress  *string             `json:"contact_address"`
+	ContactPhone    *string             `json:"contact_phone"`
+	ContactEmail    *string             `json:"contact_email"`
+	IconSource      *string             `json:"icon_source"`
+	Notes           *string             `json:"notes"`
+	OwnerID         *int64              `json:"owner_id"`
+	SplitBetween    int64               `json:"split_between"`
+	Kind            EntryKind           `json:"kind"`
+	AccountID       *int64              `json:"account_id"`
+	TargetAccountID *int64              `json:"target_account_id"`
+	GoalID          *int64              `json:"goal_id"`
+	Shares          []ShareDto          `json:"shares"`
+	HouseholdShare  float64             `json:"household_share"`
+	MonthlyAmount   *float64            `json:"monthly_amount"`
+	BaseCosts       *float64            `json:"base_costs"`
+	Amounts         []ContractAmountDto `json:"amounts"`
+	CreatedAt       *time.Time          `json:"created_at"`
+	UpdatedAt       *time.Time          `json:"updated_at"`
+	Documents       []DocumentDto       `json:"documents"`
 }
 
 type CreateContractDto struct {
@@ -395,4 +397,16 @@ type SaveMonthClosingDto struct {
 	Notes    *string             `json:"notes"`
 	Balances []ClosingBalanceDto `json:"balances" validate:"dive"`
 	Actuals  []ClosingActualDto  `json:"actuals" validate:"dive"`
+}
+
+// ContractAmountDto is an amount change: from valid_from on, the entry costs `costs`.
+type ContractAmountDto struct {
+	ID        int64    `json:"id"`
+	ValidFrom DateOnly `json:"valid_from"`
+	Costs     float64  `json:"costs"`
+}
+
+type SaveContractAmountDto struct {
+	ValidFrom DateOnly `json:"valid_from"`
+	Costs     *float64 `json:"costs" validate:"required"`
 }

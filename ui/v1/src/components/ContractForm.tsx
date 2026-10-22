@@ -24,6 +24,7 @@ import ChooseIconDialog from "./dialogs/ChooseIconDialog.tsx";
 import {CheckIcon, ChevronRightIcon, DocumentIcon, PencilIcon, XMarkIcon} from "@heroicons/react/16/solid";
 import SharesEditor from "./SharesEditor.tsx";
 import EarnerSelect from "./EarnerSelect.tsx";
+import AmountHistory from "./AmountHistory.tsx";
 import {costOwner, earnerOfAccount, earnerShares, type Pot} from "../utils/budget.utils.ts";
 import EntryIcon from "./EntryIcon.tsx";
 import {categoryLabel, defaultShares, entryKinds, entryPeriods, isContractCategory} from "../utils/household.utils.ts";
@@ -267,6 +268,8 @@ export default function ContractForm({contract, holders, companies, categories, 
                     <Field>
                         <Label>{t('entry.amount')}</Label>
                         <Input
+                            // remount after an amount change so the field shows the amount valid today
+                            key={contract.costs ?? ""}
                             type="text"
                             inputMode="decimal"
                             name="costs"
@@ -274,6 +277,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                             pattern="^-?[0-9.]*[0-9]([,.][0-9]{1,2})?$"
                             placeholder="0,00"
                         />
+                        {(contract.amounts?.length ?? 0) > 0 && <Description>{t('amounts.formHint')}</Description>}
                     </Field>
                     <Field>
                         <Label>{t('entry.currency')}</Label>
@@ -299,6 +303,10 @@ export default function ContractForm({contract, holders, companies, categories, 
                         </Select>
                     </Field>
                 </div>
+
+                {isEdit && contract.id != null && billingPeriod !== BillingPeriodNone && billingPeriod !== BillingPeriodOneTime && (
+                    <AmountHistory contract={contract as ContractDto} compact/>
+                )}
 
                 <div className="grid grid-cols-2 gap-2">
                     <Field>

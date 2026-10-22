@@ -74,13 +74,34 @@ function isActiveInMonth(c: ContractDto, month: Dayjs): boolean {
     return !start.isAfter(month.endOf("month"), "day") && (!end || !end.isBefore(month.startOf("month"), "day"));
 }
 
+/**
+ * Amount of a single payment valid at a date. Amount changes apply from the month that contains
+ * their date on, so a change "from 15 May" already counts for May.
+ */
+export function costsAt(c: ContractDto, date: Dayjs): number | undefined {
+    let costs = c.base_costs ?? c.costs;
+    for (const a of c.amounts ?? []) {
+        if (!dayjs(a.valid_from).isAfter(date.endOf("month"), "day")) costs = a.costs;
+    }
+    return costs;
+}
+
+/** Factor from one payment to its average per month. */
+function monthlyFactor(period: string): number {
+    if (period === BillingPeriodWeekly) return 52 / 12;
+    const months = periodInMonths[period];
+    return months ? 1 / months : 0;
+}
+
 /** Full amount of an entry in the given month (before applying cost shares). */
 export function amountInMonth(c: ContractDto, month: Dayjs, mode: MonthMode): number {
-    if (!c.costs || c.billing_period === BillingPeriodNone) return 0;
+    if (c.billing_period === BillingPeriodNone) return 0;
+    const costs = costsAt(c, month);
+    if (!costs) return 0;
     if (c.billing_period === BillingPeriodOneTime || mode === "due") {
-        return c.costs * occurrencesInMonth(c, month);
+        return costs * occurrencesInMonth(c, month);
     }
-    return isActiveInMonth(c, month) ? (c.monthly_amount ?? 0) : 0;
+    return isActiveInMonth(c, month) ? costs * monthlyFactor(c.billing_period) : 0;
 }
 
 /**
