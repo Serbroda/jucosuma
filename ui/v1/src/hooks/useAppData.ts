@@ -3,6 +3,7 @@ import type {
     AccountDto,
     CategoryDto,
     ContractDto,
+    MonthClosingDto,
     PersonDto,
     SavingsGoalDto,
 } from "../gen/types.gen.ts";
@@ -13,6 +14,7 @@ export type AppData = {
     accounts: AccountDto[];
     categories: CategoryDto[];
     goals: SavingsGoalDto[];
+    closings: MonthClosingDto[];
 };
 
 /** Typed access to the data loaded by `contractsLoader`. */

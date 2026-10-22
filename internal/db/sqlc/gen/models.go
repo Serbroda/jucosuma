@@ -90,6 +90,27 @@ type Document struct {
 	DeletedAt  *time.Time `db:"deleted_at"`
 }
 
+type MonthClosing struct {
+	ID        int64      `db:"id"`
+	Month     string     `db:"month"`
+	Notes     *string    `db:"notes"`
+	CreatedBy *int64     `db:"created_by"`
+	CreatedAt *time.Time `db:"created_at"`
+	UpdatedAt *time.Time `db:"updated_at"`
+}
+
+type MonthClosingActual struct {
+	ClosingID  int64   `db:"closing_id"`
+	CategoryID int64   `db:"category_id"`
+	Amount     float64 `db:"amount"`
+}
+
+type MonthClosingBalance struct {
+	ClosingID int64   `db:"closing_id"`
+	AccountID int64   `db:"account_id"`
+	Balance   float64 `db:"balance"`
+}
+
 type Person struct {
 	ID          int64      `db:"id"`
 	Name        string     `db:"name"`

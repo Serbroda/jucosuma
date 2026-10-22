@@ -1,5 +1,5 @@
 import {type ComponentType, type ReactNode, type SVGProps, useMemo, useState} from "react";
-import {NavLink, useSearchParams} from "react-router";
+import {NavLink, useNavigate, useSearchParams} from "react-router";
 import {Trans, useTranslation} from "react-i18next";
 import {
     ArrowDownIcon,
@@ -8,6 +8,7 @@ import {
     BanknotesIcon,
     BuildingLibraryIcon,
     ChartBarIcon,
+    ClipboardDocumentCheckIcon,
     MinusIcon,
     PlusIcon,
     ShoppingBagIcon,
@@ -32,7 +33,8 @@ import {useAppData} from "../hooks/useAppData.ts";
 import {useMonth} from "../stores/useMonth.ts";
 import {slotColor} from "../lib/icons.ts";
 import {amountInMonth, costOwner, potOf, type Scope, summarizeMonth} from "../utils/budget.utils.ts";
-import {accountOwnerLabel, daysUntil} from "../utils/household.utils.ts";
+import {accountOwnerLabel, categoryLabel, daysUntil} from "../utils/household.utils.ts";
+import {compareMonth} from "../utils/closing.utils.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
 import {card, cardTitle} from "../utils/ui.ts";
@@ -97,8 +99,10 @@ function accountIcon(a: AccountDto): Icon {
 }
 
 export default function OverviewPage() {
-    const {contracts, persons, accounts, categories, goals} = useAppData();
+    const data = useAppData();
+    const {contracts, persons, accounts, categories, goals} = data;
     const {month, monthKey, mode, setMode} = useMonth();
+    const navigate = useNavigate();
     const {mainCurrency} = usePreferences();
     const {t} = useTranslation();
     const {user} = useAuth();
@@ -144,6 +148,20 @@ export default function OverviewPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     })), [contracts, persons, accounts, monthKey, mode, mainCurrency]);
     const inflow = summary.income + summary.transfersIn;
+
+    // monthly closing: reminder for last month and plan vs. actual of the selected month
+    const lastMonth = dayjs().startOf("month").subtract(1, "month");
+    const lastMonthOpen = accounts.length > 0 && !data.closings.some((c) => c.month === lastMonth.format("YYYY-MM"));
+    const comparison = useMemo(() => compareMonth(month, data.closings, contracts, persons, accounts, categories, mainCurrency),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [data, monthKey, mainCurrency]);
+    const potComparisons = comparison.pots.filter((p) => p.deviation != null && (scope === "all" || p.pot === scope));
+    const scopeComparison = potComparisons.length ? {
+        planned: potComparisons.reduce((s, p) => s + p.planned, 0),
+        actual: potComparisons.reduce((s, p) => s + (p.actual ?? 0), 0),
+        deviation: potComparisons.reduce((s, p) => s + (p.deviation ?? 0), 0),
+    } : undefined;
+    const openClosing = (m: typeof month) => navigate(`/closing?month=${m.format("YYYY-MM")}`);
 
     // Categories: fixed slots for the largest ones, the rest folds into "other"
     const categorySegments: DonutSegment[] = useMemo(() => {
@@ -257,6 +275,16 @@ export default function OverviewPage() {
                 />
             </div>
 
+            {lastMonthOpen && (
+                <div className="-mt-2 flex flex-wrap items-center gap-3 rounded-lg border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 px-4 py-2.5 text-sm text-blue-800 dark:text-blue-300">
+                    <ClipboardDocumentCheckIcon className="size-5 shrink-0"/>
+                    <span className="grow">{t('closing.bannerOpen', {month: lastMonth.format("MMMM")})}</span>
+                    <button onClick={() => openClosing(lastMonth)} className="font-medium underline hover:cursor-pointer">
+                        {t('closing.bannerAction')}
+                    </button>
+                </div>
+            )}
+
             {summary.unassignedAccount > 0 && (
                 <div role="status" className="-mt-2 rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-2.5 text-sm text-amber-800 dark:text-amber-300">
                     {t('overview.unassignedHint', {count: summary.unassignedAccount})}
@@ -366,13 +394,50 @@ export default function OverviewPage() {
                                 {t('overview.newExpense')}
                             </button>
                         </div>
-                        <EntryTable entries={recurring} data={{contracts, persons, accounts, categories, goals}}
+                        <EntryTable entries={recurring} data={data}
                                     columns={["split", "category"]} emptyText={t('overview.nothing')}/>
                     </div>
                 </div>
 
                 {/* Side column */}
                 <div className="flex flex-col gap-6 min-w-0">
+                    {scopeComparison && (
+                        <div className={card}>
+                            <div className="flex items-baseline justify-between mb-3">
+                                <div className={cardTitle}>{t('closing.cardTitle')}</div>
+                                <button onClick={() => openClosing(month)}
+                                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline hover:cursor-pointer">
+                                    {t('closing.cardMore')}
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 text-center">
+                                <div>
+                                    <div className="text-xs text-zinc-400 dark:text-zinc-500">{t('closing.cardPlanned')}</div>
+                                    <div className="text-sm font-medium tabular-nums text-zinc-950 dark:text-white">{formatShort(scopeComparison.planned)}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-zinc-400 dark:text-zinc-500">{t('closing.cardActual')}</div>
+                                    <div className="text-sm font-medium tabular-nums text-zinc-950 dark:text-white">{formatShort(scopeComparison.actual)}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-zinc-400 dark:text-zinc-500">{t('closing.deviation')}</div>
+                                    <div className={classNames("text-sm font-semibold tabular-nums",
+                                        scopeComparison.deviation < -0.5 ? "text-red-600 dark:text-red-400"
+                                            : scopeComparison.deviation > 0.5 ? "text-green-700 dark:text-green-400" : "text-zinc-500")}>
+                                        {scopeComparison.deviation > 0 ? "+" : ""}{formatShort(scopeComparison.deviation)}
+                                    </div>
+                                </div>
+                            </div>
+                            {comparison.categories.slice(0, 3).map((c) => (
+                                <div key={c.category.id} className="flex items-center justify-between text-xs mt-2 text-zinc-500 dark:text-zinc-400">
+                                    <span className="truncate">{categoryLabel(c.category.name, c.category.key)}</span>
+                                    <span className={classNames("tabular-nums font-medium", c.deviation > 0.5 ? "text-red-600 dark:text-red-400" : "text-green-700 dark:text-green-400")}>
+                                        {c.deviation > 0 ? "+" : ""}{formatShort(c.deviation)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                     {deadlines.length > 0 && (
                         <div className={card}>
                             <div className="flex items-baseline justify-between mb-3">

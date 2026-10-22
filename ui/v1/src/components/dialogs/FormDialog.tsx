@@ -4,13 +4,14 @@ import {Dialog, DialogActions, DialogBody, DialogTitle} from "../catalyst/dialog
 import {Button} from "../catalyst/button.tsx";
 
 /** Dialog with a form body, an error line and save/cancel actions. */
-export default function FormDialog({open, title, onClose, onSubmit, saving, error, children}: {
+export default function FormDialog({open, title, onClose, onSubmit, saving, error, size = "lg", children}: {
     open: boolean;
     title: string;
     onClose: () => void;
     onSubmit: () => void;
     saving?: boolean;
     error?: string | null;
+    size?: "lg" | "xl" | "2xl";
     children: ReactNode;
 }) {
     const {t} = useTranslation();
@@ -19,7 +20,7 @@ export default function FormDialog({open, title, onClose, onSubmit, saving, erro
         onSubmit();
     };
     return (
-        <Dialog open={open} onClose={onClose} size="lg">
+        <Dialog open={open} onClose={onClose} size={size}>
             <form onSubmit={submit}>
                 <DialogTitle>{title}</DialogTitle>
                 <DialogBody className="grid grid-cols-1 gap-4">

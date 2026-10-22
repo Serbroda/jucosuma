@@ -32,13 +32,14 @@ async function categoriesLoader() {
 }
 
 async function householdLoader() {
-    const [persons, accounts, {categories}, goals] = await Promise.all([
+    const [persons, accounts, {categories}, goals, closings] = await Promise.all([
         fetchJSON(`${apiBasePath}/persons`),
         fetchJSON(`${apiBasePath}/accounts`),
         categoriesLoader(),
         fetchJSON(`${apiBasePath}/savings_goals`),
+        fetchJSON(`${apiBasePath}/month_closings`),
     ]);
-    return {persons: persons ?? [], accounts: accounts ?? [], categories, goals: goals ?? []};
+    return {persons: persons ?? [], accounts: accounts ?? [], categories, goals: goals ?? [], closings: closings ?? []};
 }
 
 /** Everything the household pages need: entries, persons, accounts, categories and goals. */

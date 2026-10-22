@@ -21,6 +21,7 @@ import AccountsPage from "./pages/AccountsPage.tsx";
 import CategoriesPage from "./pages/CategoriesPage.tsx";
 import PersonsPage from "./pages/PersonsPage.tsx";
 import ContractsPage from "./pages/ContractsPage.tsx";
+import ClosingPage from "./pages/ClosingPage.tsx";
 
 const router = createHashRouter([
     {
@@ -43,6 +44,7 @@ const router = createHashRouter([
                     {path: '/expenses', element: <ExpensesPage/>, loader: contractsLoader},
                     {path: '/transfers', element: <TransfersPage/>, loader: contractsLoader},
                     {path: '/contracts', element: <ContractsPage/>, loader: contractsLoader},
+                    {path: '/closing', element: <ClosingPage/>, loader: contractsLoader},
                     {path: '/savings', element: <SavingsPage/>, loader: contractsLoader},
                     {path: '/accounts', element: <AccountsPage/>, loader: contractsLoader},
                     {path: '/categories', element: <CategoriesPage/>, loader: contractsLoader},

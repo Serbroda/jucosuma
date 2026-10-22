@@ -61,10 +61,14 @@ Goal: a household finance overview — what comes in, what the household actuall
 - [x] "Pots" card with the available amount of every pot; transfers page shows contributions to and payouts from the household cash.
 - [x] Expenses keep their assignment (household / private) for analysis only.
 
-### Stage 3 — Actual bookings (Ist-Buchungen)
+### Stage 3 — Monthly closing (plan vs. actual) ✅
 
-- [ ] `transactions` table (date, amount, account, optional `contract_id` for planned entry, category) with `transaction_shares` analogous to `contract_shares`.
-- [ ] Plan vs. actual per month; optional CSV bank import.
+- [x] Once a month: real account balances at month end, optional actual totals for variable cost categories; the first closing also asks for start balances.
+- [x] Plan vs. actual per pot (planned account change in "due" mode vs. real balance change) and per variable category.
+- [x] Closing page with the last 12 months, reminder on the overview for the previous month, plan-vs-actual card for closed months.
+- [x] Saving the latest closing updates the account balances.
+- [ ] Bank statement import (ING CSV) with categorisation rules, if itemised actuals are needed.
+- [ ] Asset history chart from closing balances.
 
 ### Later
 

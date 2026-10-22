@@ -298,3 +298,26 @@ export interface SaveSavingsGoalDto {
   current_date?: DateOnly;
   sort_order: number /* int64 */;
 }
+export interface ClosingBalanceDto {
+  account_id: number /* int64 */;
+  balance: number /* float64 */;
+}
+export interface ClosingActualDto {
+  category_id: number /* int64 */;
+  amount: number /* float64 */;
+}
+export interface MonthClosingDto {
+  id: number /* int64 */;
+  month: string;
+  notes?: string;
+  created_by?: number /* int64 */;
+  created_at?: string /* RFC3339 */;
+  updated_at?: string /* RFC3339 */;
+  balances: ClosingBalanceDto[];
+  actuals: ClosingActualDto[];
+}
+export interface SaveMonthClosingDto {
+  notes?: string;
+  balances: ClosingBalanceDto[];
+  actuals: ClosingActualDto[];
+}

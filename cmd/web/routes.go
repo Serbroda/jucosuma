@@ -41,6 +41,11 @@ func (app *application) routes() *echo.Echo {
 	auth.PUT("/categories/:id", app.updateCategory)
 	auth.DELETE("/categories/:id", app.deleteCategory)
 
+	// Monthly closings (plan vs. actual)
+	auth.GET("/month_closings", app.getMonthClosings)
+	auth.PUT("/month_closings/:month", app.saveMonthClosing)
+	auth.DELETE("/month_closings/:month", app.deleteMonthClosing)
+
 	// Savings goals
 	auth.GET("/savings_goals", app.getSavingsGoals)
 	auth.POST("/savings_goals", app.createSavingsGoal)

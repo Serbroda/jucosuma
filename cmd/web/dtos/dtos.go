@@ -369,3 +369,30 @@ type SaveSavingsGoalDto struct {
 	CurrentDate   *DateOnly `json:"current_date"`
 	SortOrder     int64     `json:"sort_order"`
 }
+
+type ClosingBalanceDto struct {
+	AccountID int64   `json:"account_id" validate:"required"`
+	Balance   float64 `json:"balance"`
+}
+
+type ClosingActualDto struct {
+	CategoryID int64   `json:"category_id" validate:"required"`
+	Amount     float64 `json:"amount"`
+}
+
+type MonthClosingDto struct {
+	ID        int64               `json:"id"`
+	Month     string              `json:"month"`
+	Notes     *string             `json:"notes"`
+	CreatedBy *int64              `json:"created_by"`
+	CreatedAt *time.Time          `json:"created_at"`
+	UpdatedAt *time.Time          `json:"updated_at"`
+	Balances  []ClosingBalanceDto `json:"balances"`
+	Actuals   []ClosingActualDto  `json:"actuals"`
+}
+
+type SaveMonthClosingDto struct {
+	Notes    *string             `json:"notes"`
+	Balances []ClosingBalanceDto `json:"balances" validate:"dive"`
+	Actuals  []ClosingActualDto  `json:"actuals" validate:"dive"`
+}

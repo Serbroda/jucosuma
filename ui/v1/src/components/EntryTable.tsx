@@ -60,9 +60,10 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
                     const goal = data.goals.find((g) => g.id === c.goal_id);
                     return (
                         <tr key={c.id} className={tr}>
-                            <td className={classNames(td, "pl-5")}>
+                            {/* w-full + max-w-0: the name takes the remaining width and truncates instead of widening the table */}
+                            <td className={classNames(td, "pl-5 w-full max-w-0")}>
                                 <button onClick={() => navigate(`/contracts/${c.id}`)}
-                                        className="flex items-center gap-3 min-w-0 text-left hover:cursor-pointer">
+                                        className="flex w-full items-center gap-3 min-w-0 text-left hover:cursor-pointer">
                                     {c.kind === EntryKindTransfer && !c.icon_source ? (
                                         <IconTile icon={goal?.icon} iconComponent={goal ? undefined : ArrowsRightLeftIcon}
                                                   color={goal?.color} className="size-8"/>
@@ -71,7 +72,7 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
                                     )}
                                     <span className="truncate font-medium text-zinc-950 dark:text-white">{c.name}</span>
                                     {c.owner_id != null && (
-                                        <span className="text-xs text-zinc-400 dark:text-zinc-500">{t('entries.personal')}</span>
+                                        <span className="shrink-0 text-xs text-zinc-400 dark:text-zinc-500">{t('entries.personal')}</span>
                                     )}
                                 </button>
                             </td>

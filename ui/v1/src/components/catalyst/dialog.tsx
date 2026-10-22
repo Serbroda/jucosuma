@@ -1,6 +1,8 @@
 import * as Headless from '@headlessui/react'
 import clsx from 'clsx'
 import type React from 'react'
+import { useTranslation } from 'react-i18next'
+import { XMarkIcon } from '@heroicons/react/20/solid'
 import { Text } from './text.tsx'
 
 const sizes = {
@@ -24,6 +26,7 @@ export function Dialog({
   Headless.DialogProps,
   'as' | 'className'
 >) {
+  const { t } = useTranslation()
   return (
     <Headless.Dialog {...props}>
       <Headless.DialogBackdrop
@@ -38,10 +41,19 @@ export function Dialog({
             className={clsx(
               className,
               sizes[size],
-              'row-start-2 w-full min-w-0 rounded-t-3xl bg-white p-(--gutter) shadow-lg ring-1 ring-zinc-950/10 [--gutter:--spacing(8)] sm:mb-auto sm:rounded-2xl dark:bg-zinc-900 dark:ring-white/10 forced-colors:outline',
+              'relative row-start-2 w-full min-w-0 rounded-t-3xl bg-white p-(--gutter) shadow-lg ring-1 ring-zinc-950/10 [--gutter:--spacing(8)] sm:mb-auto sm:rounded-2xl dark:bg-zinc-900 dark:ring-white/10 forced-colors:outline',
               'transition duration-100 will-change-transform data-closed:translate-y-12 data-closed:opacity-0 data-enter:ease-out data-leave:ease-in sm:data-closed:translate-y-0 sm:data-closed:data-enter:scale-95'
             )}
           >
+            {/* close button, mainly for touch devices without Escape key */}
+            <button
+              type="button"
+              onClick={() => props.onClose(false)}
+              aria-label={t('common.close')}
+              className="absolute top-3 right-3 rounded-lg p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 hover:cursor-pointer sm:top-4 sm:right-4 dark:hover:bg-zinc-800 dark:hover:text-white"
+            >
+              <XMarkIcon className="size-5" />
+            </button>
             {children}
           </Headless.DialogPanel>
         </div>
@@ -57,7 +69,7 @@ export function DialogTitle({
   return (
     <Headless.DialogTitle
       {...props}
-      className={clsx(className, 'text-lg/6 font-semibold text-balance text-zinc-950 sm:text-base/6 dark:text-white')}
+      className={clsx(className, 'pr-10 text-lg/6 font-semibold text-balance text-zinc-950 sm:text-base/6 dark:text-white')}
     />
   )
 }
