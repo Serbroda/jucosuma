@@ -39,12 +39,11 @@ export default function DonutChart({segments, centerValue, centerLabel, format, 
         return <div className="text-sm text-zinc-400 dark:text-zinc-500 py-8 text-center">{emptyText}</div>;
     }
 
-    let angle = 0;
-    const arcs = segments.map((s) => {
-        const start = angle;
-        angle += (s.value / total) * Math.PI * 2;
-        return {...s, start, end: angle};
-    });
+    // each slice starts where the previous one ends
+    const arcs = segments.reduce<(DonutSegment & { start: number; end: number })[]>((all, s) => {
+        const start = all.at(-1)?.end ?? 0;
+        return [...all, {...s, start, end: start + (s.value / total) * Math.PI * 2}];
+    }, []);
     const activeSegment = segments.find((s) => s.key === active);
 
     return (

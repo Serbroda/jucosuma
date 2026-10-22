@@ -87,9 +87,11 @@ export default function SankeyChart({sources, targets, centerLabel, format}: San
 
     const dim = (key: string) => (active && active !== key ? 0.25 : 1);
 
-    // offsets inside the center node for incoming and outgoing bands
-    let inY = center.y;
-    let outY = center.y;
+    // offsets inside the center node for incoming and outgoing bands: each band starts below the previous one
+    const offsets = (nodes: Placed[]) => nodes.reduce<number[]>(
+        (all, _n, i) => [...all, i === 0 ? center.y : all[i - 1] + nodes[i - 1].value * scale], []);
+    const inY = offsets(left);
+    const outY = offsets(right);
 
     const label = (n: Placed, side: "left" | "right") => {
         const x = side === "left" ? xLeft - 8 : xRight + NODE_W + 8;
@@ -110,10 +112,9 @@ export default function SankeyChart({sources, targets, centerLabel, format}: San
     return (
         <div ref={wrapRef}>
             <svg width={width} height={height} role="img" aria-label={centerLabel} className="block overflow-visible">
-                {left.map((n) => {
+                {left.map((n, i) => {
                     const h = n.value * scale;
-                    const path = ribbon(xLeft + NODE_W, n.y, n.h, xCenter, inY, h);
-                    inY += h;
+                    const path = ribbon(xLeft + NODE_W, n.y, n.h, xCenter, inY[i], h);
                     return (
                         <path key={`in-${n.key}`} d={path} fill={n.color} style={{fillOpacity: "var(--chart-ribbon-opacity)"}}
                               opacity={dim(n.key)} onPointerEnter={() => setActive(n.key)} onPointerLeave={() => setActive(null)}>
@@ -121,10 +122,9 @@ export default function SankeyChart({sources, targets, centerLabel, format}: San
                         </path>
                     );
                 })}
-                {right.map((n) => {
+                {right.map((n, i) => {
                     const h = n.value * scale;
-                    const path = ribbon(xCenter + NODE_W, outY, h, xRight, n.y, n.h);
-                    outY += h;
+                    const path = ribbon(xCenter + NODE_W, outY[i], h, xRight, n.y, n.h);
                     return (
                         <path key={`out-${n.key}`} d={path} fill={n.color} style={{fillOpacity: "var(--chart-ribbon-opacity)"}}
                               opacity={dim(n.key)} onPointerEnter={() => setActive(n.key)} onPointerLeave={() => setActive(null)}>

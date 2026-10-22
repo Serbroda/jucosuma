@@ -51,7 +51,7 @@ function MainLayout() {
         {label: t('nav.accounts'), url: '/accounts', icon: BuildingLibraryIcon},
     ]
     // entry pages live under /contracts/…; highlight the menu item matching the entry's kind instead
-    const entry = useMatches().map((m) => (m.data as { contract?: ContractDto } | undefined)?.contract).find(Boolean)
+    const entry = useMatches().map((m) => (m.loaderData as { contract?: ContractDto } | undefined)?.contract).find(Boolean)
     const entryNav = !entry ? undefined
         : entry.kind === EntryKindIncome ? '/income'
             : entry.kind === EntryKindTransfer ? '/transfers'

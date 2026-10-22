@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"mime"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -28,6 +29,9 @@ type application struct {
 }
 
 func main() {
+	// unknown to Go's type table; browsers expect the manifest of the web app with this type
+	_ = mime.AddExtensionType(".webmanifest", "application/manifest+json")
+
 	versionFlag := flag.Bool("version", false, "show program version")
 	flag.BoolVar(versionFlag, "v", false, "shorthand for --version")
 
