@@ -47,7 +47,7 @@ func (q *Queries) DeleteSavingsGoalSoft(ctx context.Context, id int64) error {
 }
 
 const findAllAccounts = `-- name: FindAllAccounts :many
-SELECT id, name, type, person_id, sort_order, created_at, updated_at, deleted_at, balance, balance_date, goal_amount, goal_date, is_savings, iban FROM accounts WHERE deleted_at IS NULL ORDER BY sort_order ASC, name ASC
+SELECT id, name, type, person_id, sort_order, created_at, updated_at, deleted_at, balance, balance_date, goal_amount, goal_date, is_savings, iban, icon, color FROM accounts WHERE deleted_at IS NULL ORDER BY sort_order ASC, name ASC
 `
 
 func (q *Queries) FindAllAccounts(ctx context.Context) ([]Account, error) {
@@ -74,6 +74,8 @@ func (q *Queries) FindAllAccounts(ctx context.Context) ([]Account, error) {
 			&i.GoalDate,
 			&i.IsSavings,
 			&i.Iban,
+			&i.Icon,
+			&i.Color,
 		); err != nil {
 			return nil, err
 		}
@@ -222,11 +224,11 @@ func (q *Queries) FindContractSharesByContractId(ctx context.Context, contractID
 }
 
 const insertAccount = `-- name: InsertAccount :one
-INSERT INTO accounts (name, type, person_id, sort_order, is_savings, iban, balance, balance_date, goal_amount, goal_date, created_at, updated_at)
+INSERT INTO accounts (name, type, person_id, sort_order, is_savings, iban, balance, balance_date, goal_amount, goal_date, icon, color, created_at, updated_at)
 VALUES (?1, ?2, ?3, ?4, ?5, ?6,
-        ?7, ?8, ?9, ?10,
+        ?7, ?8, ?9, ?10, ?11, ?12,
         CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-RETURNING id, name, type, person_id, sort_order, created_at, updated_at, deleted_at, balance, balance_date, goal_amount, goal_date, is_savings, iban
+RETURNING id, name, type, person_id, sort_order, created_at, updated_at, deleted_at, balance, balance_date, goal_amount, goal_date, is_savings, iban, icon, color
 `
 
 type InsertAccountParams struct {
@@ -240,6 +242,8 @@ type InsertAccountParams struct {
 	BalanceDate *time.Time `db:"balance_date"`
 	GoalAmount  *float64   `db:"goal_amount"`
 	GoalDate    *time.Time `db:"goal_date"`
+	Icon        *string    `db:"icon"`
+	Color       *int64     `db:"color"`
 }
 
 func (q *Queries) InsertAccount(ctx context.Context, arg InsertAccountParams) (Account, error) {
@@ -254,6 +258,8 @@ func (q *Queries) InsertAccount(ctx context.Context, arg InsertAccountParams) (A
 		arg.BalanceDate,
 		arg.GoalAmount,
 		arg.GoalDate,
+		arg.Icon,
+		arg.Color,
 	)
 	var i Account
 	err := row.Scan(
@@ -271,6 +277,8 @@ func (q *Queries) InsertAccount(ctx context.Context, arg InsertAccountParams) (A
 		&i.GoalDate,
 		&i.IsSavings,
 		&i.Iban,
+		&i.Icon,
+		&i.Color,
 	)
 	return i, err
 }
@@ -395,8 +403,10 @@ SET name       = ?1,
     balance_date = ?8,
     goal_amount  = ?9,
     goal_date    = ?10,
+    icon         = ?11,
+    color        = ?12,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = ?11 AND deleted_at IS NULL
+WHERE id = ?13 AND deleted_at IS NULL
 `
 
 type UpdateAccountByIdParams struct {
@@ -410,6 +420,8 @@ type UpdateAccountByIdParams struct {
 	BalanceDate *time.Time `db:"balance_date"`
 	GoalAmount  *float64   `db:"goal_amount"`
 	GoalDate    *time.Time `db:"goal_date"`
+	Icon        *string    `db:"icon"`
+	Color       *int64     `db:"color"`
 	ID          int64      `db:"id"`
 }
 
@@ -425,6 +437,8 @@ func (q *Queries) UpdateAccountById(ctx context.Context, arg UpdateAccountByIdPa
 		arg.BalanceDate,
 		arg.GoalAmount,
 		arg.GoalDate,
+		arg.Icon,
+		arg.Color,
 		arg.ID,
 	)
 	return err

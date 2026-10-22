@@ -11,7 +11,10 @@ import {useAuth} from "../stores/useAuth.ts";
 import SharesEditor from "./SharesEditor.tsx";
 import EarnerSelect from "./EarnerSelect.tsx";
 import CostTypeControl from "./CostTypeControl.tsx";
-import {earnerOfAccount, earnerShares, type Pot} from "../utils/budget.utils.ts";
+import TransferTypeControl from "./TransferTypeControl.tsx";
+import EntryIcon from "./EntryIcon.tsx";
+import ChooseIconDialog from "./dialogs/ChooseIconDialog.tsx";
+import {defaultTransferType, earnerOfAccount, earnerShares, isSavingsAccount, type Pot} from "../utils/budget.utils.ts";
 import {
     BillingPeriodMonthly,
     BillingPeriodOneTime,
@@ -73,11 +76,19 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
     const [saving, setSaving] = useState(false);
     const [savedName, setSavedName] = useState("");
     const [onlyMe, setOnlyMe] = useState(false);
+    const [iconSource, setIconSource] = useState("");
+    const [transferTypeTouched, setTransferTypeTouched] = useState(false);
+    const [chosenTransferType, setTransferType] = useState<string | undefined>();
+    const [chooseIcon, setChooseIcon] = useState(false);
     const {user} = useAuth();
 
     const isExpense = kind === EntryKindExpense;
     const isIncome = kind === EntryKindIncome;
     const isTransfer = kind === EntryKindTransfer;
+    const accountOf = (id: number | undefined) => accounts.find((a) => a.id === id);
+    // follows accounts and goal until chosen by hand
+    const transferType = transferTypeTouched && chosenTransferType
+        ? chosenTransferType : defaultTransferType(accountOf(accountId), accountOf(targetAccountId), goalId);
 
     const initialShares = (forKind: string, account?: number) =>
         forKind === EntryKindExpense ? sharesForAccount(account, accounts, persons) : [];
@@ -99,6 +110,8 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
 
     const reset = (keepKind = kind) => {
         setName("");
+        setIconSource("");
+        setTransferTypeTouched(false);
         setCostTypeTouched(false);
         chooseCategory(defaultCategory(keepKind), false);
         setGoalId(undefined);
@@ -157,6 +170,7 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
 
         const meta: Partial<ContractDto> = {
             name: name.trim(),
+            icon_source: iconSource || undefined,
             kind,
             costs,
             billing_period: period,
@@ -166,6 +180,7 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
             is_contract: isExpense && costType === "contract",
             is_variable: isExpense && costType === "variable",
             goal_id: isTransfer ? goalId : undefined,
+            transfer_type: isTransfer ? transferType : undefined,
             currency: "EUR",
             account_id: accountId,
             target_account_id: isTransfer ? targetAccountId : undefined,
@@ -230,6 +245,10 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
 
     return (
         <Dialog open={isOpen} onClose={onClose} size="lg">
+            <ChooseIconDialog isOpen={chooseIcon} onClose={() => setChooseIcon(false)} onSubmit={(source) => {
+                setIconSource(source);
+                setChooseIcon(false);
+            }}/>
             <DialogTitle>{t('entry.newEntry')}</DialogTitle>
             <DialogBody>
                 <form
@@ -257,7 +276,14 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                         ))}
                     </div>
 
-                    <div className="grid grid-cols-[1fr_7rem] gap-2">
+                    <div className="grid grid-cols-[auto_1fr_7rem] items-end gap-2">
+                        <button type="button" onClick={() => setChooseIcon(true)} title={t('icons.icon')}
+                                aria-label={t('icons.icon')}
+                                className="rounded-lg hover:cursor-pointer hover:opacity-80 focus:outline-2 focus:outline-blue-500">
+                            <EntryIcon name={name || "?"} icon={iconSource}
+                                       category={isTransfer ? undefined : categories.find((c) => c.id === categoryId)}
+                                       className="size-9"/>
+                        </button>
                         <Field>
                             <Label>{t('common.name')}</Label>
                             <Input
@@ -332,6 +358,19 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                                 <option value="">{t('goals.noGoal')}</option>
                                 {goals.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                             </Select>
+                        </Field>
+                    )}
+
+                    {isTransfer && (
+                        <Field>
+                            <Label>{t('transferType.label')}</Label>
+                            <div className="mt-2">
+                                <TransferTypeControl value={transferType} fromSavings={isSavingsAccount(accountOf(accountId))}
+                                                     onChange={(v) => {
+                                                         setTransferType(v);
+                                                         setTransferTypeTouched(true);
+                                                     }}/>
+                            </div>
                         </Field>
                     )}
 

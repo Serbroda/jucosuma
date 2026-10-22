@@ -12,6 +12,9 @@ import {
     EntryKindExpense,
     EntryKindIncome,
     EntryKindTransfer,
+    TransferTypeMove,
+    TransferTypeSaving,
+    TransferTypeWithdrawal,
     type AccountDto,
     type ContractDto,
     type PersonDto,
@@ -37,6 +40,20 @@ const periodInMonths: Record<string, number> = {
 /** Accounts flagged as savings (any type, e.g. a checking account used as buffer). */
 export function isSavingsAccount(account: AccountDto | undefined): boolean {
     return account?.is_savings ?? false;
+}
+
+/**
+ * Suggested type of a transfer: into a savings goal or savings account from regular money is saving,
+ * from a savings account back to a regular account a withdrawal, everything else only moves money.
+ */
+export function defaultTransferType(from: AccountDto | undefined, to: AccountDto | undefined, goalId?: number | null): string {
+    if (isSavingsAccount(from)) return isSavingsAccount(to) ? TransferTypeMove : TransferTypeWithdrawal;
+    return goalId != null || isSavingsAccount(to) ? TransferTypeSaving : TransferTypeMove;
+}
+
+/** Type of a transfer: as chosen, for older entries without one derived from the accounts. */
+export function transferTypeOf(c: ContractDto, accountById: Map<number, AccountDto>): string {
+    return c.transfer_type || defaultTransferType(accountById.get(c.account_id ?? -1), accountById.get(c.target_account_id ?? -1), c.goal_id);
 }
 
 /** Number of charges of an entry that fall into the given month. */
@@ -259,10 +276,11 @@ export function summarizeMonth(
             if (from) from.outflow += amount;
             if (to) to.inflow += amount;
             const targetPot = potOf(target);
-            // deposit: into a savings goal or a savings account from a non-savings account
-            const isDeposit = !isSavingsAccount(account) && (c.goal_id != null || isSavingsAccount(target));
-            // withdrawal: from a savings account back to a regular account
-            const isWithdrawal = isSavingsAccount(account) && !isSavingsAccount(target);
+            const type = transferTypeOf(c, accountById);
+            // deposit: money is set aside (into a savings goal or account)
+            const isDeposit = type === TransferTypeSaving;
+            // withdrawal: money comes back from the savings
+            const isWithdrawal = type === TransferTypeWithdrawal;
             if (isDeposit && inScope(pot)) {
                 own = amount;
                 savings += amount;

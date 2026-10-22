@@ -27,6 +27,13 @@ export const AccountTypeSavings: AccountType = "savings";
 export const AccountTypeDepot: AccountType = "depot";
 export const AccountTypeCash: AccountType = "cash";
 export const AccountTypeOther: AccountType = "other";
+/**
+ * TransferType tells what a transfer does with the money.
+ */
+export type TransferType = string;
+export const TransferTypeSaving: TransferType = "saving"; // money is set aside: counts as savings
+export const TransferTypeWithdrawal: TransferType = "withdrawal"; // money comes back from the savings
+export const TransferTypeMove: TransferType = "move"; // money only changes account or pot
 export type NoticeUnit = string;
 export const NoticeUnitDays: NoticeUnit = "days";
 export const NoticeUnitWeeks: NoticeUnit = "weeks";
@@ -72,6 +79,7 @@ export interface ContractDto {
   account_id?: number /* int64 */;
   target_account_id?: number /* int64 */;
   goal_id?: number /* int64 */;
+  transfer_type?: TransferType;
   shares: ShareDto[];
   household_share: number /* float64 */;
   monthly_amount?: number /* float64 */;
@@ -115,6 +123,7 @@ export interface CreateContractDto {
   account_id?: number /* int64 */;
   target_account_id?: number /* int64 */;
   goal_id?: number /* int64 */;
+  transfer_type?: string;
   shares: ShareDto[];
   /**
    * Links replaces all links of the entry; nil keeps the existing ones.
@@ -161,6 +170,7 @@ export interface UpdateContractDto {
   account_id?: number /* int64 */;
   target_account_id?: number /* int64 */;
   goal_id?: number /* int64 */;
+  transfer_type?: string;
   shares: ShareDto[];
 }
 export interface DocumentDto {
@@ -268,6 +278,8 @@ export interface AccountDto {
   balance_date?: DateOnly;
   goal_amount?: number /* float64 */;
   goal_date?: DateOnly;
+  icon?: string;
+  color?: number /* int64 */;
   created_at?: string /* RFC3339 */;
   updated_at?: string /* RFC3339 */;
 }
@@ -282,6 +294,8 @@ export interface SaveAccountDto {
   balance_date?: DateOnly;
   goal_amount?: number /* float64 */;
   goal_date?: DateOnly;
+  icon?: string;
+  color?: number /* int64 */;
 }
 export interface UserOptionDto {
   id: number /* int64 */;

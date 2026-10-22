@@ -1,7 +1,7 @@
 import {describe, expect, it} from "vitest";
 import dayjs from "../lib/dayjs";
-import {BillingPeriodAnnually, BillingPeriodOneTime} from "../gen/types.gen.ts";
-import {amountInMonth, costOwner, summarizeGoals, summarizeMonth} from "./budget.utils.ts";
+import {BillingPeriodAnnually, BillingPeriodOneTime, TransferTypeMove, TransferTypeSaving, TransferTypeWithdrawal} from "../gen/types.gen.ts";
+import {amountInMonth, costOwner, defaultTransferType, summarizeGoals, summarizeMonth} from "./budget.utils.ts";
 import {
     accounts, danny, dannyAccount, expense, friends, goal, groceries, income, joint, julia, juliaAccount, persons,
     savings, transfer,
@@ -96,6 +96,28 @@ describe("summarizeMonth – pots", () => {
         ]);
         expect(s.savings).toBe(200);
         expect(s.fromSavings).toBe(100);
+    });
+
+    it("suggests the transfer type from the accounts and the goal", () => {
+        expect(defaultTransferType(joint, savings)).toBe(TransferTypeSaving);
+        expect(defaultTransferType(joint, dannyAccount, 7)).toBe(TransferTypeSaving);
+        expect(defaultTransferType(savings, joint)).toBe(TransferTypeWithdrawal);
+        expect(defaultTransferType(savings, {...savings, id: 99})).toBe(TransferTypeMove);
+        expect(defaultTransferType(joint, dannyAccount)).toBe(TransferTypeMove);
+    });
+
+    it("follows the chosen transfer type over the accounts", () => {
+        const otherSavings = {...savings, id: 14};
+        const s = summarizeMonth([
+            // from a savings account, but marked as saving by hand
+            transfer(100, savings, otherSavings, {transfer_type: TransferTypeSaving}),
+            // into a savings account, but only moved
+            transfer(50, joint, savings, {transfer_type: TransferTypeMove}),
+            // between savings accounts without a type: only moved
+            transfer(30, savings, otherSavings),
+        ], persons, [...accounts, otherSavings], dayjs("2026-10-15"), "average", "EUR");
+        expect(s.savings).toBe(100);
+        expect(s.fromSavings).toBe(0);
     });
 
     it("splits costs into fixed and variable", () => {

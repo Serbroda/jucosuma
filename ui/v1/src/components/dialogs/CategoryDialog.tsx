@@ -5,9 +5,9 @@ import FormDialog from "./FormDialog.tsx";
 import {Description, Field, Label} from "../catalyst/fieldset.tsx";
 import {Input} from "../catalyst/input.tsx";
 import SegmentedControl from "../SegmentedControl.tsx";
-import {ColorPicker, IconPicker} from "../ui/ColorIconPicker.tsx";
+import IconField from "../ui/IconField.tsx";
 import {EntryKindExpense, EntryKindIncome, type CategoryDto} from "../../gen/types.gen.ts";
-import {categoryLabel} from "../../utils/household.utils.ts";
+import {categoryLabel, defaultCategoryIcon} from "../../utils/household.utils.ts";
 import {sendJson} from "../../lib/api.ts";
 
 export default function CategoryDialog({open, onClose, category, defaultType, count}: {
@@ -71,14 +71,11 @@ export default function CategoryDialog({open, onClose, category, defaultType, co
                     ]}/>
                 </div>
             </Field>
-            <Field>
-                <Label>{t('categories.color')}</Label>
-                <div className="mt-2"><ColorPicker value={color} onChange={setColor}/></div>
-            </Field>
-            <Field>
-                <Label>{t('categories.icon')}</Label>
-                <div className="mt-2"><IconPicker value={icon} color={color} onChange={setIcon}/></div>
-            </Field>
+            <IconField icon={icon} color={color} defaultIcon={defaultCategoryIcon}
+                       onChange={(i, c) => {
+                           setIcon(i);
+                           setColor(c);
+                       }}/>
         </FormDialog>
     );
 }

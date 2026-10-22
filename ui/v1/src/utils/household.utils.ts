@@ -17,7 +17,9 @@ import {
     type AccountDto,
     type CategoryDto,
     type ContractDto,
+    GoalKindInvesting,
     type PersonDto,
+    type SavingsGoalDto,
     type ShareDto,
 } from "../gen/types.gen.ts";
 import i18n from "../i18n";
@@ -52,6 +54,30 @@ export function accountTypes() {
         {value: AccountTypeOther, label: i18n.t("accountTypes.other")},
     ];
 }
+
+/** Icon key and colour slot an account shows by default, per account type. */
+export const accountTypeStyle: Record<string, { icon: string; color: number }> = {
+    [AccountTypeChecking]: {icon: "bank", color: 1},
+    [AccountTypeSavings]: {icon: "banknotes", color: 3},
+    [AccountTypeDepot]: {icon: "chart", color: 7},
+    [AccountTypeCash]: {icon: "wallet", color: 4},
+    [AccountTypeOther]: {icon: "wallet", color: 2},
+};
+
+/** The account's own icon and colour, otherwise those of its type. */
+export function accountStyle(a: Pick<AccountDto, "type" | "icon" | "color">): { icon: string; color: number } {
+    const byType = accountTypeStyle[a.type] ?? accountTypeStyle[AccountTypeOther];
+    return {icon: a.icon || byType.icon, color: a.color ?? byType.color};
+}
+
+/** The goal's own icon and colour, otherwise those of its kind (saving or investing). */
+export function goalStyle(g: Pick<SavingsGoalDto, "kind" | "icon" | "color">): { icon: string; color: number } {
+    const byKind = g.kind === GoalKindInvesting ? {icon: "chart", color: 7} : {icon: "sparkles", color: 3};
+    return {icon: g.icon || byKind.icon, color: g.color ?? byKind.color};
+}
+
+/** Icon of categories without own icon. */
+export const defaultCategoryIcon = "ellipsis";
 
 export function entryKindLabel(kind: string | undefined): string {
     return entryKinds().find((k) => k.value === kind)?.label ?? i18n.t("kinds.expense");

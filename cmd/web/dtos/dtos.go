@@ -62,6 +62,15 @@ const (
 	AccountTypeOther    AccountType = "other"
 )
 
+// TransferType tells what a transfer does with the money.
+type TransferType string
+
+const (
+	TransferTypeSaving     TransferType = "saving"     // money is set aside: counts as savings
+	TransferTypeWithdrawal TransferType = "withdrawal" // money comes back from the savings
+	TransferTypeMove       TransferType = "move"       // money only changes account or pot
+)
+
 type NoticeUnit string
 
 const (
@@ -115,6 +124,7 @@ type ContractDto struct {
 	AccountID       *int64              `json:"account_id"`
 	TargetAccountID *int64              `json:"target_account_id"`
 	GoalID          *int64              `json:"goal_id"`
+	TransferType    *TransferType       `json:"transfer_type"`
 	Shares          []ShareDto          `json:"shares"`
 	HouseholdShare  float64             `json:"household_share"`
 	MonthlyAmount   *float64            `json:"monthly_amount"`
@@ -159,6 +169,7 @@ type CreateContractDto struct {
 	AccountID       *int64     `json:"account_id"`
 	TargetAccountID *int64     `json:"target_account_id"`
 	GoalID          *int64     `json:"goal_id"`
+	TransferType    *string    `json:"transfer_type" validate:"omitempty,oneof=saving withdrawal move"`
 	Shares          []ShareDto `json:"shares"`
 	// Links replaces all links of the entry; nil keeps the existing ones.
 	Links *[]ContractLinkDto `json:"links"`
@@ -200,6 +211,7 @@ type UpdateContractDto struct {
 	AccountID       *int64     `json:"account_id"`
 	TargetAccountID *int64     `json:"target_account_id"`
 	GoalID          *int64     `json:"goal_id"`
+	TransferType    *string    `json:"transfer_type" validate:"omitempty,oneof=saving withdrawal move"`
 	Shares          []ShareDto `json:"shares"`
 }
 
@@ -325,6 +337,8 @@ type AccountDto struct {
 	BalanceDate *DateOnly   `json:"balance_date"`
 	GoalAmount  *float64    `json:"goal_amount"`
 	GoalDate    *DateOnly   `json:"goal_date"`
+	Icon        *string     `json:"icon"`
+	Color       *int64      `json:"color"`
 	CreatedAt   *time.Time  `json:"created_at"`
 	UpdatedAt   *time.Time  `json:"updated_at"`
 }
@@ -340,6 +354,8 @@ type SaveAccountDto struct {
 	BalanceDate *DateOnly `json:"balance_date"`
 	GoalAmount  *float64  `json:"goal_amount"`
 	GoalDate    *DateOnly `json:"goal_date"`
+	Icon        *string   `json:"icon" validate:"omitempty,max=32"`
+	Color       *int64    `json:"color" validate:"omitempty,min=1,max=8"`
 }
 
 type UserOptionDto struct {

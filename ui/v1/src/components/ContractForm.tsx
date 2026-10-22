@@ -25,8 +25,9 @@ import SharesEditor from "./SharesEditor.tsx";
 import EarnerSelect from "./EarnerSelect.tsx";
 import AmountHistory from "./AmountHistory.tsx";
 import CostTypeControl from "./CostTypeControl.tsx";
+import TransferTypeControl from "./TransferTypeControl.tsx";
 import LinksEditor, {type EditableLink} from "./LinksEditor.tsx";
-import {costOwner, earnerOfAccount, earnerShares, type Pot} from "../utils/budget.utils.ts";
+import {costOwner, defaultTransferType, earnerOfAccount, earnerShares, isSavingsAccount, type Pot} from "../utils/budget.utils.ts";
 import EntryIcon from "./EntryIcon.tsx";
 import {categoryLabel, type CostType, costTypeOf, defaultCostType, sharesForAccount, entryKinds, entryPeriods} from "../utils/household.utils.ts";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
@@ -110,6 +111,20 @@ export default function ContractForm({contract, holders, companies, categories, 
     const [earner, setEarner] = useState<Pot>(isEdit && contract.kind === EntryKindIncome
         ? costOwner(contract as ContractDto, persons, accounts) : earnerOfAccount(contract.account_id, accounts));
     const [earnerTouched, setEarnerTouched] = useState(isEdit);
+    // type of a transfer; follows accounts and goal until set by hand (older entries keep the derived type)
+    const accountById = new Map(accounts.map((a) => [a.id, a]));
+    const [transferAccounts, setTransferAccounts] = useState({
+        from: contract.account_id ?? undefined, to: contract.target_account_id ?? undefined, goal: contract.goal_id ?? undefined,
+    });
+    const deriveTransferType = (ids: typeof transferAccounts) =>
+        defaultTransferType(accountById.get(ids.from ?? -1), accountById.get(ids.to ?? -1), ids.goal);
+    const [transferType, setTransferType] = useState<string>(contract.transfer_type || deriveTransferType(transferAccounts));
+    const [transferTypeTouched, setTransferTypeTouched] = useState(Boolean(contract.transfer_type));
+    const changeTransferAccounts = (changes: Partial<typeof transferAccounts>) => {
+        const next = {...transferAccounts, ...changes};
+        setTransferAccounts(next);
+        if (!transferTypeTouched) setTransferType(deriveTransferType(next));
+    };
     const hasProvider = Boolean(contract.company || contract.website || contract.contact_person || contract.contact_address
         || contract.contact_phone || contract.contact_email);
     const hasDocuments = Boolean(contract.documents?.length || contract.links?.length);
@@ -399,6 +414,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                                     const id = Number(e.target.value) || null;
                                     if (!earnerTouched) setEarner(earnerOfAccount(id, accounts));
                                     if (!sharesTouched) setShares(sharesForAccount(id, accounts, persons));
+                                    changeTransferAccounts({from: id ?? undefined});
                                 }}>
                             <option value="">{t('common.noAccount')}</option>
                             {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
@@ -407,7 +423,8 @@ export default function ContractForm({contract, holders, companies, categories, 
                     {isTransfer ? (
                         <Field>
                             <Label>{t('entry.toAccount')}</Label>
-                            <Select name="target_account_id" defaultValue={contract.target_account_id ?? ""}>
+                            <Select name="target_account_id" defaultValue={contract.target_account_id ?? ""}
+                                    onChange={(e) => changeTransferAccounts({to: Number(e.target.value) || undefined})}>
                                 <option value="">{t('common.noAccount')}</option>
                                 {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                             </Select>
@@ -437,10 +454,24 @@ export default function ContractForm({contract, holders, companies, categories, 
                 {isTransfer && goals.length > 0 && (
                     <Field>
                         <Label>{t('goals.goal')}</Label>
-                        <Select name="goal_id" defaultValue={contract.goal_id ?? ""}>
+                        <Select name="goal_id" defaultValue={contract.goal_id ?? ""}
+                                onChange={(e) => changeTransferAccounts({goal: Number(e.target.value) || undefined})}>
                             <option value="">{t('goals.noGoal')}</option>
                             {goals.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                         </Select>
+                    </Field>
+                )}
+
+                {isTransfer && (
+                    <Field>
+                        <Label>{t('transferType.label')}</Label>
+                        <div className="mt-2">
+                            <TransferTypeControl value={transferType} onChange={(v) => {
+                                setTransferType(v);
+                                setTransferTypeTouched(true);
+                            }} fromSavings={isSavingsAccount(accountById.get(transferAccounts.from ?? -1))}/>
+                        </div>
+                        <input type="hidden" name="transfer_type" value={transferType}/>
                     </Field>
                 )}
 

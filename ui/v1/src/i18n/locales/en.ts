@@ -398,6 +398,9 @@ const en = {
         importFailed: "Import failed",
     },
     icons: {
+        change: "Change",
+        done: "Done",
+        default: "Default",
         symbols: "Symbols",
         symbolsTitle: "Choose a symbol",
         remove: "Remove icon",
@@ -492,7 +495,7 @@ const en = {
     transfers: {
         betweenPots: "Between pots",
         betweenPotsHint: "{{in}} to the household budget · {{out}} from it",
-        savingHint: "To savings accounts and goals",
+        savingHint: "Transfers of type “Saving”, less withdrawals",
         contributions: "Contributions to household",
         payouts: "Payouts from household",
         title: "Transfers",
@@ -503,7 +506,7 @@ const en = {
         listTitle: "Transfers in this month",
         fromTo: "From → to",
         empty: "No transfers in this month.",
-        hint: "Transfers between pots (e.g. contributions to the household cash or pocket money) move money; transfers into a savings goal or savings account count as savings.",
+        hint: "Transfers between pots (e.g. contributions to the household cash or pocket money) move money; the type “Saving” counts as savings rate, “Withdrawal” takes money back from the savings. It is suggested from the accounts and the goal.",
     },
     goals: {
         payments: "Monthly payments",
@@ -642,6 +645,16 @@ const en = {
         dialogHint: "Applies from the month of this date on. Earlier months, closings and the 12-month view keep the previous amount.",
         errorInvalid: "Please enter a date and an amount.",
         formHint: "Corrects the amount valid today. For a change from a certain date use “Change amount from …” below.",
+    },
+    transferType: {
+        label: "Type",
+        saving: "Saving",
+        withdrawal: "Withdrawal",
+        move: "Move",
+        savingHint: "Money is set aside – counts as savings rate and reduces what is available in the month.",
+        withdrawalHint: "Money comes back from the savings and is available in the month again.",
+        moveHint: "Money only changes account or pot, e.g. household contribution, pocket money or shifting between savings accounts.",
+        savingFromSavings: "The money is already on a savings account. As saving it is taken from the available money once more – usually “Move” fits here.",
     },
     costType: {
         label: "Cost type",

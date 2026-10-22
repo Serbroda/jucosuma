@@ -166,6 +166,7 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			AccountID:       payload.AccountID,
 			TargetAccountID: targetAccountID,
 			GoalID:          goalID,
+			TransferType:    transferType(payload.Kind, payload.TransferType),
 		})
 		if err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -231,6 +232,7 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			AccountID:       payload.AccountID,
 			TargetAccountID: targetAccountID,
 			GoalID:          goalID,
+			TransferType:    transferType(payload.Kind, payload.TransferType),
 		})
 		if err != nil {
 			return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())

@@ -15,6 +15,7 @@ import {useAppData} from "../hooks/useAppData.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
 import {summarizeGoals} from "../utils/budget.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
+import {goalStyle} from "../utils/household.utils.ts";
 import {slotColor} from "../lib/icons.ts";
 import {sendJson} from "../lib/api.ts";
 import {card, cardTitle} from "../utils/ui.ts";
@@ -100,7 +101,7 @@ export default function SavingsPage() {
                     {goals.map(({goal, current, monthlyRate, progress, reachedOn, requiredRate}) => (
                         <div key={goal.id} className={card + " flex flex-col gap-3"}>
                             <div className="flex items-start gap-3">
-                                <IconTile icon={goal.icon} color={goal.color} className="size-11"/>
+                                <IconTile {...goalStyle(goal)} className="size-11"/>
                                 <div className="grow min-w-0">
                                     <button onClick={() => setEditing(goal)}
                                             className="font-semibold text-zinc-950 dark:text-white truncate block text-left hover:underline hover:cursor-pointer">

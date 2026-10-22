@@ -43,6 +43,10 @@ func MapContractToContractDto(item sqlc.Contract) ContractDto {
 
 	dto.IsContract = item.IsContract == 1
 	dto.IsVariable = item.IsVariable == 1
+	if item.TransferType != nil {
+		transferType := TransferType(strings.ToLower(*item.TransferType))
+		dto.TransferType = &transferType
+	}
 	dto.TermMonths = item.TermMonths
 	dto.NoticePeriod = item.NoticePeriod
 	if item.NoticeUnit != nil {
@@ -347,6 +351,8 @@ func MapAccountToAccountDto(a sqlc.Account) AccountDto {
 		BalanceDate: (*DateOnly)(a.BalanceDate),
 		GoalAmount:  a.GoalAmount,
 		GoalDate:    (*DateOnly)(a.GoalDate),
+		Icon:        a.Icon,
+		Color:       a.Color,
 		CreatedAt:   a.CreatedAt,
 		UpdatedAt:   a.UpdatedAt,
 	}

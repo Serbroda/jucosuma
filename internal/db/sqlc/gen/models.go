@@ -23,6 +23,8 @@ type Account struct {
 	GoalDate    *time.Time `db:"goal_date"`
 	IsSavings   int64      `db:"is_savings"`
 	Iban        *string    `db:"iban"`
+	Icon        *string    `db:"icon"`
+	Color       *int64     `db:"color"`
 }
 
 type AppSetting struct {
@@ -80,6 +82,7 @@ type Contract struct {
 	IsContract      int64      `db:"is_contract"`
 	Website         *string    `db:"website"`
 	IsVariable      int64      `db:"is_variable"`
+	TransferType    *string    `db:"transfer_type"`
 }
 
 type ContractAmount struct {

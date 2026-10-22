@@ -52,6 +52,8 @@ cross-legged, holding a contract. It's a playful nod to the name similarity and 
 **Savings**
 - Savings goals with target amount and date, monthly rate from transfers, projected “reached on” date.
 - Accounts can count as savings (overnight money, depots, a buffer account).
+- Every transfer has a type – **saving**, **withdrawal** or **move** – suggested from the accounts and the goal,
+  so it is visible what counts as savings rate and what only shifts money between accounts or pots.
 
 **Monthly closing (plan vs. actual)**
 - Once a month enter what you really spent on variable costs – optionally also the account balances.
@@ -68,7 +70,7 @@ cross-legged, holding a contract. It's a playful nod to the name similarity and 
 **Household**
 - Logins per person, admin and user roles, persons linked to logins.
 - **Private entries** are only visible to their owner – also not to admins.
-- Categories with colour and icon, accounts with owner and balance.
+- Categories with colour and icon, accounts with owner, balance and an optional own icon.
 - German and English, chosen per user; light and dark mode; works on phones.
 - CSV/JSON export and import.
 
