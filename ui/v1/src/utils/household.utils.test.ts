@@ -1,5 +1,6 @@
 import {describe, expect, it} from "vitest";
-import {defaultCostType, sharesForAccount} from "./household.utils.ts";
+import {EntryKindIncome} from "../gen/types.gen.ts";
+import {defaultCostType, sharesForAccount, withAutoColors} from "./household.utils.ts";
 import {accounts, category, dannyAccount, expense, groceries, insurance, joint, persons, transport} from "../test/fixtures.ts";
 
 describe("defaultCostType", () => {
@@ -23,5 +24,18 @@ describe("cost assignment", () => {
     it("follows the account: private account → its owner, joint account → household", () => {
         expect(sharesForAccount(dannyAccount.id, accounts, persons)).toEqual([{person_id: 1, weight: 1}]);
         expect(sharesForAccount(joint.id, accounts, persons)).toEqual([{person_id: 1, weight: 1}, {person_id: 2, weight: 1}]);
+    });
+});
+
+describe("withAutoColors", () => {
+    it("gives uncoloured categories a free slot and keeps catch-alls grey", () => {
+        const coloured = {...category(1, "housing"), color: 1};
+        const result = withAutoColors([coloured, {...category(2, "pets"), color: 2}, category(3, "custom"), category(4, "other")]);
+        expect(result.map((c) => c.color)).toEqual([1, 2, 3, undefined]);
+    });
+
+    it("counts slots per entry type", () => {
+        const income = {...category(5, "salary"), type: EntryKindIncome, color: 1};
+        expect(withAutoColors([income, category(6, "custom")])[1].color).toBe(1);
     });
 });

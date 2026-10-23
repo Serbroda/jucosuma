@@ -1,5 +1,6 @@
 import {apiBasePath} from "../config.ts";
 import {apiFetch} from "../lib/fetch.ts";
+import {withAutoColors} from "../utils/household.utils.ts";
 
 async function fetchJSON(url: string) {
     const res = await apiFetch(url);
@@ -28,7 +29,7 @@ async function companiesLoader() {
 
 async function categoriesLoader() {
     const res = await fetchJSON(`${apiBasePath}/categories`);
-    return {categories: res ?? []};
+    return {categories: withAutoColors(res ?? [])};
 }
 
 async function householdLoader() {
