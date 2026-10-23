@@ -44,8 +44,9 @@ type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 
 /** Largest categories shown individually (each in its own colour); the rest folds into "other". */
 const CATEGORY_SLOTS = 7;
-const SAVINGS_COLOR = "var(--chart-6)";
-const TRANSFER_COLOR = "var(--chart-7)";
+// reserved colours, so savings and transfers never look like a category
+const SAVINGS_COLOR = "var(--chart-savings)";
+const TRANSFER_COLOR = "var(--chart-transfer)";
 
 function KpiCard({icon: IconCmp, tint, label, value, children}: {
     icon: Icon;

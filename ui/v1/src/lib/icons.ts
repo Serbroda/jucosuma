@@ -29,6 +29,7 @@ import {
     TrophyIcon,
     TruckIcon,
     TvIcon,
+    UserGroupIcon,
     WalletIcon,
     WifiIcon,
     WrenchScrewdriverIcon,
@@ -66,6 +67,7 @@ export const icons: Record<string, IconComponent> = {
     "globe": GlobeEuropeAfricaIcon,
     "rocket": RocketLaunchIcon,
     "trophy": TrophyIcon,
+    "users": UserGroupIcon,
     "lifebuoy": LifebuoyIcon,
     "sparkles": SparklesIcon,
     "tools": WrenchScrewdriverIcon,
@@ -76,12 +78,12 @@ export function iconFor(key: string | null | undefined): IconComponent | undefin
     return key ? icons[key] : undefined;
 }
 
-/** CSS colour of a palette slot (1-8); without slot the neutral "other" colour. */
+/** CSS colour of a palette slot (1-16); without slot the neutral "other" colour. */
 export function slotColor(slot: number | null | undefined): string {
     return slot ? `var(--chart-${slot})` : "var(--chart-other)";
 }
 
-export const colorSlots = [1, 2, 3, 4, 5, 6, 7, 8];
+export const colorSlots = Array.from({length: 16}, (_, i) => i + 1);
 
 const SYMBOL_PREFIX = "symbol:";
 

@@ -291,7 +291,7 @@ type CreateCategoryDto struct {
 	Name      string  `json:"name" validate:"required,min=1,max=128"`
 	SortOrder int64   `json:"sort_order"`
 	Type      string  `json:"type" validate:"omitempty,oneof=expense income"`
-	Color     *int64  `json:"color" validate:"omitempty,min=1,max=8"`
+	Color     *int64  `json:"color" validate:"omitempty,min=1,max=16"`
 	Icon      *string `json:"icon" validate:"omitempty,max=32"`
 }
 
@@ -299,7 +299,7 @@ type UpdateCategoryDto struct {
 	Name      string  `json:"name" validate:"required,min=1,max=128"`
 	SortOrder int64   `json:"sort_order"`
 	Type      string  `json:"type" validate:"omitempty,oneof=expense income"`
-	Color     *int64  `json:"color" validate:"omitempty,min=1,max=8"`
+	Color     *int64  `json:"color" validate:"omitempty,min=1,max=16"`
 	Icon      *string `json:"icon" validate:"omitempty,max=32"`
 }
 
@@ -355,7 +355,7 @@ type SaveAccountDto struct {
 	GoalAmount  *float64  `json:"goal_amount"`
 	GoalDate    *DateOnly `json:"goal_date"`
 	Icon        *string   `json:"icon" validate:"omitempty,max=32"`
-	Color       *int64    `json:"color" validate:"omitempty,min=1,max=8"`
+	Color       *int64    `json:"color" validate:"omitempty,min=1,max=16"`
 }
 
 type UserOptionDto struct {
@@ -391,7 +391,7 @@ type SaveSavingsGoalDto struct {
 	Name          string    `json:"name" validate:"required,min=1,max=128"`
 	Kind          string    `json:"kind" validate:"omitempty,oneof=saving investing"`
 	Icon          *string   `json:"icon" validate:"omitempty,max=32"`
-	Color         *int64    `json:"color" validate:"omitempty,min=1,max=8"`
+	Color         *int64    `json:"color" validate:"omitempty,min=1,max=16"`
 	PersonID      *int64    `json:"person_id"`
 	AccountID     *int64    `json:"account_id"`
 	TargetAmount  *float64  `json:"target_amount"`
