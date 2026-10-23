@@ -100,6 +100,22 @@ export default function OverviewPage() {
     const [searchParams, setSearchParams] = useSearchParams();
     const categoryOf = (id?: number | null) => categories.find((c) => c.id === id);
     const [quickKind, setQuickKind] = useState<string | null>(null);
+    // shares in the category legend: of all costs or of the income (remembered per browser)
+    const [shareOf, setShareOfState] = useState<"costs" | "income">(() => {
+        try {
+            return localStorage.getItem("overview:shareOf") === "income" ? "income" : "costs";
+        } catch {
+            return "costs";
+        }
+    });
+    const setShareOf = (value: "costs" | "income") => {
+        setShareOfState(value);
+        try {
+            localStorage.setItem("overview:shareOf", value);
+        } catch {
+            // storage unavailable: the choice just isn't remembered
+        }
+    };
 
     const me = persons.find((p) => p.user_id != null && p.user_id === user?.id);
     const household = persons.filter((p) => p.in_household);
@@ -330,8 +346,17 @@ export default function OverviewPage() {
                 {/* Main column */}
                 <div className="xl:col-span-2 flex flex-col gap-6 min-w-0">
                     <div className={card}>
-                        <div className={classNames(cardTitle, "mb-4")}>{t('overview.byCategory')}</div>
+                        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-4">
+                            <div className={cardTitle}>{t('overview.byCategory')}</div>
+                            {inflow > 0 && (
+                                <SegmentedControl value={shareOf} onChange={setShareOf} options={[
+                                    {value: "costs", label: t('overview.shareOfCosts')},
+                                    {value: "income", label: t('overview.shareOfIncome')},
+                                ]}/>
+                            )}
+                        </div>
                         <DonutChart
+                            shareBase={shareOf === "income" ? inflow : undefined}
                             segments={categorySegments}
                             centerValue={formatShort(summary.expenses)}
                             centerLabel={t('overview.total')}

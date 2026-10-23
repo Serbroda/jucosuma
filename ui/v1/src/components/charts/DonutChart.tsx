@@ -9,6 +9,8 @@ export interface DonutChartProps {
     centerLabel: string;
     format: (value: number) => string;
     emptyText: string;
+    /** amount the shares refer to (e.g. income); defaults to the sum of the segments */
+    shareBase?: number;
 }
 
 const SIZE = 180;
@@ -31,9 +33,11 @@ function arcPath(start: number, end: number): string {
 }
 
 /** Donut with a legend table (label, amount, share). Hovering a slice or a legend row highlights both. */
-export default function DonutChart({segments, centerValue, centerLabel, format, emptyText}: DonutChartProps) {
+export default function DonutChart({segments, centerValue, centerLabel, format, emptyText, shareBase}: DonutChartProps) {
     const [active, setActive] = useState<string | null>(null);
     const total = segments.reduce((sum, s) => sum + s.value, 0);
+
+    const base = shareBase && shareBase > 0 ? shareBase : total;
 
     if (total <= 0) {
         return <div className="text-sm text-zinc-400 dark:text-zinc-500 py-8 text-center">{emptyText}</div>;
@@ -91,7 +95,7 @@ export default function DonutChart({segments, centerValue, centerLabel, format, 
                             {format(s.value)}
                         </td>
                         <td className="py-1 pl-3 text-right tabular-nums whitespace-nowrap text-zinc-400 dark:text-zinc-500 w-14">
-                            {s.value / total < 0.005 ? "<1" : Math.round(s.value / total * 100)} %
+                            {s.value / base < 0.005 ? "<1" : Math.round(s.value / base * 100)} %
                         </td>
                     </tr>
                 ))}
