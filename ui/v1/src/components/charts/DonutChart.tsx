@@ -91,7 +91,7 @@ export default function DonutChart({segments, centerValue, centerLabel, format, 
                             {format(s.value)}
                         </td>
                         <td className="py-1 pl-3 text-right tabular-nums whitespace-nowrap text-zinc-400 dark:text-zinc-500 w-14">
-                            {Math.round(s.value / total * 100)} %
+                            {s.value / total < 0.005 ? "<1" : Math.round(s.value / total * 100)} %
                         </td>
                     </tr>
                 ))}

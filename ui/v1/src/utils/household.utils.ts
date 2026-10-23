@@ -24,6 +24,7 @@ import {
 } from "../gen/types.gen.ts";
 import i18n from "../i18n";
 import dayjs from "../lib/dayjs";
+import {colorSlots} from "../lib/icons";
 
 /** Entry kinds with translated labels; call during render so labels follow the language. */
 export function entryKinds() {
@@ -165,6 +166,25 @@ export function categoryLabel(name: string, key?: string | null): string {
     return key && i18n.exists(id) ? i18n.t(id as "categories.other") : name;
 }
 
+/** Catch-all categories stay grey, like the folded rest of a chart. */
+const NEUTRAL_CATEGORY_KEYS = ["other", "other_income"];
+
+/**
+ * Gives categories without colour a palette slot of their own, so no two categories of a type look
+ * alike in charts: the least used slot of that type, in sort order. Catch-all categories stay grey.
+ */
+export function withAutoColors(categories: CategoryDto[]): CategoryDto[] {
+    const used = new Map<string, number[]>();
+    const count = (type: string) => used.get(type) ?? used.set(type, Array(colorSlots.length).fill(0)).get(type)!;
+    for (const c of categories) if (c.color) count(c.type)[c.color - 1]++;
+    return categories.map((c) => {
+        if (c.color || (c.key && NEUTRAL_CATEGORY_KEYS.includes(c.key))) return c;
+        const counts = count(c.type);
+        const slot = counts.indexOf(Math.min(...counts));
+        counts[slot]++;
+        return {...c, color: slot + 1};
+    });
+}
 
 /** Palette slots for household members, in order (aqua, violet, orange, …). */
 const PERSON_SLOTS = [3, 7, 2, 4, 5, 1, 6, 8];

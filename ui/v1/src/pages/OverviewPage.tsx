@@ -42,8 +42,6 @@ import dayjs from "../lib/dayjs";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 
-/** Largest categories shown individually (each in its own colour); the rest folds into "other". */
-const CATEGORY_SLOTS = 8;
 // reserved colours, so savings and transfers never look like a category
 const SAVINGS_COLOR = "var(--chart-savings)";
 const TRANSFER_COLOR = "var(--chart-transfer)";
@@ -155,17 +153,11 @@ export default function OverviewPage() {
     } : undefined;
     const openClosing = (m: typeof month) => navigate(`/closing?month=${m.format("YYYY-MM")}`);
 
-    // Categories: fixed slots for the largest ones, the rest folds into "other"
-    const categorySegments: DonutSegment[] = useMemo(() => {
-        // a single remaining category is shown itself; folding only pays off for two or more
-        const shown = summary.byCategory.length > CATEGORY_SLOTS + 1 ? CATEGORY_SLOTS : summary.byCategory.length;
-        const top = summary.byCategory.slice(0, shown);
-        const rest = summary.byCategory.slice(shown).reduce((sum, c) => sum + c.amount, 0);
-        const segments = top.map((c) => ({key: c.id != null ? String(c.id) : c.name, label: c.label, value: c.amount, color: slotColor(categoryOf(c.id)?.color)}));
-        if (rest > 0) segments.push({key: "__other", label: t('overview.otherCategories'), value: rest, color: "var(--chart-other)"});
-        return segments;
+    // every category on its own, in its own colour
+    const categorySegments: DonutSegment[] = useMemo(() => summary.byCategory.map((c) => ({
+        key: c.id != null ? String(c.id) : c.name, label: c.label, value: c.amount, color: slotColor(categoryOf(c.id)?.color),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [summary, categories, t]);
+    })), [summary, categories]);
 
     const sankey = useMemo(() => {
         const incomeByName = new Map<string, number>();
