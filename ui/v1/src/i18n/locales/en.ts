@@ -299,6 +299,8 @@ const en = {
         saving: "Saving & investing",
         unallocated: "Unallocated",
         byCategory: "Costs by category",
+        shareOfCosts: "% of costs",
+        shareOfIncome: "% of income",
         byPerson: "Costs by person",
         nothing: "Nothing this month.",
         accounts: "Accounts",

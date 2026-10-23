@@ -303,6 +303,8 @@ const de: Translation<typeof en> = {
         saving: "Sparen & Investieren",
         unallocated: "Unverplant",
         byCategory: "Kosten nach Kategorie",
+        shareOfCosts: "% der Kosten",
+        shareOfIncome: "% der Einnahmen",
         byPerson: "Kosten nach Person",
         nothing: "In diesem Monat nichts.",
         accounts: "Konten",
