@@ -1,3 +1,4 @@
+import type {ReactNode} from "react";
 import {useNavigate, useRevalidator} from "react-router";
 import {useTranslation} from "react-i18next";
 import {ArrowRightIcon} from "@heroicons/react/16/solid";
@@ -6,6 +7,7 @@ import EntryIcon from "./EntryIcon.tsx";
 import CategoryBadge from "./ui/CategoryBadge.tsx";
 import RowActions from "./ui/RowActions.tsx";
 import IconTile from "./ui/IconTile.tsx";
+import TableToolbar from "./ui/TableToolbar.tsx";
 import {Badge} from "./catalyst/badge.tsx";
 import {
     BillingPeriodAnnually, BillingPeriodEveryTwoYears, BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime,
@@ -17,7 +19,9 @@ const periodOrder = [BillingPeriodWeekly, BillingPeriodMonthly, BillingPeriodQua
     BillingPeriodAnnually, BillingPeriodEveryTwoYears, BillingPeriodOneTime, BillingPeriodNone];
 import type {AppData} from "../hooks/useAppData.ts";
 import {type Pot, potOf, splitText, costOwner, transferTypeOf} from "../utils/budget.utils.ts";
-import {accountName, categoryLabel, goalStyle, isDefaultAssignment} from "../utils/household.utils.ts";
+import {useTableFilter} from "../hooks/useTableFilter.ts";
+import {entryFilters, entrySearchText} from "../utils/entryFilters.ts";
+import {accountName, categoryLabel, goalStyle} from "../utils/household.utils.ts";
 import {useSort} from "../utils/sort.utils.ts";
 import SortableTh from "./ui/SortableTh.tsx";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
@@ -29,9 +33,15 @@ import {classNames} from "../utils/dom.utils.ts";
 
 export type EntryColumn = "interval" | "earner" | "account" | "transfer" | "transferType" | "split" | "person" | "category" | "goal";
 
-/** Table of entries with configurable columns and edit/delete actions. */
-export default function EntryTable({entries, data, columns, emptyText, amountTone, sortId}: {
+/** Table of entries with configurable columns, search, filters and edit/delete actions. */
+export default function EntryTable({entries, data, columns, emptyText, amountTone, sortId, title, controls, toolbar = true}: {
     entries: ContractDto[];
+    /** heading of the table, shown in the toolbar */
+    title?: ReactNode;
+    /** page specific controls next to the title, e.g. tabs */
+    controls?: ReactNode;
+    /** search field and filters above the table */
+    toolbar?: boolean;
     /** remembers the sorting per table; defaults to the column set */
     sortId?: string;
     data: AppData;
@@ -55,7 +65,11 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
     };
     const accountById = new Map(data.accounts.map((a) => [a.id, a]));
     const transferTypeLabel = (c: ContractDto) => t(`transferType.${transferTypeOf(c, accountById) as "saving" | "withdrawal" | "move"}`);
-    const {sorted, sort, toggle} = useSort(`entries:${sortId ?? columns.join(",")}`, entries, {
+    const {filtered, toolbar: filterState, isFiltered} = useTableFilter(entries, {
+        searchText: (c) => entrySearchText(c, data),
+        filters: entryFilters(entries, data, t),
+    });
+    const {sorted, sort, toggle} = useSort(`entries:${sortId ?? columns.join(",")}`, filtered, {
         name: (c) => c.name,
         amount: (c) => c.costs,
         interval: (c) => periodOrder.indexOf(c.billing_period),
@@ -63,7 +77,7 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
         account: (c) => accountName(c.account_id, data.accounts),
         transfer: (c) => `${accountName(c.account_id, data.accounts) ?? ""} ${accountName(c.target_account_id, data.accounts) ?? ""}`,
         transferType: transferTypeLabel,
-        split: (c) => isDefaultAssignment(c, data.persons, data.accounts) ? "" : splitText(c, data.persons, data.accounts, t('common.household'), i18n.language),
+        split: (c) => splitText(c, data.persons, data.accounts, t('common.household'), i18n.language),
         person: (c) => potLabel(potOf(data.accounts.find((a) => a.id === c.account_id))),
         goal: (c) => data.goals.find((g) => g.id === c.goal_id)?.name,
         category: (c) => {
@@ -76,6 +90,8 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
     );
 
     return (
+        <>
+        {toolbar && <TableToolbar title={title} state={filterState}>{controls}</TableToolbar>}
         <div className="overflow-x-auto -mx-5">
             <table className={table}>
                 <thead>
@@ -87,7 +103,7 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
                     {has("account") && head("account", t('overview.paidVia'), classNames(th, "hidden md:table-cell"))}
                     {has("transfer") && head("transfer", t('transfers.fromTo'), classNames(th, "hidden md:table-cell"))}
                     {has("transferType") && head("transferType", t('transferType.label'), classNames(th, "hidden sm:table-cell"))}
-                    {has("split") && head("split", t('overview.split'), classNames(th, "hidden lg:table-cell"))}
+                    {has("split") && head("split", t('overview.split'), classNames(th, "hidden md:table-cell"))}
                     {has("person") && head("person", t('overview.pot'), classNames(th, "hidden lg:table-cell"))}
                     {has("goal") && head("goal", t('goals.goal'), classNames(th, "hidden lg:table-cell"))}
                     {has("category") && head("category", t('entry.category'), classNames(th, "hidden sm:table-cell"))}
@@ -153,10 +169,8 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
                                 </td>
                             )}
                             {has("split") && (
-                                <td className={classNames(td, "hidden lg:table-cell whitespace-nowrap")}>
-                                    {/* only deviations from the account (e.g. a private cost on the joint account, external persons) */}
-                                    {isDefaultAssignment(c, data.persons, data.accounts) ? ""
-                                        : splitText(c, data.persons, data.accounts, t('common.household'), i18n.language)}
+                                <td className={classNames(td, "hidden md:table-cell whitespace-nowrap")}>
+                                    {splitText(c, data.persons, data.accounts, t('common.household'), i18n.language)}
                                 </td>
                             )}
                             {has("person") && (
@@ -187,11 +201,14 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
                         </tr>
                     );
                 })}
-                {entries.length === 0 && (
-                    <tr><td colSpan={10} className="px-5 py-8 text-center text-sm text-zinc-400 dark:text-zinc-500">{emptyText}</td></tr>
+                {sorted.length === 0 && (
+                    <tr><td colSpan={10} className="px-5 py-8 text-center text-sm text-zinc-400 dark:text-zinc-500">
+                        {isFiltered && entries.length > 0 ? t('table.noMatches') : emptyText}
+                    </td></tr>
                 )}
                 </tbody>
             </table>
         </div>
+        </>
     );
 }

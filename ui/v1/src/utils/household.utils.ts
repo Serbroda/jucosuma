@@ -145,16 +145,6 @@ export function defaultShares(persons: PersonDto[]): ShareDto[] {
     return sharePresets(persons)[0]?.shares ?? [];
 }
 
-/** Whether an expense is carried as its account suggests (see sharesForAccount), i.e. nothing worth pointing out. */
-export function isDefaultAssignment(c: ContractDto, persons: PersonDto[], accounts: AccountDto[]): boolean {
-    if (c.shares.length === 0) return true;
-    const norm = (shares: ShareDto[]) => {
-        const total = shares.reduce((s, x) => s + x.weight, 0);
-        return shares.filter((x) => x.weight > 0).map((x) => `${x.person_id}:${(x.weight / total).toFixed(4)}`).sort().join(",");
-    };
-    return norm(c.shares) === norm(sharesForAccount(c.account_id, accounts, persons));
-}
-
 /**
  * Who carries an expense by default: the owner of a private account, the household for a shared
  * account. Forms follow the chosen account with this until the user picks something else.

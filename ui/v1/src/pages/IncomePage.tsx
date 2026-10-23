@@ -127,14 +127,12 @@ export default function IncomePage() {
             </div>
 
             <div className={card}>
-                <div className="flex flex-wrap items-center gap-3 mb-3">
-                    <div className={cardTitle}>{tab === "once" ? t('income.once') : t('income.recurring')}</div>
-                    <SegmentedControl value={tab} onChange={setTab} options={[
-                        {value: "recurring", label: t('income.tabRecurring')},
-                        {value: "once", label: t('income.tabOnce')},
-                    ]}/>
-                </div>
                 <EntryTable entries={listed} data={data} columns={["interval", "earner", "account", "category"]}
+                            title={tab === "once" ? t('income.once') : t('income.recurring')}
+                            controls={<SegmentedControl value={tab} onChange={setTab} options={[
+                                {value: "recurring", label: t('income.tabRecurring')},
+                                {value: "once", label: t('income.tabOnce')},
+                            ]}/>}
                             emptyText={t('income.empty')} amountTone="income"/>
             </div>
         </div>

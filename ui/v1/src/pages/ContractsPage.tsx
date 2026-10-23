@@ -9,11 +9,14 @@ import DeadlineBadge from "../components/ui/DeadlineBadge.tsx";
 import CategoryBadge from "../components/ui/CategoryBadge.tsx";
 import SegmentedControl from "../components/SegmentedControl.tsx";
 import EntryIcon from "../components/EntryIcon.tsx";
+import TableToolbar from "../components/ui/TableToolbar.tsx";
 import {Badge} from "../components/catalyst/badge.tsx";
 import {ContractStatusActive, type ContractDto} from "../gen/types.gen.ts";
 import {useAppData} from "../hooks/useAppData.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
 import {splitText} from "../utils/budget.utils.ts";
+import {useTableFilter} from "../hooks/useTableFilter.ts";
+import {entryFilters, entrySearchText} from "../utils/entryFilters.ts";
 import {categoryLabel, daysUntil, isContractEntry, noticeLabel} from "../utils/household.utils.ts";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
@@ -49,12 +52,16 @@ export default function ContractsPage() {
     const listed = contracts
         .filter((c) => filter === "all" || (filter === "cancelled" ? c.status !== ContractStatusActive : isInsurance(c)))
         .sort((a, b) => (b.monthly_amount ?? 0) - (a.monthly_amount ?? 0));
+    const {filtered, toolbar, isFiltered} = useTableFilter(listed, {
+        searchText: (c) => entrySearchText(c, data),
+        filters: entryFilters(listed, data, t),
+    });
 
     const yearly = (c: ContractDto) => (c.monthly_amount ?? 0) * 12;
     const insurances = contracts.filter(isInsurance);
     const insuranceYear = insurances.reduce((s, c) => s + yearly(c), 0);
     const contractsYear = contracts.reduce((s, c) => s + yearly(c), 0);
-    const {sorted, sort, toggle} = useSort(`contracts:${filter}`, listed, {
+    const {sorted, sort, toggle} = useSort(`contracts:${filter}`, filtered, {
         name: (c) => c.name,
         number: (c) => c.contract_number,
         concerns: (c) => splitText(c, data.persons, data.accounts, t('common.household'), i18n.language),
@@ -123,14 +130,13 @@ export default function ContractsPage() {
             )}
 
             <div className={card}>
-                <div className="flex flex-wrap items-center gap-3 mb-3">
-                    <div className={cardTitle}>{t('contracts.listTitle')}</div>
+                <TableToolbar title={t('contracts.listTitle')} state={toolbar}>
                     <SegmentedControl value={filter} onChange={setFilter} options={[
                         {value: "insurance", label: t('contracts.insurances', {count: insurances.length})},
                         {value: "all", label: t('contracts.all', {count: contracts.length})},
                         {value: "cancelled", label: t('contracts.cancelled')},
                     ]}/>
-                </div>
+                </TableToolbar>
                 <div className="overflow-x-auto -mx-5">
                     <table className={table}>
                         <thead>
@@ -203,8 +209,10 @@ export default function ContractsPage() {
                                 </td>
                             </tr>
                         ))}
-                        {listed.length === 0 && (
-                            <tr><td colSpan={8} className="px-5 py-8 text-center text-sm text-zinc-400 dark:text-zinc-500">{t('contracts.empty')}</td></tr>
+                        {sorted.length === 0 && (
+                            <tr><td colSpan={8} className="px-5 py-8 text-center text-sm text-zinc-400 dark:text-zinc-500">
+                                {isFiltered && listed.length > 0 ? t('table.noMatches') : t('contracts.empty')}
+                            </td></tr>
                         )}
                         </tbody>
                     </table>

@@ -26,6 +26,17 @@ const de: Translation<typeof en> = {
         shared: "Gemeinsam",
         noAccount: "Kein Konto",
     },
+    table: {
+        filter: "Filter",
+        filterActive_one: "{{count}} Filter aktiv",
+        filterActive_other: "{{count}} Filter aktiv",
+        all: "Alle",
+        owner: "Zuordnung",
+        account: "Konto",
+        category: "Kategorie",
+        resetFilters: "Filter zurücksetzen",
+        noMatches: "Keine Treffer für Suche und Filter.",
+    },
     nav: {
         closing: "Monatsabschluss",
         contracts: "Verträge",
