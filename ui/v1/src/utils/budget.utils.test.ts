@@ -1,7 +1,7 @@
 import {describe, expect, it} from "vitest";
 import dayjs from "../lib/dayjs";
-import {BillingPeriodAnnually, BillingPeriodOneTime, TransferTypeMove, TransferTypeSaving, TransferTypeWithdrawal} from "../gen/types.gen.ts";
-import {amountInMonth, costOwner, defaultTransferType, matchesOwner, summarizeGoals, summarizeMonth} from "./budget.utils.ts";
+import {BillingPeriodAnnually, BillingPeriodOneTime, BillingPeriodQuarterly, TransferTypeMove, TransferTypeSaving, TransferTypeWithdrawal} from "../gen/types.gen.ts";
+import {amountInMonth, costOwner, defaultTransferType, matchesOwner, summarizeGoals, summarizeMonth, summarizeReserves} from "./budget.utils.ts";
 import {
     accounts, danny, dannyAccount, expense, friends, goal, groceries, income, joint, julia, juliaAccount, persons,
     savings, transfer,
@@ -177,5 +177,30 @@ describe("summarizeGoals", () => {
         expect(g.monthlyRate).toBe(400);
         expect(g.current).toBe(1000 + 3 * 300 + 4 * 400); // March–May 300, June–September 400
         expect(g.reachedOn?.format("YYYY-MM")).toBe("2027-12");
+    });
+});
+
+describe("summarizeReserves", () => {
+    const yearly = expense(120, {billing_period: BillingPeriodAnnually, start_date: "2026-03-15", account_id: joint.id});
+    const quarterly = expense(30, {billing_period: BillingPeriodQuarterly, start_date: "2026-01-01", account_id: joint.id});
+    const reserves = (entries: Parameters<typeof summarizeReserves>[0], scope: Parameters<typeof summarizeReserves>[4] = "all") =>
+        summarizeReserves(entries, accounts, oct, "EUR", scope);
+
+    it("saves each payment up in monthly parts until it is due", () => {
+        const r = reserves([yearly, quarterly, expense(50, {account_id: joint.id})]);
+        expect(r.items.map((i) => [i.entry.id, i.due.format("YYYY-MM"), i.saved])).toEqual([
+            [quarterly.id, "2026-10", 20],
+            [yearly.id, "2027-03", 60],
+        ]);
+        expect(r.monthly).toBe(20);
+        expect(r.saved).toBe(80);
+    });
+
+    it("follows the pot, the household share and the end date", () => {
+        const dannys = expense(240, {billing_period: BillingPeriodAnnually, start_date: "2026-05-01", account_id: dannyAccount.id});
+        const shared = expense(120, {billing_period: BillingPeriodAnnually, start_date: "2026-05-01", account_id: joint.id, household_share: 0.5});
+        const ended = expense(120, {billing_period: BillingPeriodAnnually, start_date: "2025-05-01", end_date: "2026-06-30", account_id: joint.id});
+        expect(reserves([dannys, shared, ended], "household").items.map((i) => [i.entry.id, i.amount])).toEqual([[shared.id, 60]]);
+        expect(reserves([dannys, shared, ended], danny.id).monthly).toBe(20);
     });
 });

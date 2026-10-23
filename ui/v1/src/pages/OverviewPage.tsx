@@ -29,7 +29,7 @@ import {
 import {useAppData} from "../hooks/useAppData.ts";
 import {useMonth} from "../stores/useMonth.ts";
 import {slotColor} from "../lib/icons.ts";
-import {amountInMonth, potOf, type Scope, summarizeMonth} from "../utils/budget.utils.ts";
+import {amountInMonth, potOf, type Scope, summarizeMonth, summarizeReserves} from "../utils/budget.utils.ts";
 import {accountOwnerLabel, accountStyle, categoryLabel, daysUntil} from "../utils/household.utils.ts";
 import IconTile from "../components/ui/IconTile.tsx";
 import {compareMonth} from "../utils/closing.utils.ts";
@@ -41,6 +41,9 @@ import {useAuth} from "../stores/useAuth.ts";
 import dayjs from "../lib/dayjs";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
+
+/** Reserve items listed before "show more". */
+const RESERVE_ITEMS = 5;
 
 // reserved colours, so savings and transfers never look like a category
 const SAVINGS_COLOR = "var(--chart-savings)";
@@ -100,6 +103,7 @@ export default function OverviewPage() {
     const [searchParams, setSearchParams] = useSearchParams();
     const categoryOf = (id?: number | null) => categories.find((c) => c.id === id);
     const [quickKind, setQuickKind] = useState<string | null>(null);
+    const [showAllReserves, setShowAllReserves] = useState(false);
     // shares in the category legend: of all costs or of the income (remembered per browser)
     const [shareOf, setShareOfState] = useState<"costs" | "income">(() => {
         try {
@@ -142,6 +146,11 @@ export default function OverviewPage() {
         () => summarizeMonth(contracts, persons, accounts, month, mode, mainCurrency, scope),
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [contracts, persons, accounts, monthKey, mode, mainCurrency, scope],
+    );
+    const reserves = useMemo(
+        () => summarizeReserves(contracts, accounts, month, mainCurrency, scope),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [contracts, accounts, monthKey, mainCurrency, scope],
     );
     const previous = useMemo(
         () => summarizeMonth(contracts, persons, accounts, month.subtract(1, "month"), mode, mainCurrency, scope),
@@ -486,6 +495,54 @@ export default function OverviewPage() {
                             )
                         )}
                     </div>
+
+                    {/* virtual reserve for quarterly and yearly payments */}
+                    {reserves.items.length > 0 && (
+                        <div className={card}>
+                            <div className={classNames(cardTitle, "mb-3")}>{t('reserves.title')}</div>
+                            <div className="grid grid-cols-2 gap-3 mb-3">
+                                <div>
+                                    <div className="text-xs text-zinc-500 dark:text-zinc-400">{t('reserves.monthly')}</div>
+                                    <div className="text-lg font-semibold tabular-nums text-zinc-950 dark:text-white">{format(reserves.monthly)}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-zinc-500 dark:text-zinc-400">{t('reserves.saved')}</div>
+                                    <div className="text-lg font-semibold tabular-nums text-zinc-950 dark:text-white">{format(reserves.saved)}</div>
+                                </div>
+                            </div>
+                            <ul className="flex flex-col gap-1">
+                                {(showAllReserves ? reserves.items : reserves.items.slice(0, RESERVE_ITEMS)).map((r) => (
+                                    <li key={r.entry.id}>
+                                        <NavLink to={`/contracts/${r.entry.id}`}
+                                                 className="flex items-center gap-3 py-1.5 -mx-2 px-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                                            <EntryIcon name={r.entry.name} icon={r.entry.icon_source} category={categoryOf(r.entry.category_id)} className="size-7"/>
+                                            <span className="min-w-0 grow">
+                                                <span className="flex items-baseline justify-between gap-2">
+                                                    <span className="text-sm text-zinc-950 dark:text-white truncate">{r.entry.name}</span>
+                                                    <span className="text-sm font-medium tabular-nums text-zinc-950 dark:text-white whitespace-nowrap">{format(r.amount)}</span>
+                                                </span>
+                                                <span className="flex items-center gap-2 mt-1">
+                                                    <span className="h-1 grow rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+                                                        <span className="block h-full rounded-full bg-zinc-400 dark:bg-zinc-500" style={{width: `${r.saved / r.amount * 100}%`}}/>
+                                                    </span>
+                                                    <span className="text-xs text-zinc-400 dark:text-zinc-500 whitespace-nowrap">
+                                                        {r.due.isSame(month, "month") ? t('reserves.dueNow') : t('reserves.due', {month: r.due.format("MMM YYYY")})}
+                                                    </span>
+                                                </span>
+                                            </span>
+                                        </NavLink>
+                                    </li>
+                                ))}
+                            </ul>
+                            {reserves.items.length > RESERVE_ITEMS && (
+                                <button onClick={() => setShowAllReserves(!showAllReserves)}
+                                        className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline hover:cursor-pointer">
+                                    {showAllReserves ? t('reserves.less') : t('reserves.more', {count: reserves.items.length - RESERVE_ITEMS})}
+                                </button>
+                            )}
+                            <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-3">{t('reserves.hint')}</p>
+                        </div>
+                    )}
 
                     <div className={card}>
                         <div className="flex items-baseline justify-between mb-3">

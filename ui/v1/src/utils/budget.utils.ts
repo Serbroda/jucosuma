@@ -418,3 +418,50 @@ export function splitText(c: ContractDto, persons: PersonDto[], accounts: Accoun
     }
     return [...head, ...externals.map(([id, f]) => `${name(id)} ${percent(f)}`)].join(" · ");
 }
+
+export type ReserveItem = {
+    entry: ContractDto;
+    /** next payment (household share) */
+    amount: number;
+    due: Dayjs;
+    /** what should be set aside for it at the start of the month */
+    saved: number;
+    monthly: number;
+};
+
+export type ReserveSummary = { monthly: number; saved: number; items: ReserveItem[] };
+
+/**
+ * Virtual reserve for irregular expenses (quarterly and longer): each payment is saved up in equal
+ * monthly parts, the last one in the month it is due. `saved` is what should be put aside at the
+ * start of the given month, so the payments are covered when they are due.
+ */
+export function summarizeReserves(contracts: ContractDto[], accounts: AccountDto[], month: Dayjs,
+                                  mainCurrency: string, scope: Scope = "all"): ReserveSummary {
+    const start = month.startOf("month");
+    const items: ReserveItem[] = [];
+    for (const c of contracts) {
+        const period = periodInMonths[c.billing_period];
+        if (c.kind !== EntryKindExpense || !period || period < 3) continue;
+        if (c.currency && c.currency !== mainCurrency) continue;
+        const pot = potOf(accounts.find((a) => a.id === c.account_id));
+        if (scope !== "all" && pot !== scope) continue;
+        // next due month from the given month on (at most one period ahead, or the first payment)
+        const first = dayjs(c.start_date).startOf("month");
+        let due = first.isAfter(start) ? first : undefined;
+        for (let i = 0; !due && i < period; i++) {
+            if (occurrencesInMonth(c, start.add(i, "month")) > 0) due = start.add(i, "month");
+        }
+        if (!due) continue; // ended
+        const amount = (costsAt(c, due) ?? 0) * c.household_share;
+        if (amount <= 0) continue;
+        const monthsLeft = due.diff(start, "month") + 1;
+        items.push({entry: c, amount, due, monthly: amount / period, saved: Math.max(0, amount * (period - monthsLeft) / period)});
+    }
+    items.sort((a, b) => a.due.valueOf() - b.due.valueOf() || b.amount - a.amount);
+    return {
+        monthly: items.reduce((sum, i) => sum + i.monthly, 0),
+        saved: items.reduce((sum, i) => sum + i.saved, 0),
+        items,
+    };
+}

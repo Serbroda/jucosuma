@@ -1,5 +1,5 @@
 import {
-    BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime,
+    BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime, BillingPeriodWeekly,
     EntryKindExpense, EntryKindIncome, EntryKindTransfer,
     type AccountDto, type CategoryDto, type CompanyDto, type ContractDto, type ContractHolderDto, type DocumentDto,
     type PersonDto, type SavingsGoalDto, type ShareDto
@@ -97,6 +97,8 @@ export default function ContractForm({contract, holders, companies, categories, 
     const [holdersWithInput, setHoldersWithInput] = useState<ContractHolderDto[]>(holders);
     const [companiesWithInput, setCompaniesWithInput] = useState<CompanyDto[]>(companies);
     const [billingPeriod, setBillingPeriod] = useState(contract.billing_period ?? BillingPeriodMonthly);
+    // quarterly and longer: the start date is the anchor of the due dates, not just "since when"
+    const irregular = ![BillingPeriodMonthly, BillingPeriodWeekly, BillingPeriodOneTime, BillingPeriodNone].includes(billingPeriod);
     const [showNextBillingOverride, setShowNextBillingOverride] = useState(false);
     const [kind, setKind] = useState<string>(contract.kind ?? EntryKindExpense);
     const [shares, setShares] = useState<ShareDto[]>(
@@ -343,7 +345,8 @@ export default function ContractForm({contract, holders, companies, categories, 
                     <Field>
                         <Label>
                             {billingPeriod === BillingPeriodOneTime ? t('entry.date')
-                                : isExpense && isContract ? t('contracts.startDate') : t('entry.startDate')} *
+                                : isExpense && isContract ? t('contracts.startDate')
+                                    : irregular ? t('entry.firstPayment') : t('entry.startDate')} *
                         </Label>
                         <Input
                             type="date"
@@ -355,8 +358,10 @@ export default function ContractForm({contract, holders, companies, categories, 
                                     : dayjs().format("YYYY-MM-DD")
                             }
                         />
-                        {isExpense && isContract && billingPeriod !== BillingPeriodOneTime && (
+                        {isExpense && isContract && billingPeriod !== BillingPeriodOneTime ? (
                             <Description>{t('contracts.startDateHint')}</Description>
+                        ) : irregular && (
+                            <Description>{t('entry.firstPaymentHint')}</Description>
                         )}
                     </Field>
                     <Field>
