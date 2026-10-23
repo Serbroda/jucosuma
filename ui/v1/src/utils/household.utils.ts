@@ -183,7 +183,7 @@ export function noticeLabel(period?: number | null, unit?: string | null): strin
 }
 
 /** Predefined categories whose entries are usually contracts (the "is contract" switch starts on). */
-const CONTRACT_CATEGORY_KEYS = ["insurance", "telecom", "utilities", "housing"];
+const CONTRACT_CATEGORY_KEYS = ["insurance", "telecom", "housing"];
 
 export function isContractCategory(category: CategoryDto | undefined): boolean {
     return !!category?.key && CONTRACT_CATEGORY_KEYS.includes(category.key);
@@ -197,7 +197,7 @@ export function costTypeOf(c: Pick<ContractDto, "is_contract" | "is_variable">):
 }
 
 /** Predefined categories whose entries are usually variable (budgets). */
-const VARIABLE_CATEGORY_KEYS = ["groceries", "leisure", "other"];
+const VARIABLE_CATEGORY_KEYS = ["groceries", "leisure", "clothing", "gifts", "other"];
 
 /**
  * Suggested cost type for a new expense of a category: contract and variable categories by their
