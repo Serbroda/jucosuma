@@ -13,6 +13,8 @@ const NODE_W = 10;
 const GAP = 10;
 const MIN_NODE = 4;
 const LABEL_W = 132;
+/** Below this width the labels move into a legend under the chart, so the flows keep their room. */
+const COMPACT_W = 520;
 
 type Placed = SankeyNode & { y: number; h: number };
 
@@ -22,16 +24,16 @@ const PAD = 8;
 
 /**
  * Stacks nodes vertically. Node heights are proportional (with a small minimum);
- * centers keep at least LABEL_GAP apart so every label sits right next to its node.
+ * centers keep at least `labelGap` apart so every label sits right next to its node.
  */
-function place(nodes: SankeyNode[], scale: number): Placed[] {
+function place(nodes: SankeyNode[], scale: number, labelGap: number): Placed[] {
     const placed: Placed[] = [];
     let nextTop = PAD;
     for (const n of nodes) {
         const h = Math.max(MIN_NODE, n.value * scale);
         const prev = placed[placed.length - 1];
         let center = nextTop + h / 2;
-        if (prev) center = Math.max(center, prev.y + prev.h / 2 + LABEL_GAP);
+        if (prev) center = Math.max(center, prev.y + prev.h / 2 + labelGap);
         const y = center - h / 2;
         placed.push({...n, y, h});
         nextTop = y + h + GAP;
@@ -72,14 +74,15 @@ export default function SankeyChart({sources, targets, centerLabel, format}: San
 
     const total = targets.reduce((sum, n) => sum + n.value, 0);
     const scale = total > 0 ? FLOW_HEIGHT / total : 0;
-    const labelW = width < 520 ? 96 : LABEL_W;
+    const compact = width < COMPACT_W;
+    const labelW = compact ? 0 : LABEL_W;
 
     const xLeft = labelW;
     const xCenter = width / 2 - NODE_W / 2;
     const xRight = width - labelW - NODE_W;
 
-    const leftRaw = place(sources, scale);
-    const rightRaw = place(targets, scale);
+    const leftRaw = place(sources, scale, compact ? 0 : LABEL_GAP);
+    const rightRaw = place(targets, scale, compact ? 0 : LABEL_GAP);
     const height = Math.max(extent(leftRaw), extent(rightRaw), FLOW_HEIGHT) + PAD * 2;
     const left = centerColumn(leftRaw, height);
     const right = centerColumn(rightRaw, height);
@@ -100,7 +103,7 @@ export default function SankeyChart({sources, targets, centerLabel, format}: San
         return (
             <g opacity={dim(n.key)}>
                 <text x={x} y={cy - 2} textAnchor={anchor} fontSize={12} fill="var(--chart-ink)">
-                    {n.label.length > 18 && labelW < LABEL_W ? n.label.slice(0, 16) + "…" : n.label}
+                    {n.label}
                 </text>
                 <text x={x} y={cy + 12} textAnchor={anchor} fontSize={11} fill="var(--chart-muted)" className="tabular-nums">
                     {format(n.value)}
@@ -136,7 +139,7 @@ export default function SankeyChart({sources, targets, centerLabel, format}: San
                 {left.map((n) => (
                     <g key={`ln-${n.key}`}>
                         <rect x={xLeft} y={n.y} width={NODE_W} height={n.h} rx={2} fill={n.color} opacity={dim(n.key)}/>
-                        {label(n, "left")}
+                        {!compact && label(n, "left")}
                     </g>
                 ))}
                 <rect x={xCenter} y={center.y} width={NODE_W} height={center.h} rx={2} fill="var(--chart-ink)"/>
@@ -147,10 +150,32 @@ export default function SankeyChart({sources, targets, centerLabel, format}: San
                 {right.map((n) => (
                     <g key={`rn-${n.key}`}>
                         <rect x={xRight} y={n.y} width={NODE_W} height={n.h} rx={2} fill={n.color} opacity={dim(n.key)}/>
-                        {label(n, "right")}
+                        {!compact && label(n, "right")}
                     </g>
                 ))}
             </svg>
+            {compact && (
+                // legend in the order of the chart sides: sources left, targets right; tapping highlights the flow
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-4">
+                    {[left, right].map((column, side) => (
+                        <ul key={side} className="flex flex-col gap-1">
+                            {column.map((n) => (
+                                <li key={n.key}>
+                                    <button type="button" onClick={() => setActive((a) => (a === n.key ? null : n.key))}
+                                            style={{opacity: dim(n.key)}}
+                                            className="flex w-full items-start gap-2 rounded-md px-1 py-0.5 text-left hover:cursor-pointer">
+                                        <span className="mt-1 size-2.5 shrink-0 rounded-sm" style={{background: n.color}}/>
+                                        <span className="min-w-0">
+                                            <span className="block truncate text-xs text-zinc-950 dark:text-white">{n.label}</span>
+                                            <span className="block text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{format(n.value)}</span>
+                                        </span>
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
