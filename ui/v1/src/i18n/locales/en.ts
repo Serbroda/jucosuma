@@ -131,6 +131,7 @@ const en = {
         whoseIncome: "Whose income?",
         onlyMe: "Only visible to me",
         amount: "Amount",
+        amountPerMonth: "Per month",
         amountEur: "Amount (€)",
         currency: "Currency",
         interval: "Interval",

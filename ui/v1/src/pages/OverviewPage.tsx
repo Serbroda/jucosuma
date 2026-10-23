@@ -362,7 +362,7 @@ export default function OverviewPage() {
                     </div>
 
                     <div className={card}>
-                        <EntryTable entries={recurring} data={data} columns={["split", "category"]} emptyText={t('overview.nothing')}
+                        <EntryTable entries={recurring} data={data} columns={["split", "category"]} emptyText={t('overview.nothing')} perMonth={month}
                                     title={t('overview.recurring')}
                                     controls={
                                         <button onClick={() => setQuickKind(EntryKindExpense)}

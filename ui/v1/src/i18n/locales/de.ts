@@ -135,6 +135,7 @@ const de: Translation<typeof en> = {
         whoseIncome: "Wessen Einnahme?",
         onlyMe: "Nur für mich sichtbar",
         amount: "Betrag",
+        amountPerMonth: "Pro Monat",
         amountEur: "Betrag (€)",
         currency: "Währung",
         interval: "Intervall",
