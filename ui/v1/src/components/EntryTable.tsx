@@ -9,6 +9,8 @@ import RowActions from "./ui/RowActions.tsx";
 import IconTile from "./ui/IconTile.tsx";
 import TableToolbar from "./ui/TableToolbar.tsx";
 import {Badge} from "./catalyst/badge.tsx";
+import Tooltip from "./Tooltip.tsx";
+import type {Dayjs} from "dayjs";
 import {
     BillingPeriodAnnually, BillingPeriodEveryTwoYears, BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime,
     BillingPeriodQuarterly, BillingPeriodSemiannual, BillingPeriodWeekly, EntryKindTransfer, TransferTypeSaving, TransferTypeWithdrawal, type ContractDto,
@@ -18,7 +20,7 @@ import {
 const periodOrder = [BillingPeriodWeekly, BillingPeriodMonthly, BillingPeriodQuarterly, BillingPeriodSemiannual,
     BillingPeriodAnnually, BillingPeriodEveryTwoYears, BillingPeriodOneTime, BillingPeriodNone];
 import type {AppData} from "../hooks/useAppData.ts";
-import {type Pot, potOf, splitText, costOwner, transferTypeOf} from "../utils/budget.utils.ts";
+import {amountInMonth, type Pot, potOf, splitText, costOwner, transferTypeOf} from "../utils/budget.utils.ts";
 import {useTableFilter} from "../hooks/useTableFilter.ts";
 import {entryFilters, entrySearchText} from "../utils/entryFilters.ts";
 import {accountName, categoryLabel, goalStyle} from "../utils/household.utils.ts";
@@ -34,7 +36,7 @@ import {classNames} from "../utils/dom.utils.ts";
 export type EntryColumn = "interval" | "earner" | "account" | "transfer" | "transferType" | "split" | "person" | "category" | "goal";
 
 /** Table of entries with configurable columns, search, filters and edit/delete actions. */
-export default function EntryTable({entries, data, columns, emptyText, amountTone, sortId, title, controls, toolbar = true}: {
+export default function EntryTable({entries, data, columns, emptyText, amountTone, sortId, title, controls, toolbar = true, perMonth}: {
     entries: ContractDto[];
     /** heading of the table, shown in the toolbar */
     title?: ReactNode;
@@ -48,6 +50,8 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
     columns: EntryColumn[];
     emptyText: string;
     amountTone?: "income";
+    /** shows amounts converted to this month (e.g. yearly / 12), the stored amount on hover */
+    perMonth?: Dayjs;
 }) {
     const {t, i18n} = useTranslation();
     const navigate = useNavigate();
@@ -56,6 +60,7 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
     const format = (v: number, currency?: string | null) =>
         new Intl.NumberFormat(numberLocale(), {style: "currency", currency: currency || mainCurrency}).format(v);
     const has = (c: EntryColumn) => columns.includes(c);
+    const amountOf = (c: ContractDto) => perMonth ? amountInMonth(c, perMonth, "average") : c.costs ?? 0;
     const potLabel = (pot: Pot) => pot === "household"
         ? t('overview.potHousehold') : data.persons.find((p) => p.id === pot)?.name ?? t('common.unknown');
     const categoryOf = (c: ContractDto) => data.categories.find((cat) => cat.id === c.category_id);
@@ -71,7 +76,7 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
     });
     const {sorted, sort, toggle} = useSort(`entries:${sortId ?? columns.join(",")}`, filtered, {
         name: (c) => c.name,
-        amount: (c) => c.costs,
+        amount: (c) => amountOf(c),
         interval: (c) => periodOrder.indexOf(c.billing_period),
         earner: earnerLabel,
         account: (c) => accountName(c.account_id, data.accounts),
@@ -97,7 +102,7 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
                 <thead>
                 <tr>
                     {head("name", t('common.name'), classNames(th, "pl-5"))}
-                    {head("amount", t('entry.amount'), classNames(th, "text-right"), "right")}
+                    {head("amount", perMonth ? t('entry.amountPerMonth') : t('entry.amount'), classNames(th, "text-right"), "right")}
                     {has("interval") && head("interval", t('entry.interval'), classNames(th, "hidden md:table-cell"))}
                     {has("earner") && head("earner", t('income.earner'), classNames(th, "hidden sm:table-cell"))}
                     {has("account") && head("account", t('overview.paidVia'), classNames(th, "hidden md:table-cell"))}
@@ -133,7 +138,13 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
                             </td>
                             <td className={classNames(td, "text-right tabular-nums whitespace-nowrap font-medium",
                                 amountTone === "income" ? "text-green-700 dark:text-green-400" : "text-zinc-950 dark:text-white")}>
-                                {format(c.costs ?? 0, c.currency)}
+                                {perMonth && c.billing_period !== BillingPeriodMonthly ? (
+                                    <Tooltip text={`${format(c.costs ?? 0, c.currency)} ${billingPeriodLabel(c.billing_period).toLowerCase()}`}>
+                                        <span className="cursor-help underline decoration-dotted decoration-zinc-400 underline-offset-4">
+                                            {format(amountOf(c), c.currency)}
+                                        </span>
+                                    </Tooltip>
+                                ) : format(amountOf(c), c.currency)}
                             </td>
                             {has("interval") && <td className={classNames(td, "hidden md:table-cell whitespace-nowrap")}>{billingPeriodLabel(c.billing_period)}</td>}
                             {has("earner") && (
