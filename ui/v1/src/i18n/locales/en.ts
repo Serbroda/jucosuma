@@ -22,6 +22,17 @@ const en = {
         shared: "Shared",
         noAccount: "No account",
     },
+    table: {
+        filter: "Filter",
+        filterActive_one: "{{count}} filter active",
+        filterActive_other: "{{count}} filters active",
+        all: "All",
+        owner: "Assigned to",
+        account: "Account",
+        category: "Category",
+        resetFilters: "Reset filters",
+        noMatches: "Nothing matches the search and filters.",
+    },
     nav: {
         closing: "Monthly closing",
         contracts: "Contracts",

@@ -18,7 +18,7 @@ import {numberLocale} from "../utils/number.utils.ts";
 import {goalStyle} from "../utils/household.utils.ts";
 import {slotColor} from "../lib/icons.ts";
 import {sendJson} from "../lib/api.ts";
-import {card, cardTitle} from "../utils/ui.ts";
+import {card} from "../utils/ui.ts";
 import dayjs from "../lib/dayjs";
 
 type Filter = "all" | "saving" | "investing" | "shared" | "personal";
@@ -159,8 +159,8 @@ export default function SavingsPage() {
 
             {goalTransfers.length > 0 && (
                 <div className={card}>
-                    <div className={cardTitle + " mb-3"}>{t('goals.plannedPayments')}</div>
-                    <EntryTable entries={goalTransfers} data={data} columns={["interval", "transfer", "goal"]} emptyText=""/>
+                    <EntryTable entries={goalTransfers} data={data} columns={["interval", "transfer", "goal"]} emptyText=""
+                                title={t('goals.plannedPayments')}/>
                     <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-3">{t('goals.estimateHint')}</p>
                 </div>
             )}

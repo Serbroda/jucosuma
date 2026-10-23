@@ -29,7 +29,7 @@ import {
 import {useAppData} from "../hooks/useAppData.ts";
 import {useMonth} from "../stores/useMonth.ts";
 import {slotColor} from "../lib/icons.ts";
-import {amountInMonth, costOwner, potOf, type Scope, summarizeMonth} from "../utils/budget.utils.ts";
+import {amountInMonth, potOf, type Scope, summarizeMonth} from "../utils/budget.utils.ts";
 import {accountOwnerLabel, accountStyle, categoryLabel, daysUntil} from "../utils/household.utils.ts";
 import IconTile from "../components/ui/IconTile.tsx";
 import {compareMonth} from "../utils/closing.utils.ts";
@@ -101,7 +101,6 @@ export default function OverviewPage() {
     const [searchParams, setSearchParams] = useSearchParams();
     const categoryOf = (id?: number | null) => categories.find((c) => c.id === id);
     const [quickKind, setQuickKind] = useState<string | null>(null);
-    const [recurringFilter, setRecurringFilter] = useState("all");
 
     const me = persons.find((p) => p.user_id != null && p.user_id === user?.id);
     const household = persons.filter((p) => p.in_household);
@@ -213,14 +212,9 @@ export default function OverviewPage() {
     const recurring = useMemo(() => contracts
         .filter((c) => c.kind === EntryKindExpense && c.billing_period !== BillingPeriodOneTime
             && amountInMonth(c, month, "average") > 0)
-        .filter((c) => {
-            if (recurringFilter === "all") return true;
-            const owner = costOwner(c, persons, accounts);
-            return recurringFilter === "shared" ? owner === "household" : owner === Number(recurringFilter);
-        })
         .sort((a, b) => (b.monthly_amount ?? 0) - (a.monthly_amount ?? 0)),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [contracts, persons, accounts, monthKey, recurringFilter]);
+        [contracts, monthKey]);
 
     const flowByAccount = new Map(summary.accounts.map((f) => [f.account.id, f.inflow - f.outflow]));
     const shortDate = (d: string) => new Intl.DateTimeFormat(numberLocale(), {day: "numeric", month: "short"}).format(new Date(d));
@@ -367,24 +361,14 @@ export default function OverviewPage() {
                     </div>
 
                     <div className={card}>
-                        <div className="flex flex-wrap items-center gap-3 mb-3">
-                            <div className={cardTitle}>{t('overview.recurring')}</div>
-                            <SegmentedControl
-                                value={recurringFilter}
-                                onChange={setRecurringFilter}
-                                options={[
-                                    {value: "all", label: t('savings.all')},
-                                    {value: "shared", label: t('common.household')},
-                                    ...household.map((p) => ({value: String(p.id), label: p.name})),
-                                ]}
-                            />
-                            <button onClick={() => setQuickKind(EntryKindExpense)}
-                                    className="ml-auto text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline hover:cursor-pointer">
-                                {t('overview.newExpense')}
-                            </button>
-                        </div>
-                        <EntryTable entries={recurring} data={data}
-                                    columns={["split", "category"]} emptyText={t('overview.nothing')}/>
+                        <EntryTable entries={recurring} data={data} columns={["split", "category"]} emptyText={t('overview.nothing')}
+                                    title={t('overview.recurring')}
+                                    controls={
+                                        <button onClick={() => setQuickKind(EntryKindExpense)}
+                                                className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline hover:cursor-pointer">
+                                            {t('overview.newExpense')}
+                                        </button>
+                                    }/>
                     </div>
                 </div>
 

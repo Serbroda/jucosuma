@@ -150,6 +150,19 @@ export function costOwner(c: ContractDto, persons: PersonDto[], accounts: Accoun
     return members.length === 1 ? members[0] : "household";
 }
 
+/** Filter of a table by assignment: everything, shared entries ("household") or one member's entries. */
+export type OwnerFilter = "all" | Pot;
+
+/** Whether an entry passes the assignment filter; a transfer passes for the pots on both of its sides. */
+export function matchesOwner(c: ContractDto, filter: OwnerFilter, persons: PersonDto[], accounts: AccountDto[]): boolean {
+    if (filter === "all") return true;
+    if (c.kind === EntryKindTransfer) {
+        const pot = (id: number | undefined) => potOf(accounts.find((a) => a.id === id));
+        return pot(c.account_id) === filter || pot(c.target_account_id) === filter;
+    }
+    return costOwner(c, persons, accounts) === filter;
+}
+
 export type AccountFlow = { account: AccountDto; inflow: number; outflow: number };
 
 /**

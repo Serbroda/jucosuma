@@ -1,12 +1,11 @@
 import {useState} from "react";
 import {useTranslation} from "react-i18next";
-import {ArrowDownIcon, ArrowUpIcon, MagnifyingGlassIcon, MinusIcon, PlusIcon} from "@heroicons/react/20/solid";
+import {ArrowDownIcon, ArrowUpIcon, MinusIcon, PlusIcon} from "@heroicons/react/20/solid";
 import PageHeader from "../components/ui/PageHeader.tsx";
 import SegmentedControl from "../components/SegmentedControl.tsx";
 import EntryTable from "../components/EntryTable.tsx";
 import QuickEntryDialog from "../components/QuickEntryDialog.tsx";
 import {Button} from "../components/catalyst/button.tsx";
-import {Input, InputGroup} from "../components/catalyst/input.tsx";
 import {EntryKindExpense} from "../gen/types.gen.ts";
 import {useAppData} from "../hooks/useAppData.ts";
 import {useMonth} from "../stores/useMonth.ts";
@@ -14,7 +13,7 @@ import {usePreferences} from "../stores/usePreferences.ts";
 import {amountInMonth} from "../utils/budget.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
 import {classNames} from "../utils/dom.utils.ts";
-import {card, cardTitle} from "../utils/ui.ts";
+import {card} from "../utils/ui.ts";
 
 type Filter = "all" | "fixed" | "variable";
 
@@ -24,7 +23,6 @@ export default function ExpensesPage() {
     const {month, mode} = useMonth();
     const {mainCurrency} = usePreferences();
     const [filter, setFilter] = useState<Filter>("all");
-    const [search, setSearch] = useState("");
     const [adding, setAdding] = useState(false);
 
     const format = (v: number) => new Intl.NumberFormat(numberLocale(), {style: "currency", currency: mainCurrency}).format(v);
@@ -36,11 +34,9 @@ export default function ExpensesPage() {
     const previous = householdTotal(month.subtract(1, "month"));
     const change = previous > 0 ? (total - previous) / previous : 0;
 
-    const term = search.trim().toLowerCase();
     const listed = expenses
         .filter((c) => amountInMonth(c, month, "average") > 0)
         .filter((c) => filter === "all" || (filter === "variable") === c.is_variable)
-        .filter((c) => !term || c.name.toLowerCase().includes(term) || (c.company ?? "").toLowerCase().includes(term))
         .sort((a, b) => amountInMonth(b, month, "average") - amountInMonth(a, month, "average"));
 
     return (
@@ -74,21 +70,13 @@ export default function ExpensesPage() {
             </div>
 
             <div className={card}>
-                <div className="flex flex-wrap items-center gap-3 mb-3">
-                    <div className={cardTitle}>{t('expenses.listTitle')}</div>
-                    <SegmentedControl value={filter} onChange={setFilter} options={[
-                        {value: "all", label: t('savings.all')},
-                        {value: "fixed", label: t('expenses.fixed')},
-                        {value: "variable", label: t('expenses.variable')},
-                    ]}/>
-                    <div className="ml-auto w-full sm:w-64">
-                        <InputGroup>
-                            <MagnifyingGlassIcon/>
-                            <Input type="search" placeholder={t('common.search')} value={search} onChange={(e) => setSearch(e.target.value)}/>
-                        </InputGroup>
-                    </div>
-                </div>
                 <EntryTable entries={listed} data={data} columns={["interval", "account", "split", "category"]}
+                            title={t('expenses.listTitle')}
+                            controls={<SegmentedControl value={filter} onChange={setFilter} options={[
+                                {value: "all", label: t('savings.all')},
+                                {value: "fixed", label: t('expenses.fixed')},
+                                {value: "variable", label: t('expenses.variable')},
+                            ]}/>}
                             emptyText={t('expenses.empty')}/>
             </div>
         </div>

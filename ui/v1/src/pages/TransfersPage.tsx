@@ -12,7 +12,7 @@ import {useMonth} from "../stores/useMonth.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
 import {amountInMonth, potOf, summarizeMonth, transferTypeOf} from "../utils/budget.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
-import {card, cardTitle} from "../utils/ui.ts";
+import {card} from "../utils/ui.ts";
 
 export default function TransfersPage() {
     const data = useAppData();
@@ -69,8 +69,8 @@ export default function TransfersPage() {
                 ))}
             </div>
             <div className={card}>
-                <div className={cardTitle + " mb-3"}>{t('transfers.listTitle')}</div>
-                <EntryTable entries={listed} data={data} columns={["interval", "transfer", "transferType", "goal"]} emptyText={t('transfers.empty')}/>
+                <EntryTable entries={listed} data={data} columns={["interval", "transfer", "transferType", "goal"]}
+                            title={t('transfers.listTitle')} emptyText={t('transfers.empty')}/>
                 <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-3">{t('transfers.hint')}</p>
             </div>
         </div>

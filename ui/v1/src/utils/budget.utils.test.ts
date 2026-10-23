@@ -1,7 +1,7 @@
 import {describe, expect, it} from "vitest";
 import dayjs from "../lib/dayjs";
 import {BillingPeriodAnnually, BillingPeriodOneTime, TransferTypeMove, TransferTypeSaving, TransferTypeWithdrawal} from "../gen/types.gen.ts";
-import {amountInMonth, costOwner, defaultTransferType, summarizeGoals, summarizeMonth} from "./budget.utils.ts";
+import {amountInMonth, costOwner, defaultTransferType, matchesOwner, summarizeGoals, summarizeMonth} from "./budget.utils.ts";
 import {
     accounts, danny, dannyAccount, expense, friends, goal, groceries, income, joint, julia, juliaAccount, persons,
     savings, transfer,
@@ -145,6 +145,25 @@ describe("costOwner", () => {
         expect(costOwner(both, persons, accounts)).toBe("household");
         const withFriends = expense(10, {shares: [{person_id: 2, weight: 1}, {person_id: 3, weight: 2}]});
         expect(costOwner(withFriends, persons, accounts)).toBe(julia.id);
+    });
+});
+
+describe("matchesOwner", () => {
+    it("filters by the member an entry is assigned to", () => {
+        const spotifyJulia = expense(10, {account_id: joint.id, shares: [{person_id: julia.id, weight: 1}]});
+        const rent = expense(900, {account_id: joint.id});
+        expect(matchesOwner(spotifyJulia, julia.id, persons, accounts)).toBe(true);
+        expect(matchesOwner(spotifyJulia, danny.id, persons, accounts)).toBe(false);
+        expect(matchesOwner(spotifyJulia, "household", persons, accounts)).toBe(false);
+        expect(matchesOwner(rent, "household", persons, accounts)).toBe(true);
+        expect(matchesOwner(rent, "all", persons, accounts)).toBe(true);
+    });
+
+    it("matches transfers by the pots on both sides", () => {
+        const pocketMoney = transfer(100, joint, dannyAccount);
+        expect(matchesOwner(pocketMoney, danny.id, persons, accounts)).toBe(true);
+        expect(matchesOwner(pocketMoney, "household", persons, accounts)).toBe(true);
+        expect(matchesOwner(pocketMoney, julia.id, persons, accounts)).toBe(false);
     });
 });
 
