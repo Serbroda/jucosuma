@@ -6,7 +6,8 @@ import {colorSlots, icons, slotColor} from "../../lib/icons.ts";
 export function ColorPicker({value, onChange}: { value?: number | null; onChange: (slot: number | undefined) => void }) {
     const {t} = useTranslation();
     return (
-        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('categories.color')}>
+        // "no colour" plus 16 slots: two rows of nine
+        <div className="grid w-fit grid-cols-9 gap-2" role="radiogroup" aria-label={t('categories.color')}>
             {[undefined, ...colorSlots].map((slot) => (
                 <button
                     key={slot ?? 0}

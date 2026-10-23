@@ -476,6 +476,7 @@ const en = {
         insurance: "Insurance",
         telecom: "Phone & internet",
         subscriptions: "Subscriptions & streaming",
+        memberships: "Memberships & dues",
         leisure: "Leisure & restaurants",
         health: "Health",
         pets: "Pets",

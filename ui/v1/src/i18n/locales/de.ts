@@ -480,6 +480,7 @@ const de: Translation<typeof en> = {
         insurance: "Versicherungen",
         telecom: "Telefon & Internet",
         subscriptions: "Abos & Streaming",
+        memberships: "Beiträge & Mitgliedschaften",
         leisure: "Freizeit & Restaurants",
         health: "Gesundheit",
         pets: "Haustiere",

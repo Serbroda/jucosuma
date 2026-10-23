@@ -126,7 +126,7 @@
         @apply border-2 border-transparent drop-shadow rounded-xl p-2;
     }
 }
-/* Chart tokens: validated categorical palette (fixed slot order), light & dark steps */
+/* Chart tokens: categorical palette (fixed slot order), light & dark steps; slots 1-8 validated as a set */
 :root {
     --chart-1: #2a78d6;
     --chart-2: #eb6834;
@@ -136,6 +136,18 @@
     --chart-6: #008300;
     --chart-7: #4a3aa7;
     --chart-8: #e34948;
+    /* slots 9-16: more distinct colours for categories (cyan, brown, berry, lavender, purple, lime, petrol, coral) */
+    --chart-9: #16a7c4;
+    --chart-10: #955a2a;
+    --chart-11: #a3195b;
+    --chart-12: #9a9bf5;
+    --chart-13: #a453c0;
+    --chart-14: #7aa21a;
+    --chart-15: #0d7377;
+    --chart-16: #ff8f80;
+    /* reserved for money flows, never offered for categories */
+    --chart-savings: #14532d;
+    --chart-transfer: #6b7f99;
     --chart-other: #b4b2aa;
     --chart-neutral: #898781;
     --chart-ink: #0b0b0b;
@@ -155,6 +167,16 @@
     --chart-6: #008300;
     --chart-7: #9085e9;
     --chart-8: #e66767;
+    --chart-9: #199fbb;
+    --chart-10: #a0683a;
+    --chart-11: #b22b68;
+    --chart-12: #6347c4; /* swaps lightness with slot 7, which is lavender on dark */
+    --chart-13: #b360cf;
+    --chart-14: #779f14;
+    --chart-15: #16777b;
+    --chart-16: #e89a85;
+    --chart-savings: #4cc38a;
+    --chart-transfer: #8a9bb0;
     --chart-other: #5c5b56;
     --chart-neutral: #898781;
     --chart-ink: #ffffff;
