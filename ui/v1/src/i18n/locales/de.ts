@@ -321,7 +321,7 @@ const de: Translation<typeof en> = {
         sharedCosts: "Gemeinsam (nicht aufgeteilt)",
         vs: "vs. {{month}}",
         total: "Gesamt",
-        otherCategories: "Sonstige",
+        otherCategories: "Weitere Kategorien",
         moneyFlow: "Geldfluss",
         flowSummary: "{{income}} rein · {{rest}} verfügbar",
         noIncome: "Noch keine Einnahmen in diesem Monat – lege eine an, um zu sehen, wohin euer Geld fließt.",
