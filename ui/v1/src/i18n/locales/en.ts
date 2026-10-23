@@ -317,7 +317,7 @@ const en = {
         sharedCosts: "Shared (not split)",
         vs: "vs. {{month}}",
         total: "Total",
-        otherCategories: "Other",
+        otherCategories: "More categories",
         moneyFlow: "Money flow",
         flowSummary: "{{income}} in · {{rest}} available",
         noIncome: "No income in this month yet – add one to see where your money goes.",
