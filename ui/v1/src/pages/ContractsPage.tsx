@@ -18,7 +18,7 @@ import {splitText} from "../utils/budget.utils.ts";
 import {useTableFilter} from "../hooks/useTableFilter.ts";
 import {entryFilters, entrySearchText} from "../utils/entryFilters.ts";
 import {categoryLabel, daysUntil, isContractEntry, noticeLabel} from "../utils/household.utils.ts";
-import {billingPeriodLabel} from "../utils/data.utils.ts";
+import {entryIntervalLabel} from "../utils/data.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
 import {classNames, safeHref} from "../utils/dom.utils.ts";
 import {sendJson} from "../lib/api.ts";
@@ -179,7 +179,7 @@ export default function ContractsPage() {
                                 </td>
                                 <td className={classNames(td, "text-right tabular-nums whitespace-nowrap")}>
                                     <div className="font-medium text-zinc-950 dark:text-white">{format(c.costs ?? 0)}</div>
-                                    <div className="text-xs text-zinc-400 dark:text-zinc-500">{billingPeriodLabel(c.billing_period)}</div>
+                                    <div className="text-xs text-zinc-400 dark:text-zinc-500">{entryIntervalLabel(c)}</div>
                                 </td>
                                 <td className={classNames(td, "text-right tabular-nums hidden sm:table-cell")}>{format(yearly(c))}</td>
                                 <td className={classNames(td, "hidden md:table-cell")}>

@@ -17,6 +17,18 @@ export const BillingPeriodQuarterly: BillingPeriod = "quarterly";
 export const BillingPeriodSemiannual: BillingPeriod = "semiannually";
 export const BillingPeriodAnnually: BillingPeriod = "annually";
 export const BillingPeriodEveryTwoYears: BillingPeriod = "every_two_years";
+/**
+ * BillingPeriodCustom repeats every IntervalCount IntervalUnit, e.g. every 6 weeks.
+ */
+export const BillingPeriodCustom: BillingPeriod = "custom";
+/**
+ * IntervalUnit is the unit of a custom interval.
+ */
+export type IntervalUnit = string;
+export const IntervalUnitDays: IntervalUnit = "days";
+export const IntervalUnitWeeks: IntervalUnit = "weeks";
+export const IntervalUnitMonths: IntervalUnit = "months";
+export const IntervalUnitYears: IntervalUnit = "years";
 export type EntryKind = string;
 export const EntryKindExpense: EntryKind = "expense";
 export const EntryKindIncome: EntryKind = "income";
@@ -62,6 +74,8 @@ export interface ContractDto {
   customer_number?: string;
   contract_holder?: string;
   billing_period: string;
+  interval_count?: number /* int64 */;
+  interval_unit?: IntervalUnit;
   costs?: number /* float64 */;
   currency?: string;
   next_billing_date?: DateOnly;
@@ -108,6 +122,8 @@ export interface CreateContractDto {
   customer_number?: string;
   contract_holder?: string;
   billing_period: string;
+  interval_count?: number /* int64 */;
+  interval_unit?: string;
   costs?: number /* float64 */;
   currency?: string;
   next_billing_date?: DateOnly;
@@ -156,6 +172,8 @@ export interface UpdateContractDto {
   customer_number?: string;
   contract_holder?: string;
   billing_period: string;
+  interval_count?: number /* int64 */;
+  interval_unit?: string;
   costs?: number /* float64 */;
   currency?: string;
   next_billing_date?: DateOnly;

@@ -1,4 +1,4 @@
-import {BillingPeriodNone} from "../gen/types.gen.ts";
+import {BillingPeriodCustom, BillingPeriodNone, type ContractDto} from "../gen/types.gen.ts";
 import i18n from "../i18n";
 
 function billingPeriodLabel(period: string | undefined | null): string {
@@ -6,6 +6,15 @@ function billingPeriodLabel(period: string | undefined | null): string {
     if (period === BillingPeriodNone) return i18n.t('periods.none');
     const key = `periods.${period}`;
     return i18n.exists(key) ? i18n.t(key as 'periods.monthly') : period;
+}
+
+/** Interval of an entry as text, including custom intervals ("Every 6 weeks"). */
+function entryIntervalLabel(c: Pick<ContractDto, "billing_period" | "interval_count" | "interval_unit">): string {
+    if (c.billing_period === BillingPeriodCustom && c.interval_count && c.interval_unit) {
+        const key = `periods.every_${c.interval_unit}`;
+        return i18n.exists(`${key}_other`) ? i18n.t(key as 'periods.every_days', {count: c.interval_count}) : '';
+    }
+    return billingPeriodLabel(c.billing_period);
 }
 
 function billingPeriodShorthand(period: string | undefined | null): string {
@@ -115,4 +124,4 @@ function resizeImageFile(
     });
 }
 
-export {billingPeriodLabel, billingPeriodShorthand, fileToBase64}
+export {billingPeriodLabel, billingPeriodShorthand, entryIntervalLabel, fileToBase64}

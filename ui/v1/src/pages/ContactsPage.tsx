@@ -13,7 +13,7 @@ import {useAppData} from "../hooks/useAppData.ts";
 import {useTableFilter} from "../hooks/useTableFilter.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
 import {numberLocale} from "../utils/number.utils.ts";
-import {billingPeriodLabel} from "../utils/data.utils.ts";
+import {entryIntervalLabel} from "../utils/data.utils.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import {sendJson} from "../lib/api.ts";
 import {card, table, td, th, tr} from "../utils/ui.ts";
@@ -139,7 +139,7 @@ export default function ContactsPage() {
                                                                 {formatExact(c.costs ?? 0, c.currency)}
                                                             </span>
                                                             <span className="hidden sm:block w-28 text-xs text-zinc-400 dark:text-zinc-500">
-                                                                {billingPeriodLabel(c.billing_period)}
+                                                                {entryIntervalLabel(c)}
                                                             </span>
                                                         </NavLink>
                                                     </li>

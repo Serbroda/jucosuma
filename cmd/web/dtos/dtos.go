@@ -42,6 +42,18 @@ const (
 	BillingPeriodSemiannual    BillingPeriod = "semiannually"
 	BillingPeriodAnnually      BillingPeriod = "annually"
 	BillingPeriodEveryTwoYears BillingPeriod = "every_two_years"
+	// BillingPeriodCustom repeats every IntervalCount IntervalUnit, e.g. every 6 weeks.
+	BillingPeriodCustom BillingPeriod = "custom"
+)
+
+// IntervalUnit is the unit of a custom interval.
+type IntervalUnit string
+
+const (
+	IntervalUnitDays   IntervalUnit = "days"
+	IntervalUnitWeeks  IntervalUnit = "weeks"
+	IntervalUnitMonths IntervalUnit = "months"
+	IntervalUnitYears  IntervalUnit = "years"
 )
 
 type EntryKind string
@@ -107,6 +119,8 @@ type ContractDto struct {
 	CustomerNumber  *string             `json:"customer_number"`
 	ContractHolder  *string             `json:"contract_holder"`
 	BillingPeriod   string              `json:"billing_period"`
+	IntervalCount   *int64              `json:"interval_count"`
+	IntervalUnit    *IntervalUnit       `json:"interval_unit"`
 	Costs           *float64            `json:"costs"`
 	Currency        *string             `json:"currency"`
 	NextBillingDate *DateOnly           `json:"next_billing_date"`
@@ -154,6 +168,8 @@ type CreateContractDto struct {
 	CustomerNumber  *string    `json:"customer_number"`
 	ContractHolder  *string    `json:"contract_holder"`
 	BillingPeriod   string     `json:"billing_period"`
+	IntervalCount   *int64     `json:"interval_count"`
+	IntervalUnit    *string    `json:"interval_unit"`
 	Costs           *float64   `json:"costs"`
 	Currency        *string    `json:"currency"`
 	NextBillingDate *DateOnly  `json:"next_billing_date"`
@@ -197,6 +213,8 @@ type UpdateContractDto struct {
 	CustomerNumber  *string    `json:"customer_number"`
 	ContractHolder  *string    `json:"contract_holder"`
 	BillingPeriod   string     `json:"billing_period"`
+	IntervalCount   *int64     `json:"interval_count"`
+	IntervalUnit    *string    `json:"interval_unit"`
 	Costs           *float64   `json:"costs"`
 	Currency        *string    `json:"currency"`
 	NextBillingDate *DateOnly  `json:"next_billing_date"`

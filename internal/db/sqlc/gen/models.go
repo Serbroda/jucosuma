@@ -99,6 +99,8 @@ type Contract struct {
 	IsVariable      int64      `db:"is_variable"`
 	TransferType    *string    `db:"transfer_type"`
 	ContactID       *int64     `db:"contact_id"`
+	IntervalCount   *int64     `db:"interval_count"`
+	IntervalUnit    *string    `db:"interval_unit"`
 }
 
 type ContractAmount struct {

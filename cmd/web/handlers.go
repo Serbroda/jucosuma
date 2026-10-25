@@ -131,6 +131,10 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 		return nil, echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	contactID, company := entryContact(c, qtx, payload.ContactID, payload.Company)
+	billingPeriod, intervalCount, intervalUnit, err := billingInterval(payload.BillingPeriod, payload.IntervalCount, payload.IntervalUnit)
+	if err != nil {
+		return nil, echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
 
 	// 2) DB-Operation: Insert oder Update
 	var contract *sqlc.Contract
@@ -151,7 +155,9 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			ContractNumber:  payload.ContractNumber,
 			CustomerNumber:  payload.CustomerNumber,
 			ContractHolder:  utils.TrimToNil(payload.ContractHolder),
-			BillingPeriod:   strings.ToUpper(payload.BillingPeriod),
+			BillingPeriod:   billingPeriod,
+			IntervalCount:   intervalCount,
+			IntervalUnit:    intervalUnit,
 			Costs:           payload.Costs,
 			Currency:        payload.Currency,
 			NextBillingDate: (*time.Time)(payload.NextBillingDate),
@@ -218,7 +224,9 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 			ContractNumber:  payload.ContractNumber,
 			CustomerNumber:  payload.CustomerNumber,
 			ContractHolder:  utils.TrimToNil(payload.ContractHolder),
-			BillingPeriod:   strings.ToUpper(payload.BillingPeriod),
+			BillingPeriod:   billingPeriod,
+			IntervalCount:   intervalCount,
+			IntervalUnit:    intervalUnit,
 			Costs:           baseCosts,
 			Currency:        payload.Currency,
 			NextBillingDate: (*time.Time)(payload.NextBillingDate),

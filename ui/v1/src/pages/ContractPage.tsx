@@ -26,7 +26,7 @@ import {formatCurrency} from "../utils/number.utils.ts";
 import EntryIcon from "../components/EntryIcon.tsx";
 import AmountHistory from "../components/AmountHistory.tsx";
 import LineBreakParagraph from "../components/LineBreakParagraph.tsx";
-import {billingPeriodLabel} from "../utils/data.utils.ts";
+import {entryIntervalLabel} from "../utils/data.utils.ts";
 import {linkLabel, safeHref} from "../utils/dom.utils.ts";
 
 const statusColor = (status: string): "green" | "yellow" | "zinc" => {
@@ -219,7 +219,7 @@ export default function ContractPage() {
                         </DescriptionDetails>
                     </>}
                     <DescriptionTerm>{t('entryDetail.billingPeriod')}</DescriptionTerm>
-                    <DescriptionDetails>{billingPeriodLabel(c?.billing_period)}</DescriptionDetails>
+                    <DescriptionDetails>{c ? entryIntervalLabel(c) : ''}</DescriptionDetails>
                     {c?.costs != null && <>
                         <DescriptionTerm>{t('entryDetail.costs')}</DescriptionTerm>
                         <DescriptionDetails>

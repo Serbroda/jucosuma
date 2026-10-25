@@ -1,5 +1,5 @@
 import {
-    BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime, BillingPeriodWeekly,
+    BillingPeriodCustom, BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime, BillingPeriodWeekly, IntervalUnitWeeks,
     EntryKindExpense, EntryKindIncome, EntryKindTransfer,
     type AccountDto, type CategoryDto, type CompanyDto, type ContactDto, type ContractDto, type ContractHolderDto, type DocumentDto,
     type PersonDto, type SavingsGoalDto, type ShareDto
@@ -32,8 +32,9 @@ import EntryIcon from "./EntryIcon.tsx";
 import ContactFields from "./ContactFields.tsx";
 import {useDirtyForm} from "../hooks/useDirtyForm.ts";
 import IconButton from "./ui/IconButton.tsx";
-import {categoryLabel, type CostType, costTypeOf, defaultCostType, sharesForAccount, entryKinds, entryPeriods} from "../utils/household.utils.ts";
+import {categoryLabel, sortedByName, type CostType, costTypeOf, defaultCostType, sharesForAccount, entryKinds, entryPeriods} from "../utils/household.utils.ts";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
+import CustomIntervalFields from "./CustomIntervalFields.tsx";
 import {formatDecimal} from "../utils/number.utils.ts";
 import {Combobox, ComboboxLabel, ComboboxOption} from "./catalyst/combobox.tsx";
 import {useTranslation} from "react-i18next";
@@ -75,6 +76,8 @@ export default function ContractForm({contract, holders, companies, categories, 
     const [isPersonal, setIsPersonal] = useState(contract.owner_id != null);
     const [links, setLinks] = useState<EditableLink[]>((contract.links ?? []).map((l) => ({title: l.title, url: l.url})));
     const [nameError, setNameError] = useState('');
+    const [categoryError, setCategoryError] = useState('');
+    const [accountError, setAccountError] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
     const isBusy = state === 'submitting' || isDeleting;
     const errorRef = useRef<HTMLDivElement>(null);
@@ -105,6 +108,9 @@ export default function ContractForm({contract, holders, companies, categories, 
     });
     const [holdersWithInput, setHoldersWithInput] = useState<ContractHolderDto[]>(holders);
     const [billingPeriod, setBillingPeriod] = useState(contract.billing_period ?? BillingPeriodMonthly);
+    const [customInterval, setCustomInterval] = useState({
+        count: String(contract.interval_count ?? 2), unit: contract.interval_unit ?? IntervalUnitWeeks,
+    });
     // quarterly and longer: the start date is the anchor of the due dates, not just "since when"
     const irregular = ![BillingPeriodMonthly, BillingPeriodWeekly, BillingPeriodOneTime, BillingPeriodNone].includes(billingPeriod);
     const [showNextBillingOverride, setShowNextBillingOverride] = useState(false);
@@ -115,7 +121,7 @@ export default function ContractForm({contract, holders, companies, categories, 
     const [sharesTouched, setSharesTouched] = useState(isEdit);
     const [costType, setCostType] = useState<CostType>(isEdit
         ? costTypeOf({is_contract: Boolean(contract.is_contract), is_variable: Boolean(contract.is_variable)})
-        : defaultCostType(categories.find((c) => c.id === contract.category_id || (!contract.category_id && c.key === "other"))));
+        : defaultCostType(categories.find((c) => c.id === contract.category_id)));
     const isContract = costType === "contract";
     const [costTypeTouched, setCostTypeTouched] = useState(isEdit);
     // earner of an income; new entries follow the chosen account until set by hand
@@ -124,6 +130,7 @@ export default function ContractForm({contract, holders, companies, categories, 
     const [earnerTouched, setEarnerTouched] = useState(isEdit);
     // type of a transfer; follows accounts and goal until set by hand (older entries keep the derived type)
     const accountById = new Map(accounts.map((a) => [a.id, a]));
+    const sortedAccounts = sortedByName(accounts, (a) => a.name);
     const [transferAccounts, setTransferAccounts] = useState({
         from: contract.account_id ?? undefined, to: contract.target_account_id ?? undefined, goal: contract.goal_id ?? undefined,
     });
@@ -293,11 +300,27 @@ export default function ContractForm({contract, holders, companies, categories, 
                 onChange={check}
                 onSubmit={(e) => {
                     setNameError('');
+                    setCategoryError('');
+                    setAccountError('');
                     const formData = new FormData(e.currentTarget);
                     const name = (formData.get('name') as string)?.trim();
                     if (!name) {
                         e.preventDefault();
                         setNameError(t('entryForm.nameRequired'));
+                        return;
+                    }
+                    // expenses: the paying account is chosen actively, nothing is preselected
+                    if (isExpense && !formData.get('account_id')) {
+                        e.preventDefault();
+                        setAccountError(t('entry.errorAccount'));
+                        e.currentTarget.querySelector<HTMLSelectElement>('select[name="account_id"]')?.focus();
+                        return;
+                    }
+                    // the category is chosen actively, nothing is preselected (transfers have none)
+                    if (formData.has('category_id') && !formData.get('category_id')) {
+                        e.preventDefault();
+                        setCategoryError(t('entry.errorCategory'));
+                        e.currentTarget.querySelector<HTMLSelectElement>('select[name="category_id"]')?.focus();
                         return;
                     }
                     const startDate = (formData.get('start_date') as string)?.trim();
@@ -394,8 +417,13 @@ export default function ContractForm({contract, holders, companies, categories, 
                             onChange={(e) => setBillingPeriod(e.target.value)}
                         >
                             {entryPeriods.map((p) => <option key={p} value={p}>{billingPeriodLabel(p)}</option>)}
+                            <option value={BillingPeriodCustom}>{t('periods.custom')}</option>
                             <option value={BillingPeriodNone}>{t('periods.noCosts')}</option>
                         </Select>
+                        {billingPeriod === BillingPeriodCustom && (
+                            <CustomIntervalFields named count={customInterval.count} unit={customInterval.unit}
+                                                  onChange={(count, unit) => setCustomInterval({count, unit})}/>
+                        )}
                     </Field>
                 </div>
 
@@ -473,17 +501,19 @@ export default function ContractForm({contract, holders, companies, categories, 
 
                 <div className="grid grid-cols-2 gap-3">
                     <Field>
-                        <Label>{isExpense ? t('entry.paidFrom') : isTransfer ? t('entry.fromAccount') : t('entry.toAccount')}</Label>
-                        <Select name="account_id" defaultValue={contract.account_id ?? ""}
+                        <Label>{isExpense ? `${t('entry.paidFrom')} *` : isTransfer ? t('entry.fromAccount') : t('entry.toAccount')}</Label>
+                        <Select name="account_id" defaultValue={contract.account_id ?? ""} invalid={isExpense && !!accountError}
                                 onChange={(e) => {
+                                    if (accountError) setAccountError('');
                                     const id = Number(e.target.value) || null;
                                     if (!earnerTouched) setEarner(earnerOfAccount(id, accounts));
                                     if (!sharesTouched) setShares(sharesForAccount(id, accounts, persons));
                                     changeTransferAccounts({from: id ?? undefined});
                                 }}>
-                            <option value="">{t('common.noAccount')}</option>
-                            {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                            <option value="">{isExpense ? t('entry.chooseAccount') : t('common.noAccount')}</option>
+                            {sortedAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                         </Select>
+                        {isExpense && accountError && <ErrorMessage>{accountError}</ErrorMessage>}
                     </Field>
                     {isTransfer ? (
                         <Field>
@@ -491,27 +521,31 @@ export default function ContractForm({contract, holders, companies, categories, 
                             <Select name="target_account_id" defaultValue={contract.target_account_id ?? ""}
                                     onChange={(e) => changeTransferAccounts({to: Number(e.target.value) || undefined})}>
                                 <option value="">{t('common.noAccount')}</option>
-                                {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                {sortedAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                             </Select>
                         </Field>
                     ) : (
                         <Field>
-                            <Label>{t('entry.category')}</Label>
+                            <Label>{t('entry.category')} *</Label>
                             <Select
                                 name="category_id"
-                                defaultValue={contract.category_id ?? categories.find((c) => c.key === "other")?.id ?? ""}
+                                defaultValue={contract.category_id ?? ""}
+                                invalid={!!categoryError}
                                 onChange={(e) => {
+                                    if (categoryError) setCategoryError('');
                                     if (!costTypeTouched) {
                                         setCostType(defaultCostType(categories.find((c) => c.id === Number(e.target.value))));
                                     }
                                 }}
                             >
-                                {categories.filter((cat) => cat.type === kind || cat.id === contract.category_id).map((cat) => (
+                                <option value="">{t('entry.chooseCategory')}</option>
+                                {sortedByName(categories.filter((cat) => cat.type === kind || cat.id === contract.category_id), (cat) => categoryLabel(cat.name, cat.key)).map((cat) => (
                                     <option key={cat.id} value={cat.id}>
                                         {categoryLabel(cat.name, cat.key)}
                                     </option>
                                 ))}
                             </Select>
+                            {categoryError && <ErrorMessage>{categoryError}</ErrorMessage>}
                         </Field>
                     )}
                 </div>
@@ -522,7 +556,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                         <Select name="goal_id" defaultValue={contract.goal_id ?? ""}
                                 onChange={(e) => changeTransferAccounts({goal: Number(e.target.value) || undefined})}>
                             <option value="">{t('goals.noGoal')}</option>
-                            {goals.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                            {sortedByName(goals, (g) => g.name).map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                         </Select>
                     </Field>
                 )}

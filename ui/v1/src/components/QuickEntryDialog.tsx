@@ -17,11 +17,13 @@ import IconButton from "./ui/IconButton.tsx";
 import ChooseIconDialog from "./dialogs/ChooseIconDialog.tsx";
 import {defaultTransferType, earnerOfAccount, earnerShares, isSavingsAccount, type Pot} from "../utils/budget.utils.ts";
 import {
+    BillingPeriodCustom,
     BillingPeriodMonthly,
     BillingPeriodOneTime,
     EntryKindExpense,
     EntryKindIncome,
     EntryKindTransfer,
+    IntervalUnitWeeks,
     type AccountDto,
     type CategoryDto,
     type SavingsGoalDto,
@@ -30,7 +32,8 @@ import {
     type ShareDto,
 } from "../gen/types.gen.ts";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
-import {categoryLabel, type CostType, defaultCostType, sharesForAccount, entryKinds, entryPeriods, recallAccount, rememberAccount} from "../utils/household.utils.ts";
+import CustomIntervalFields from "./CustomIntervalFields.tsx";
+import {categoryLabel, type CostType, defaultCostType, sharesForAccount, entryKinds, entryPeriods, intervalCount, recallAccount, sortedByName, rememberAccount} from "../utils/household.utils.ts";
 import {parseAmount} from "../utils/number.utils.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import {apiBasePath} from "../config.ts";
@@ -63,6 +66,8 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
     const [name, setName] = useState("");
     const [amount, setAmount] = useState("");
     const [period, setPeriod] = useState<string>(BillingPeriodMonthly);
+    const [customInterval, setCustomInterval] = useState({count: "2", unit: IntervalUnitWeeks});
+    const isCustom = period === BillingPeriodCustom;
     const [startDate, setStartDate] = useState(dayjs().format("YYYY-MM-DD"));
     const [categoryId, setCategoryId] = useState<number | undefined>();
     const [costType, setCostType] = useState<CostType>("variable");
@@ -96,13 +101,8 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
     const [sharesTouched, setSharesTouched] = useState(false);
 
     /** Categories matching the entry kind; transfers have none. */
-    const categoriesFor = (forKind: string) => categories.filter((c) => c.type === forKind);
-    const defaultCategory = (forKind: string) => {
-        const options = categoriesFor(forKind);
-        const preferred = forKind === EntryKindIncome ? "salary" : "other";
-        return (options.find((c) => c.key === preferred) ?? options[0])?.id;
-    };
-
+    const categoriesFor = (forKind: string) =>
+        sortedByName(categories.filter((c) => c.type === forKind), (c) => categoryLabel(c.name, c.key));
     /** Picks a category and, unless set by hand, the matching "is contract" default. */
     const chooseCategory = (id: number | undefined, touched = costTypeTouched) => {
         setCategoryId(id);
@@ -114,11 +114,12 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
         setIconSource("");
         setTransferTypeTouched(false);
         setCostTypeTouched(false);
-        chooseCategory(defaultCategory(keepKind), false);
+        chooseCategory(undefined, false);
         setGoalId(undefined);
         setAmount("");
         setError("");
-        const recalled = recallAccount(keepKind, "from", accounts);
+        // expenses: the paying account is chosen actively, nothing is preselected
+        const recalled = keepKind === EntryKindExpense ? undefined : recallAccount(keepKind, "from", accounts);
         setAccountId(recalled);
         setTargetAccountId(recallAccount(keepKind, "to", accounts));
         setShares(initialShares(keepKind, recalled));
@@ -144,12 +145,12 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
 
     const changeKind = (value: string) => {
         setKind(value);
-        const recalled = recallAccount(value, "from", accounts);
+        const recalled = value === EntryKindExpense ? undefined : recallAccount(value, "from", accounts);
         setAccountId(recalled);
         setTargetAccountId(recallAccount(value, "to", accounts));
         setShares(initialShares(value, recalled));
         setSharesTouched(false);
-        chooseCategory(defaultCategory(value));
+        chooseCategory(undefined);
         setGoalId(undefined);
     };
 
@@ -164,6 +165,19 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
             setError(t('entry.errorAmount'));
             return null;
         }
+        if (isCustom && intervalCount(customInterval.count) == null) {
+            setError(t('entry.errorInterval'));
+            return null;
+        }
+        if (isExpense && accountId == null) {
+            setError(t('entry.errorAccount'));
+            return null;
+        }
+        // the category is chosen actively, nothing is preselected
+        if (!isTransfer && categoryId == null) {
+            setError(t('entry.errorCategory'));
+            return null;
+        }
         if (isTransfer && (accountId == null || targetAccountId == null || accountId === targetAccountId)) {
             setError(t('entry.errorTransfer'));
             return null;
@@ -175,6 +189,8 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
             kind,
             costs,
             billing_period: period,
+            interval_count: isCustom ? intervalCount(customInterval.count) : undefined,
+            interval_unit: isCustom ? customInterval.unit : undefined,
             start_date: startDate,
             // transfers get the server's default category
             category_id: isTransfer ? undefined : categoryId,
@@ -239,8 +255,8 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
 
     const accountOptions = (
         <>
-            <option value="">{t('common.noAccount')}</option>
-            {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            <option value="">{isExpense ? t('entry.chooseAccount') : t('common.noAccount')}</option>
+            {sortedByName(accounts, (a) => a.name).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
         </>
     );
 
@@ -310,7 +326,16 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                             <Label>{t('entry.interval')}</Label>
                             <Select value={period} onChange={(e) => setPeriod(e.target.value)}>
                                 {entryPeriods.map((p) => <option key={p} value={p}>{billingPeriodLabel(p)}</option>)}
+                                <option value={BillingPeriodCustom}>{t('periods.custom')}</option>
                             </Select>
+                            {isCustom && (
+                                <CustomIntervalFields count={customInterval.count} unit={customInterval.unit}
+                                                      invalid={error === t('entry.errorInterval')}
+                                                      onChange={(count, unit) => {
+                                                          setCustomInterval({count, unit});
+                                                          if (error === t('entry.errorInterval')) setError("");
+                                                      }}/>
+                            )}
                         </Field>
                         <Field>
                             <Label>{period === BillingPeriodOneTime ? t('entry.date') : t('entry.starting')}</Label>
@@ -321,9 +346,10 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                     <div className="grid gap-3 grid-cols-2">
                         <Field>
                             <Label>{isExpense ? t('entry.paidFrom') : isTransfer ? t('entry.fromAccount') : t('entry.toAccount')}</Label>
-                            <Select value={accountId ?? ""}
+                            <Select value={accountId ?? ""} invalid={isExpense && accountId == null && error === t('entry.errorAccount')}
                                     onChange={(e) => {
                                         const id = e.target.value ? Number(e.target.value) : undefined;
+                                        if (error === t('entry.errorAccount')) setError("");
                                         setAccountId(id);
                                         if (!earnerTouched) setEarner(earnerOfAccount(id, accounts));
                                         if (!sharesTouched && isExpense) setShares(sharesForAccount(id, accounts, persons));
@@ -343,7 +369,12 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                         {!isTransfer && (
                             <Field>
                                 <Label>{t('entry.category')}</Label>
-                                <Select value={categoryId ?? ""} onChange={(e) => chooseCategory(e.target.value ? Number(e.target.value) : undefined)}>
+                                <Select value={categoryId ?? ""} invalid={!isTransfer && categoryId == null && error === t('entry.errorCategory')}
+                                        onChange={(e) => {
+                                            chooseCategory(e.target.value ? Number(e.target.value) : undefined);
+                                            if (error === t('entry.errorCategory')) setError("");
+                                        }}>
+                                    <option value="">{t('entry.chooseCategory')}</option>
                                     {categoriesFor(kind).map((c) => <option key={c.id} value={c.id}>{categoryLabel(c.name, c.key)}</option>)}
                                 </Select>
                             </Field>
@@ -355,7 +386,7 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                             <Label>{t('goals.goal')}</Label>
                             <Select value={goalId ?? ""} onChange={(e) => setGoalId(e.target.value ? Number(e.target.value) : undefined)}>
                                 <option value="">{t('goals.noGoal')}</option>
-                                {goals.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                                {sortedByName(goals, (g) => g.name).map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                             </Select>
                         </Field>
                     )}

@@ -10,6 +10,7 @@ import {Textarea} from "./catalyst/textarea.tsx";
 import {Combobox, ComboboxDescription, ComboboxLabel, ComboboxOption} from "./catalyst/combobox.tsx";
 import ContactDialog from "./dialogs/ContactDialog.tsx";
 import type {CompanyDto, ContactDto, ContractDto} from "../gen/types.gen.ts";
+import {sortedByName} from "../utils/household.utils.ts";
 
 type ProviderOption = { name: string; contactId?: number };
 
@@ -40,10 +41,10 @@ export default function ContactFields({contract, companies, contacts}: {
 
     const byName = (name: string) => contacts.find((k) => k.name.trim().toLowerCase() === name.trim().toLowerCase());
     const contactNames = new Set(contacts.map((k) => k.name.trim().toLowerCase()));
-    const options: ProviderOption[] = [
+    const options: ProviderOption[] = sortedByName([
         ...contacts.map((k) => ({name: k.name, contactId: k.id})),
         ...companies.filter((c) => c.name && !contactNames.has(c.name.trim().toLowerCase())).map((c) => ({name: c.name})),
-    ];
+    ], (o) => o.name);
     if (provider.name.trim() && !options.some((o) => o.name === provider.name)) options.push({name: provider.name});
 
     const shown = contact ? [

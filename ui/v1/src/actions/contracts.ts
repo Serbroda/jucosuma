@@ -34,6 +34,9 @@ export const contractAction: ActionFunction = async ({request, params}) => {
         contract_holder: form.get("contract_holder") as string || undefined,
         costs: parseAmount(form.get("costs")),
         billing_period: form.get("billing_period") as string,
+        // only present for a custom interval ("every 6 weeks")
+        interval_count: form.has("interval_count") ? Number(form.get("interval_count")) : undefined,
+        interval_unit: form.get("interval_unit") as string || undefined,
         currency: form.get("currency") as string || undefined,
         next_billing_date: form.get("next_billing_date") as string || undefined,
         contact_person: form.get("contact_person") as string,

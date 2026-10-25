@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -483,6 +484,36 @@ func noticeUnit(period *int64, unit *string) *string {
 	}
 	u := strings.ToUpper(*unit)
 	return &u
+}
+
+// presetIntervals maps custom intervals that equal a preset to that preset.
+var presetIntervals = map[string]dtos.BillingPeriod{
+	"1 weeks": dtos.BillingPeriodWeekly, "1 months": dtos.BillingPeriodMonthly,
+	"3 months": dtos.BillingPeriodQuarterly, "6 months": dtos.BillingPeriodSemiannual,
+	"12 months": dtos.BillingPeriodAnnually, "24 months": dtos.BillingPeriodEveryTwoYears,
+	"1 years": dtos.BillingPeriodAnnually, "2 years": dtos.BillingPeriodEveryTwoYears,
+}
+
+// billingInterval converts the interval of an entry to its database columns. A custom interval is
+// kept in interval_count/interval_unit; billing_period then stays MONTHLY to satisfy its CHECK.
+func billingInterval(period string, count *int64, unit *string) (string, *int64, *string, error) {
+	if dtos.BillingPeriod(strings.ToLower(period)) != dtos.BillingPeriodCustom {
+		return strings.ToUpper(period), nil, nil, nil
+	}
+	if count == nil || *count < 1 || *count > 999 || unit == nil {
+		return "", nil, nil, fmt.Errorf("custom interval needs a count between 1 and 999 and a unit")
+	}
+	u := dtos.IntervalUnit(strings.ToLower(*unit))
+	switch u {
+	case dtos.IntervalUnitDays, dtos.IntervalUnitWeeks, dtos.IntervalUnitMonths, dtos.IntervalUnitYears:
+	default:
+		return "", nil, nil, fmt.Errorf("invalid interval unit %q", *unit)
+	}
+	if preset, ok := presetIntervals[fmt.Sprintf("%d %s", *count, u)]; ok {
+		return strings.ToUpper(string(preset)), nil, nil, nil
+	}
+	dbUnit := strings.ToUpper(string(u))
+	return strings.ToUpper(string(dtos.BillingPeriodMonthly)), count, &dbUnit, nil
 }
 
 // normalizeKind converts an API entry kind to its database representation.

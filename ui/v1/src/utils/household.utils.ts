@@ -47,6 +47,17 @@ export const entryPeriods = [
     BillingPeriodOneTime,
 ];
 
+/** Items sorted by their (displayed) name, for dropdowns: case-insensitive, numbers in natural order. */
+export function sortedByName<T>(items: T[], name: (item: T) => string): T[] {
+    return [...items].sort((a, b) => name(a).localeCompare(name(b), i18n.language, {sensitivity: "base", numeric: true}));
+}
+
+/** Valid count of a custom interval ("every 6 weeks"), or undefined. */
+export function intervalCount(value: string): number | undefined {
+    const n = Number(value);
+    return Number.isInteger(n) && n >= 1 && n <= 999 ? n : undefined;
+}
+
 export function accountTypes() {
     return [
         {value: AccountTypeChecking, label: i18n.t("accountTypes.checking")},

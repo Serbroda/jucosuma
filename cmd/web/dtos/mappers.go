@@ -42,6 +42,13 @@ func MapContractToContractDto(item sqlc.Contract) ContractDto {
 		UpdatedAt:       item.UpdatedAt,
 	}
 
+	if item.IntervalCount != nil && item.IntervalUnit != nil {
+		unit := IntervalUnit(strings.ToLower(*item.IntervalUnit))
+		dto.BillingPeriod = string(BillingPeriodCustom)
+		dto.IntervalCount = item.IntervalCount
+		dto.IntervalUnit = &unit
+	}
+
 	dto.IsContract = item.IsContract == 1
 	dto.IsVariable = item.IsVariable == 1
 	if item.TransferType != nil {
@@ -57,8 +64,9 @@ func MapContractToContractDto(item sqlc.Contract) ContractDto {
 	dto.TermEnd, dto.CancelBy = computeTerm(item.StartDate, item.EndDate, item.TermMonths, item.NoticePeriod, dto.NoticeUnit, today())
 
 	dto.Status = computeStatus(item.EndDate)
-	dto.NextBillingDate = computeNextBillingDate(item.NextBillingDate, item.StartDate, item.BillingPeriod)
-	dto.MonthlyAmount = computeMonthlyAmount(item.Costs, item.BillingPeriod)
+	interval := intervalOf(dto)
+	dto.NextBillingDate = computeNextBillingDate(item.NextBillingDate, item.StartDate, interval)
+	dto.MonthlyAmount = computeMonthlyAmount(item.Costs, interval)
 	applyHouseholdShare(&dto, nil, nil)
 
 	return dto
@@ -87,7 +95,7 @@ func ApplyAmounts(dto *ContractDto, amounts []sqlc.ContractAmount) {
 		}
 	}
 	dto.Costs = current
-	dto.MonthlyAmount = computeMonthlyAmount(current, strings.ToUpper(dto.BillingPeriod))
+	dto.MonthlyAmount = computeMonthlyAmount(current, intervalOf(*dto))
 	dto.MonthlyCosts = nil
 	if dto.MonthlyAmount != nil {
 		monthly := *dto.MonthlyAmount * dto.HouseholdShare
@@ -195,9 +203,53 @@ func subtractNotice(t time.Time, notice int64, unit NoticeUnit) time.Time {
 	}
 }
 
-func computeNextBillingDate(stored *time.Time, startDate time.Time, billingPeriod string) *DateOnly {
-	period := strings.ToLower(billingPeriod)
-	if period == string(BillingPeriodNone) || period == string(BillingPeriodOneTime) {
+// interval is how often an entry repeats: every count days or months. A zero count means it does
+// not repeat (one-time, no costs).
+type interval struct {
+	count int
+	days  bool
+}
+
+func (i interval) recurring() bool { return i.count > 0 }
+
+// intervalOf returns the interval of an entry, presets and custom intervals alike.
+func intervalOf(dto ContractDto) interval {
+	if BillingPeriod(dto.BillingPeriod) == BillingPeriodCustom {
+		if dto.IntervalCount == nil || dto.IntervalUnit == nil || *dto.IntervalCount < 1 {
+			return interval{}
+		}
+		n := int(*dto.IntervalCount)
+		switch *dto.IntervalUnit {
+		case IntervalUnitDays:
+			return interval{count: n, days: true}
+		case IntervalUnitWeeks:
+			return interval{count: 7 * n, days: true}
+		case IntervalUnitYears:
+			return interval{count: 12 * n}
+		default:
+			return interval{count: n}
+		}
+	}
+	switch BillingPeriod(strings.ToLower(dto.BillingPeriod)) {
+	case BillingPeriodWeekly:
+		return interval{count: 7, days: true}
+	case BillingPeriodMonthly:
+		return interval{count: 1}
+	case BillingPeriodQuarterly:
+		return interval{count: 3}
+	case BillingPeriodSemiannual:
+		return interval{count: 6}
+	case BillingPeriodAnnually:
+		return interval{count: 12}
+	case BillingPeriodEveryTwoYears:
+		return interval{count: 24}
+	default:
+		return interval{}
+	}
+}
+
+func computeNextBillingDate(stored *time.Time, startDate time.Time, period interval) *DateOnly {
+	if !period.recurring() {
 		return nil
 	}
 
@@ -216,60 +268,28 @@ func computeNextBillingDate(stored *time.Time, startDate time.Time, billingPerio
 	// Normalize start_date to UTC midnight
 	next := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
 	for next.Before(td) {
-		next = addBillingPeriod(next, period)
+		next = period.addTo(next)
 	}
 	d := DateOnly(next)
 	return &d
 }
 
-func addBillingPeriod(t time.Time, period string) time.Time {
-	switch period {
-	case string(BillingPeriodWeekly):
-		return t.AddDate(0, 0, 7)
-	case string(BillingPeriodMonthly):
-		return t.AddDate(0, 1, 0)
-	case string(BillingPeriodQuarterly):
-		return t.AddDate(0, 3, 0)
-	case string(BillingPeriodSemiannual):
-		return t.AddDate(0, 6, 0)
-	case string(BillingPeriodAnnually):
-		return t.AddDate(1, 0, 0)
-	case string(BillingPeriodEveryTwoYears):
-		return t.AddDate(2, 0, 0)
-	default:
-		return t.AddDate(0, 1, 0)
+func (i interval) addTo(t time.Time) time.Time {
+	if i.days {
+		return t.AddDate(0, 0, i.count)
 	}
+	return t.AddDate(0, i.count, 0)
 }
 
-func computeMonthlyAmount(costs *float64, billingPeriod string) *float64 {
-	if costs == nil || *costs == 0 {
+func computeMonthlyAmount(costs *float64, period interval) *float64 {
+	if costs == nil || *costs == 0 || !period.recurring() {
 		return nil
 	}
-	period := strings.ToLower(billingPeriod)
-	if period == string(BillingPeriodNone) {
-		return nil
+	// days: 52 weeks a year, so weekly stays 52/12 per month
+	factor := 1.0 / float64(period.count)
+	if period.days {
+		factor = 52.0 * 7.0 / 12.0 / float64(period.count)
 	}
-
-	var factor float64
-	switch period {
-	case string(BillingPeriodOneTime):
-		return nil
-	case string(BillingPeriodWeekly):
-		factor = 52.0 / 12.0
-	case string(BillingPeriodMonthly):
-		factor = 1.0
-	case string(BillingPeriodQuarterly):
-		factor = 1.0 / 3.0
-	case string(BillingPeriodSemiannual):
-		factor = 1.0 / 6.0
-	case string(BillingPeriodAnnually):
-		factor = 1.0 / 12.0
-	case string(BillingPeriodEveryTwoYears):
-		factor = 1.0 / 24.0
-	default:
-		return nil
-	}
-
 	monthly := *costs * factor
 	return &monthly
 }

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/Serbroda/contracts/cmd/web/dtos"
@@ -74,9 +73,12 @@ func (app *application) importContractsJSON(c echo.Context) error {
 
 	imported := 0
 	for _, p := range contracts {
-		billingPeriod := strings.ToUpper(p.BillingPeriod)
-		if billingPeriod == "" {
-			billingPeriod = "NONE"
+		if p.BillingPeriod == "" {
+			p.BillingPeriod = string(dtos.BillingPeriodNone)
+		}
+		billingPeriod, intervalCount, intervalUnit, err := billingInterval(p.BillingPeriod, p.IntervalCount, p.IntervalUnit)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "'"+p.Name+"': "+err.Error())
 		}
 
 		targetAccountID, goalID := p.TargetAccountID, p.GoalID
@@ -105,6 +107,8 @@ func (app *application) importContractsJSON(c echo.Context) error {
 			CustomerNumber:  p.CustomerNumber,
 			ContractHolder:  p.ContractHolder,
 			BillingPeriod:   billingPeriod,
+			IntervalCount:   intervalCount,
+			IntervalUnit:    intervalUnit,
 			Costs:           importBaseCosts(p),
 			Currency:        p.Currency,
 			NextBillingDate: (*time.Time)(p.NextBillingDate),

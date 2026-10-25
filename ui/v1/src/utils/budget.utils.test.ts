@@ -1,7 +1,7 @@
 import {describe, expect, it} from "vitest";
 import dayjs from "../lib/dayjs";
-import {BillingPeriodAnnually, BillingPeriodOneTime, BillingPeriodQuarterly, TransferTypeMove, TransferTypeSaving, TransferTypeWithdrawal} from "../gen/types.gen.ts";
-import {amountInMonth, costOwner, defaultTransferType, matchesOwner, summarizeGoals, summarizeMonth, summarizeReserves} from "./budget.utils.ts";
+import {BillingPeriodAnnually, BillingPeriodCustom, BillingPeriodOneTime, BillingPeriodQuarterly, IntervalUnitMonths, IntervalUnitWeeks, TransferTypeMove, TransferTypeSaving, TransferTypeWithdrawal} from "../gen/types.gen.ts";
+import {amountInMonth, costOwner, defaultTransferType, intervalMonths, matchesOwner, summarizeGoals, summarizeMonth, summarizeReserves} from "./budget.utils.ts";
 import {
     accounts, danny, dannyAccount, expense, friends, goal, groceries, income, joint, julia, juliaAccount, persons,
     savings, transfer,
@@ -23,6 +23,20 @@ describe("amountInMonth", () => {
         const purchase = expense(500, {billing_period: BillingPeriodOneTime, start_date: "2026-10-20"});
         expect(amountInMonth(purchase, oct, "average")).toBe(500);
         expect(amountInMonth(purchase, dayjs("2026-11-01"), "average")).toBe(0);
+    });
+
+    it("handles custom intervals in days and months", () => {
+        const hairdresser = expense(40, {billing_period: BillingPeriodCustom, interval_count: 6, interval_unit: IntervalUnitWeeks, start_date: "2026-09-01"});
+        expect(amountInMonth(hairdresser, oct, "average")).toBeCloseTo(40 * 52 / 12 / 6);
+        expect(amountInMonth(hairdresser, oct, "due")).toBe(40); // 13 Oct
+        expect(amountInMonth(hairdresser, dayjs("2026-11-01"), "due")).toBe(40); // 24 Nov
+        expect(amountInMonth(hairdresser, dayjs("2026-12-01"), "due")).toBe(0);
+        expect(intervalMonths(hairdresser)).toBeCloseTo(6 * 7 * 12 / 364);
+
+        const everyTwoMonths = expense(30, {billing_period: BillingPeriodCustom, interval_count: 2, interval_unit: IntervalUnitMonths, start_date: "2026-08-15"});
+        expect(amountInMonth(everyTwoMonths, oct, "average")).toBe(15);
+        expect(amountInMonth(everyTwoMonths, oct, "due")).toBe(30);
+        expect(amountInMonth(everyTwoMonths, dayjs("2026-11-01"), "due")).toBe(0);
     });
 
     it("respects start and end date", () => {
@@ -194,6 +208,18 @@ describe("summarizeReserves", () => {
         ]);
         expect(r.monthly).toBe(20);
         expect(r.saved).toBe(80);
+    });
+
+    it("saves up custom intervals of three months and longer, not short ones", () => {
+        const everyFourMonths = expense(120, {billing_period: BillingPeriodCustom, interval_count: 4, interval_unit: IntervalUnitMonths,
+            start_date: "2026-08-01", account_id: joint.id});
+        const everySixWeeks = expense(40, {billing_period: BillingPeriodCustom, interval_count: 6, interval_unit: IntervalUnitWeeks,
+            start_date: "2026-09-01", account_id: joint.id});
+        const result = reserves([everyFourMonths, everySixWeeks]);
+        expect(result.items.map((i) => i.entry)).toEqual([everyFourMonths]);
+        expect(result.items[0].due.format("YYYY-MM")).toBe("2026-12");
+        expect(result.monthly).toBe(30);
+        expect(result.saved).toBe(30);
     });
 
     it("follows the pot, the household share and the end date", () => {

@@ -12,7 +12,7 @@ import {GoalKindInvesting, GoalKindSaving, type AccountDto, type ContractDto, ty
 import {Button} from "../catalyst/button.tsx";
 import {PlusIcon} from "@heroicons/react/16/solid";
 import {usePreferences} from "../../stores/usePreferences.ts";
-import {billingPeriodLabel} from "../../utils/data.utils.ts";
+import {entryIntervalLabel} from "../../utils/data.utils.ts";
 import {formatDecimal, numberLocale, parseAmount} from "../../utils/number.utils.ts";
 import {sendJson} from "../../lib/api.ts";
 import dayjs from "../../lib/dayjs";
@@ -143,7 +143,7 @@ export default function GoalDialog({open, onClose, goal, persons, accounts, coun
                                 <li key={c.id} className="flex items-center justify-between gap-3 py-1.5">
                                     <span className="truncate text-zinc-700 dark:text-zinc-300">{c.name}</span>
                                     <span className="shrink-0 tabular-nums text-zinc-950 dark:text-white">
-                                        {format(c.costs ?? 0)} <span className="text-zinc-400 dark:text-zinc-500">{billingPeriodLabel(c.billing_period)}</span>
+                                        {format(c.costs ?? 0)} <span className="text-zinc-400 dark:text-zinc-500">{entryIntervalLabel(c)}</span>
                                     </span>
                                 </li>
                             ))}

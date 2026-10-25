@@ -2,6 +2,7 @@ import type {Dayjs} from "dayjs";
 import dayjs from "../lib/dayjs";
 import {
     BillingPeriodAnnually,
+    BillingPeriodCustom,
     BillingPeriodEveryTwoYears,
     BillingPeriodMonthly,
     BillingPeriodNone,
@@ -12,6 +13,9 @@ import {
     EntryKindExpense,
     EntryKindIncome,
     EntryKindTransfer,
+    IntervalUnitDays,
+    IntervalUnitWeeks,
+    IntervalUnitYears,
     TransferTypeMove,
     TransferTypeSaving,
     TransferTypeWithdrawal,
@@ -36,6 +40,30 @@ const periodInMonths: Record<string, number> = {
     [BillingPeriodAnnually]: 12,
     [BillingPeriodEveryTwoYears]: 24,
 };
+
+/** How often an entry repeats: every `count` days or every `count` months. */
+export type Interval = { count: number; days: boolean };
+
+/** Interval of a recurring entry, presets and custom intervals alike; undefined if it does not repeat. */
+export function intervalOf(c: Pick<ContractDto, "billing_period" | "interval_count" | "interval_unit">): Interval | undefined {
+    if (c.billing_period === BillingPeriodWeekly) return {count: 7, days: true};
+    if (c.billing_period === BillingPeriodCustom) {
+        const n = c.interval_count ?? 0;
+        if (n < 1) return undefined;
+        if (c.interval_unit === IntervalUnitDays) return {count: n, days: true};
+        if (c.interval_unit === IntervalUnitWeeks) return {count: 7 * n, days: true};
+        return {count: c.interval_unit === IntervalUnitYears ? 12 * n : n, days: false};
+    }
+    const months = periodInMonths[c.billing_period];
+    return months ? {count: months, days: false} : undefined;
+}
+
+/** Rough length of an entry's interval in months, e.g. to sort by it; Infinity if it does not repeat. */
+export function intervalMonths(c: Pick<ContractDto, "billing_period" | "interval_count" | "interval_unit">): number {
+    const interval = intervalOf(c);
+    if (!interval) return Infinity;
+    return interval.days ? interval.count * 12 / 364 : interval.count;
+}
 
 /** Accounts flagged as savings (any type, e.g. a checking account used as buffer). */
 export function isSavingsAccount(account: AccountDto | undefined): boolean {
@@ -69,19 +97,21 @@ function occurrencesInMonth(c: ContractDto, month: Dayjs): number {
         return inRange(start) ? 1 : 0;
     }
 
-    if (c.billing_period === BillingPeriodWeekly) {
+    const interval = intervalOf(c);
+    if (!interval) return 0;
+    const step = interval.count;
+
+    if (interval.days) {
         let count = 0;
-        const weeksToMonth = Math.max(0, Math.floor(monthStart.diff(start, "day") / 7));
-        for (let d = start.add(weeksToMonth * 7, "day"); !d.isAfter(monthEnd); d = d.add(7, "day")) {
+        const stepsToMonth = Math.max(0, Math.floor(monthStart.diff(start, "day") / step));
+        for (let d = start.add(stepsToMonth * step, "day"); !d.isAfter(monthEnd); d = d.add(step, "day")) {
             if (inRange(d)) count++;
         }
         return count;
     }
 
-    const period = periodInMonths[c.billing_period];
-    if (!period) return 0;
     const diff = monthStart.diff(start.startOf("month"), "month");
-    if (diff < 0 || diff % period !== 0) return 0;
+    if (diff < 0 || diff % step !== 0) return 0;
     return inRange(start.add(diff, "month")) ? 1 : 0;
 }
 
@@ -103,11 +133,11 @@ export function costsAt(c: ContractDto, date: Dayjs): number | undefined {
     return costs;
 }
 
-/** Factor from one payment to its average per month. */
-function monthlyFactor(period: string): number {
-    if (period === BillingPeriodWeekly) return 52 / 12;
-    const months = periodInMonths[period];
-    return months ? 1 / months : 0;
+/** Factor from one payment to its average per month (52 weeks a year, so weekly is 52/12). */
+function monthlyFactor(c: ContractDto): number {
+    const interval = intervalOf(c);
+    if (!interval) return 0;
+    return interval.days ? 52 * 7 / 12 / interval.count : 1 / interval.count;
 }
 
 /** Full amount of an entry in the given month (before applying cost shares). */
@@ -118,7 +148,7 @@ export function amountInMonth(c: ContractDto, month: Dayjs, mode: MonthMode): nu
     if (c.billing_period === BillingPeriodOneTime || mode === "due") {
         return costs * occurrencesInMonth(c, month);
     }
-    return isActiveInMonth(c, month) ? costs * monthlyFactor(c.billing_period) : 0;
+    return isActiveInMonth(c, month) ? costs * monthlyFactor(c) : 0;
 }
 
 /**
@@ -441,8 +471,10 @@ export function summarizeReserves(contracts: ContractDto[], accounts: AccountDto
     const start = month.startOf("month");
     const items: ReserveItem[] = [];
     for (const c of contracts) {
-        const period = periodInMonths[c.billing_period];
-        if (c.kind !== EntryKindExpense || !period || period < 3) continue;
+        const interval = intervalOf(c);
+        // month based intervals only: payments every few weeks are covered by the monthly budget
+        const period = interval && !interval.days ? interval.count : 0;
+        if (c.kind !== EntryKindExpense || period < 3) continue;
         if (c.currency && c.currency !== mainCurrency) continue;
         const pot = potOf(accounts.find((a) => a.id === c.account_id));
         if (scope !== "all" && pot !== scope) continue;

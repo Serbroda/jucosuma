@@ -12,26 +12,24 @@ import {Badge} from "./catalyst/badge.tsx";
 import Tooltip from "./Tooltip.tsx";
 import type {Dayjs} from "dayjs";
 import {
-    BillingPeriodAnnually, BillingPeriodEveryTwoYears, BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime,
-    BillingPeriodQuarterly, BillingPeriodSemiannual, BillingPeriodWeekly, EntryKindTransfer, TransferTypeSaving, TransferTypeWithdrawal, type ContractDto,
+    BillingPeriodMonthly, BillingPeriodNone, EntryKindTransfer, TransferTypeSaving, TransferTypeWithdrawal, type ContractDto,
 } from "../gen/types.gen.ts";
-
-/** Order of billing periods when sorting by interval (shortest first). */
-const periodOrder = [BillingPeriodWeekly, BillingPeriodMonthly, BillingPeriodQuarterly, BillingPeriodSemiannual,
-    BillingPeriodAnnually, BillingPeriodEveryTwoYears, BillingPeriodOneTime, BillingPeriodNone];
 import type {AppData} from "../hooks/useAppData.ts";
-import {amountInMonth, type Pot, potOf, splitText, costOwner, transferTypeOf} from "../utils/budget.utils.ts";
+import {amountInMonth, intervalMonths, type Pot, potOf, splitText, costOwner, transferTypeOf} from "../utils/budget.utils.ts";
 import {useTableFilter} from "../hooks/useTableFilter.ts";
 import {entryFilters, entrySearchText} from "../utils/entryFilters.ts";
 import {accountName, categoryLabel, goalStyle} from "../utils/household.utils.ts";
 import {useSort} from "../utils/sort.utils.ts";
 import SortableTh from "./ui/SortableTh.tsx";
-import {billingPeriodLabel} from "../utils/data.utils.ts";
+import {entryIntervalLabel} from "../utils/data.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
 import {table, td, th, tr} from "../utils/ui.ts";
 import {sendJson} from "../lib/api.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
 import {classNames} from "../utils/dom.utils.ts";
+
+/** "Alle 6 Wochen" → "alle 6 Wochen": only the first letter, nouns keep their capital. */
+const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
 
 export type EntryColumn = "interval" | "earner" | "account" | "transfer" | "transferType" | "split" | "person" | "category" | "goal";
 
@@ -77,7 +75,7 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
     const {sorted, sort, toggle} = useSort(`entries:${sortId ?? columns.join(",")}`, filtered, {
         name: (c) => c.name,
         amount: (c) => amountOf(c),
-        interval: (c) => periodOrder.indexOf(c.billing_period),
+        interval: (c) => c.billing_period === BillingPeriodNone ? Infinity : intervalMonths(c),
         earner: earnerLabel,
         account: (c) => accountName(c.account_id, data.accounts),
         transfer: (c) => `${accountName(c.account_id, data.accounts) ?? ""} ${accountName(c.target_account_id, data.accounts) ?? ""}`,
@@ -139,14 +137,14 @@ export default function EntryTable({entries, data, columns, emptyText, amountTon
                             <td className={classNames(td, "text-right tabular-nums whitespace-nowrap font-medium",
                                 amountTone === "income" ? "text-green-700 dark:text-green-400" : "text-zinc-950 dark:text-white")}>
                                 {perMonth && c.billing_period !== BillingPeriodMonthly ? (
-                                    <Tooltip text={`${format(c.costs ?? 0, c.currency)} ${billingPeriodLabel(c.billing_period).toLowerCase()}`}>
+                                    <Tooltip text={`${format(c.costs ?? 0, c.currency)} ${lowerFirst(entryIntervalLabel(c))}`}>
                                         <span className="cursor-help underline decoration-dotted decoration-zinc-400 underline-offset-4">
                                             {format(amountOf(c), c.currency)}
                                         </span>
                                     </Tooltip>
                                 ) : format(amountOf(c), c.currency)}
                             </td>
-                            {has("interval") && <td className={classNames(td, "hidden md:table-cell whitespace-nowrap")}>{billingPeriodLabel(c.billing_period)}</td>}
+                            {has("interval") && <td className={classNames(td, "hidden md:table-cell whitespace-nowrap")}>{entryIntervalLabel(c)}</td>}
                             {has("earner") && (
                                 <td className={classNames(td, "hidden sm:table-cell whitespace-nowrap")}>
                                     {(() => {
