@@ -160,6 +160,11 @@ const en = {
         saveAndNew: "Save & new",
     },
     entryForm: {
+        unsaved: "Unsaved changes",
+        unsavedTitle: "Discard changes?",
+        unsavedMessage: "This entry has changes that are not saved yet. They are lost if you leave the page.",
+        discard: "Discard",
+        keepEditing: "Keep editing",
         sectionContract: "Contract",
         sectionProvider: "Provider & contact",
         sectionDocuments: "Documents & links",
@@ -278,7 +283,10 @@ const en = {
         notLinked: "Only for this entry.",
         saveAsContact: "Save as contact",
         manage: "Manage contacts",
-        overrideHint: "Empty fields use the contact's data. What you enter here applies to this entry only.",
+        onlyThisEntry: "this entry only",
+        noData: "The contact has no data yet.",
+        override: "Different for this entry …",
+        overrideHint: "Different details for this entry only. Empty fields use the contact's data.",
         fromContact: "from contact {{name}}",
     },
     overview: {

@@ -30,6 +30,7 @@ import LinksEditor, {type EditableLink} from "./LinksEditor.tsx";
 import {costOwner, defaultTransferType, earnerOfAccount, earnerShares, isSavingsAccount, type Pot} from "../utils/budget.utils.ts";
 import EntryIcon from "./EntryIcon.tsx";
 import ContactFields from "./ContactFields.tsx";
+import {useDirtyForm} from "../hooks/useDirtyForm.ts";
 import IconButton from "./ui/IconButton.tsx";
 import {categoryLabel, type CostType, costTypeOf, defaultCostType, sharesForAccount, entryKinds, entryPeriods} from "../utils/household.utils.ts";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
@@ -77,6 +78,12 @@ export default function ContractForm({contract, holders, companies, categories, 
     const [isDeleting, setIsDeleting] = useState(false);
     const isBusy = state === 'submitting' || isDeleting;
     const errorRef = useRef<HTMLDivElement>(null);
+    const formRef = useRef<HTMLFormElement>(null);
+    const {dirty, check, blocker, allowLeave} = useDirtyForm(formRef);
+    // back to idle on this page (e.g. saving failed): leaving it asks again
+    useEffect(() => {
+        if (state === "idle") allowLeave(false);
+    }, [state, allowLeave]);
 
     useEffect(() => {
         if (error && errorRef.current) {
@@ -175,6 +182,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                 method: "DELETE",
             });
             if (res.ok) {
+                allowLeave();
                 navigation("/entries");
             }
         } finally {
@@ -204,6 +212,44 @@ export default function ContractForm({contract, holders, companies, categories, 
         setConfirmDialogProps({...confirmDialogProps, isOpen: false});
     }
 
+    const deleteButton = (
+        <Button
+            type="button"
+            color="red"
+            disabled={isBusy}
+            onClick={() => openConfirmDialog({
+                title: t('entryForm.deleteEntryTitle'),
+                message: t('entryForm.deleteEntryMessage'),
+                submitLabel: t('common.delete'),
+                cancelLabel: t('common.cancel'),
+                onSubmit: deleteContract.bind(null),
+            })}
+            className="w-full lg:w-auto hover:cursor-pointer"
+        >
+            {t('common.delete')}
+        </Button>
+    );
+    const cancelButton = (className: string) => (
+        <Button
+            type="button"
+            plain
+            disabled={isBusy}
+            onClick={() => navigation(isEdit ? `/contracts/${contract.id}` : "/entries")}
+            className={classNames(className, "hover:cursor-pointer")}
+        >
+            {t('common.cancel')}
+        </Button>
+    );
+    const saveButton = (className: string) => (
+        <Button
+            type="submit"
+            disabled={isBusy}
+            className={classNames(className, "hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed")}
+        >
+            {state === 'submitting' ? t('common.saving') : t('common.save')}
+        </Button>
+    );
+
     return (
         <>
             <ChooseIconDialog
@@ -228,10 +274,23 @@ export default function ContractForm({contract, holders, companies, categories, 
                 }}
             />
 
+            <ConfirmDialog
+                isOpen={blocker.state === "blocked"}
+                title={t('entryForm.unsavedTitle')}
+                message={t('entryForm.unsavedMessage')}
+                submitLabel={t('entryForm.discard')}
+                cancelLabel={t('entryForm.keepEditing')}
+                onClose={() => blocker.reset?.()}
+                onSubmit={async () => blocker.proceed?.()}
+            />
+
             <Form
+                ref={formRef}
                 method="post"
                 encType="multipart/form-data"
                 className="grid grid-cols-1 gap-4"
+                onInput={check}
+                onChange={check}
                 onSubmit={(e) => {
                     setNameError('');
                     const formData = new FormData(e.currentTarget);
@@ -246,6 +305,8 @@ export default function ContractForm({contract, holders, companies, categories, 
                         e.preventDefault();
                         return;
                     }
+                    // saving redirects to the entry
+                    allowLeave();
                 }}
             >
                 {error && (
@@ -699,43 +760,32 @@ export default function ContractForm({contract, holders, companies, categories, 
                     </Field>
                 </FormSection>
 
-                {/* Actions as in the dialogs: delete on the left, cancel and save on the right (save on top on phones) */}
-                <div className="flex flex-col-reverse lg:flex-row mt-6 gap-4 lg:gap-2">
-                    {isEdit && (
-                        <Button
-                            type="button"
-                            color="red"
-                            disabled={isBusy}
-                            onClick={() => openConfirmDialog({
-                                title: t('entryForm.deleteEntryTitle'),
-                                message: t('entryForm.deleteEntryMessage'),
-                                submitLabel: t('common.delete'),
-                                cancelLabel: t('common.cancel'),
-                                onSubmit: deleteContract.bind(null),
-                            })}
-                            className="w-full lg:w-auto hover:cursor-pointer"
-                        >
-                            {t('common.delete')}
-                        </Button>
-                    )}
-                    <div className="hidden lg:block lg:grow"/>
-                    <Button
-                        type="button"
-                        plain
-                        disabled={isBusy}
-                        onClick={() => navigation(isEdit ? `/contracts/${contract.id}` : "/entries")}
-                        className="w-full lg:w-auto hover:cursor-pointer"
-                    >
-                        {t('common.cancel')}
-                    </Button>
-                    <Button
-                        type="submit"
-                        disabled={isBusy}
-                        className="w-full lg:w-auto hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {state === 'submitting' ? t('common.saving') : t('common.save')}
-                    </Button>
-                </div>
+                {/* Actions as in the dialogs: delete on the left, cancel and save on the right (save on top on phones).
+                    With unsaved changes cancel and save float at the bottom of the screen with a hint (also on
+                    phones); delete stays in place at the end of the form. */}
+                {dirty ? (
+                    <>
+                        <div className="sticky bottom-3 z-20 mt-6 flex flex-col sm:flex-row sm:items-center gap-2 rounded-xl border border-amber-300 dark:border-amber-500/40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur px-3 py-2 shadow-lg">
+                            <span role="status" className="grow min-w-0 inline-flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-400">
+                                <span className="size-2 shrink-0 rounded-full bg-amber-500"/>
+                                <span className="truncate">{t('entryForm.unsaved')}</span>
+                            </span>
+                            {/* phones: hint above, buttons stacked like the normal actions (save on top) */}
+                            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:shrink-0">
+                                {cancelButton("w-full sm:w-auto")}
+                                {saveButton("w-full sm:w-auto")}
+                            </div>
+                        </div>
+                        {isEdit && <div className="flex">{deleteButton}</div>}
+                    </>
+                ) : (
+                    <div className="flex flex-col-reverse lg:flex-row mt-6 gap-4 lg:gap-2">
+                        {isEdit && deleteButton}
+                        <div className="hidden lg:block lg:grow"/>
+                        {cancelButton("w-full lg:w-auto")}
+                        {saveButton("w-full lg:w-auto")}
+                    </div>
+                )}
             </Form>
         </>
     );

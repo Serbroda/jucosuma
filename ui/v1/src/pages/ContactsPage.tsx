@@ -1,7 +1,7 @@
-import {useEffect, useState} from "react";
-import {useRevalidator, useSearchParams} from "react-router";
+import {Fragment, useEffect, useState} from "react";
+import {NavLink, useRevalidator, useSearchParams} from "react-router";
 import {useTranslation} from "react-i18next";
-import {PlusIcon} from "@heroicons/react/20/solid";
+import {ChevronRightIcon, PlusIcon} from "@heroicons/react/20/solid";
 import PageHeader from "../components/ui/PageHeader.tsx";
 import RowActions from "../components/ui/RowActions.tsx";
 import TableToolbar from "../components/ui/TableToolbar.tsx";
@@ -13,6 +13,7 @@ import {useAppData} from "../hooks/useAppData.ts";
 import {useTableFilter} from "../hooks/useTableFilter.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
 import {numberLocale} from "../utils/number.utils.ts";
+import {billingPeriodLabel} from "../utils/data.utils.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import {sendJson} from "../lib/api.ts";
 import {card, table, td, th, tr} from "../utils/ui.ts";
@@ -27,6 +28,12 @@ export default function ContactsPage() {
     const revalidator = useRevalidator();
     const [searchParams, setSearchParams] = useSearchParams();
     const [editing, setEditing] = useState<ContactDto | null | undefined>(undefined);
+    const [expanded, setExpanded] = useState<Set<number>>(new Set());
+    const toggleExpanded = (id: number) => {
+        const next = new Set(expanded);
+        if (next.has(id)) next.delete(id); else next.add(id);
+        setExpanded(next);
+    };
 
     // ?edit=<id> opens a contact directly (link from an entry)
     useEffect(() => {
@@ -39,6 +46,8 @@ export default function ContactsPage() {
     }, [searchParams, data.contacts, setSearchParams]);
 
     const format = (v: number) => new Intl.NumberFormat(numberLocale(), {style: "currency", currency: mainCurrency, maximumFractionDigits: 0}).format(v);
+    const formatExact = (v: number, currency?: string | null) =>
+        new Intl.NumberFormat(numberLocale(), {style: "currency", currency: currency || mainCurrency}).format(v);
     const entriesOf = (contact: ContactDto) => data.contracts.filter((c) => c.contact_id === contact.id);
     const yearly = (contact: ContactDto) => entriesOf(contact)
         .filter((c) => c.kind === EntryKindExpense && c.status !== "expired" && (!c.currency || c.currency === mainCurrency))
@@ -69,7 +78,7 @@ export default function ContactsPage() {
                             <SortableTh sortKey="name" sort={sort} onSort={toggle} className={classNames(th, "pl-5")}>{t('common.name')}</SortableTh>
                             <SortableTh sortKey="person" sort={sort} onSort={toggle} className={classNames(th, "hidden md:table-cell")}>{t('entryForm.contactPerson')}</SortableTh>
                             <SortableTh sortKey="phone" sort={sort} onSort={toggle} className={classNames(th, "hidden lg:table-cell")}>{t('entryForm.phone')}</SortableTh>
-                            <SortableTh sortKey="entries" sort={sort} onSort={toggle} className={classNames(th, "text-right hidden sm:table-cell")} align="right">{t('contacts.entries')}</SortableTh>
+                            <SortableTh sortKey="entries" sort={sort} onSort={toggle} className={classNames(th, "text-right")} align="right">{t('contacts.entries')}</SortableTh>
                             <SortableTh sortKey="yearly" sort={sort} onSort={toggle} className={classNames(th, "text-right whitespace-nowrap")} align="right">{t('contacts.perYear')}</SortableTh>
                             <th className={classNames(th, "w-10 pr-5")}/>
                         </tr>
@@ -79,7 +88,8 @@ export default function ContactsPage() {
                             const entries = entriesOf(contact);
                             const sum = yearly(contact);
                             return (
-                                <tr key={contact.id} className={tr}>
+                                <Fragment key={contact.id}>
+                                <tr className={tr}>
                                     <td className={classNames(td, "pl-5 w-full max-w-0")}>
                                         <button onClick={() => setEditing(contact)} className="flex w-full min-w-0 items-center gap-3 text-left hover:cursor-pointer">
                                             <EntryIcon name={contact.name} icon={contact.icon_source} className="size-8"/>
@@ -95,8 +105,14 @@ export default function ContactsPage() {
                                     <td className={classNames(td, "hidden lg:table-cell whitespace-nowrap tabular-nums")}>
                                         {contact.phone ? <a href={`tel:${contact.phone.replace(/[^\d+]/g, "")}`} className="hover:underline">{contact.phone}</a> : "–"}
                                     </td>
-                                    <td className={classNames(td, "text-right hidden sm:table-cell tabular-nums")}>
-                                        {entries.length || "–"}
+                                    <td className={classNames(td, "text-right tabular-nums")}>
+                                        {entries.length > 0 ? (
+                                            <button onClick={() => toggleExpanded(contact.id)} aria-expanded={expanded.has(contact.id)}
+                                                    className="inline-flex items-center gap-1 hover:cursor-pointer hover:text-zinc-950 dark:hover:text-white">
+                                                {entries.length}
+                                                <ChevronRightIcon className={classNames("size-4 transition-transform", expanded.has(contact.id) ? "rotate-90" : "")}/>
+                                            </button>
+                                        ) : "–"}
                                     </td>
                                     <td className={classNames(td, "text-right tabular-nums font-medium text-zinc-950 dark:text-white whitespace-nowrap")}>
                                         {sum > 0 ? format(sum) : "–"}
@@ -108,6 +124,31 @@ export default function ContactsPage() {
                                         }}/>
                                     </td>
                                 </tr>
+                                {expanded.has(contact.id) && (
+                                    <tr>
+                                        <td colSpan={6} className="px-5 pb-3">
+                                            <ul className="flex flex-col gap-1 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 p-2">
+                                                {entries.map((c) => (
+                                                    <li key={c.id}>
+                                                        <NavLink to={`/contracts/${c.id}`}
+                                                                 className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-white dark:hover:bg-zinc-800">
+                                                            <EntryIcon name={c.name} icon={c.icon_source}
+                                                                       category={data.categories.find((cat) => cat.id === c.category_id)} className="size-6"/>
+                                                            <span className="grow truncate text-sm text-zinc-950 dark:text-white">{c.name}</span>
+                                                            <span className="text-sm tabular-nums text-zinc-950 dark:text-white whitespace-nowrap">
+                                                                {formatExact(c.costs ?? 0, c.currency)}
+                                                            </span>
+                                                            <span className="hidden sm:block w-28 text-xs text-zinc-400 dark:text-zinc-500">
+                                                                {billingPeriodLabel(c.billing_period)}
+                                                            </span>
+                                                        </NavLink>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                )}
+                                </Fragment>
                             );
                         })}
                         {sorted.length === 0 && (

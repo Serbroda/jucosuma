@@ -164,6 +164,11 @@ const de: Translation<typeof en> = {
         saveAndNew: "Speichern & neu",
     },
     entryForm: {
+        unsaved: "Ungespeicherte Änderungen",
+        unsavedTitle: "Änderungen verwerfen?",
+        unsavedMessage: "Du hast Änderungen an diesem Posten, die noch nicht gespeichert sind. Wenn du die Seite verlässt, gehen sie verloren.",
+        discard: "Verwerfen",
+        keepEditing: "Weiter bearbeiten",
         sectionContract: "Vertrag",
         sectionProvider: "Anbieter & Kontakt",
         sectionDocuments: "Dokumente & Links",
@@ -282,7 +287,10 @@ const de: Translation<typeof en> = {
         notLinked: "Nur für diesen Posten.",
         saveAsContact: "Als Kontakt speichern",
         manage: "Kontakte verwalten",
-        overrideHint: "Leere Felder übernehmen die Daten des Kontakts. Was du hier einträgst, gilt nur für diesen Posten.",
+        onlyThisEntry: "nur dieser Posten",
+        noData: "Beim Kontakt sind noch keine Daten hinterlegt.",
+        override: "Für diesen Posten abweichend …",
+        overrideHint: "Abweichende Angaben nur für diesen Posten. Leere Felder übernehmen die Daten des Kontakts.",
         fromContact: "aus Kontakt {{name}}",
     },
     overview: {
