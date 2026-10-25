@@ -1,7 +1,7 @@
 import {useActionData, useLoaderData} from "react-router";
 import {Heading} from "../components/catalyst/heading.tsx";
 import {Divider} from "../components/catalyst/divider.tsx";
-import type {AccountDto, CategoryDto, CompanyDto, ContractDto, ContractHolderDto, PersonDto, SavingsGoalDto} from "../gen/types.gen.ts";
+import type {AccountDto, CategoryDto, CompanyDto, ContactDto, ContractDto, ContractHolderDto, PersonDto, SavingsGoalDto} from "../gen/types.gen.ts";
 import ContractForm from "../components/ContractForm.tsx";
 import {useEffect} from "react";
 import {useTranslation} from "react-i18next";
@@ -16,7 +16,7 @@ type ActionData = {
 };
 
 export default function ContractFormPage({mode}: ContractPageProps) {
-    const data = useLoaderData() as { contract?: ContractDto, holders?: ContractHolderDto[], companies?: CompanyDto[], categories?: CategoryDto[], persons?: PersonDto[], accounts?: AccountDto[], goals?: SavingsGoalDto[] } | undefined;
+    const data = useLoaderData() as { contract?: ContractDto, holders?: ContractHolderDto[], companies?: CompanyDto[], categories?: CategoryDto[], persons?: PersonDto[], accounts?: AccountDto[], goals?: SavingsGoalDto[], contacts?: ContactDto[] } | undefined;
     const contract: ContractDto = data?.contract ?? ({} as ContractDto);
     const holders: ContractHolderDto[] = data?.holders ?? [];
     const companies: CompanyDto[] = data?.companies ?? [];
@@ -45,6 +45,7 @@ export default function ContractFormPage({mode}: ContractPageProps) {
                 persons={persons}
                 accounts={accounts}
                 goals={data?.goals ?? []}
+                contacts={data?.contacts ?? []}
                 mode={mode}
                 error={actionData?.error}/>
         </div>

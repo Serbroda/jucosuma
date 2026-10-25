@@ -1,7 +1,7 @@
 import {
     BillingPeriodMonthly, BillingPeriodNone, BillingPeriodOneTime, BillingPeriodWeekly,
     EntryKindExpense, EntryKindIncome, EntryKindTransfer,
-    type AccountDto, type CategoryDto, type CompanyDto, type ContractDto, type ContractHolderDto, type DocumentDto,
+    type AccountDto, type CategoryDto, type CompanyDto, type ContactDto, type ContractDto, type ContractHolderDto, type DocumentDto,
     type PersonDto, type SavingsGoalDto, type ShareDto
 } from "../gen/types.gen.ts";
 import {Description, Field, Label} from "./catalyst/fieldset.tsx";
@@ -29,6 +29,7 @@ import TransferTypeControl from "./TransferTypeControl.tsx";
 import LinksEditor, {type EditableLink} from "./LinksEditor.tsx";
 import {costOwner, defaultTransferType, earnerOfAccount, earnerShares, isSavingsAccount, type Pot} from "../utils/budget.utils.ts";
 import EntryIcon from "./EntryIcon.tsx";
+import ContactFields from "./ContactFields.tsx";
 import IconButton from "./ui/IconButton.tsx";
 import {categoryLabel, type CostType, costTypeOf, defaultCostType, sharesForAccount, entryKinds, entryPeriods} from "../utils/household.utils.ts";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
@@ -44,6 +45,7 @@ export interface ContractFormProps {
     persons: PersonDto[];
     accounts: AccountDto[];
     goals?: SavingsGoalDto[];
+    contacts?: ContactDto[];
     mode?: 'add' | 'edit';
     error?: string;
 }
@@ -63,7 +65,7 @@ function FormSection({title, defaultOpen, children}: { title: string; defaultOpe
     );
 }
 
-export default function ContractForm({contract, holders, companies, categories, persons, accounts, goals = [], mode = 'add', error}: ContractFormProps) {
+export default function ContractForm({contract, holders, companies, categories, persons, accounts, goals = [], contacts = [], mode = 'add', error}: ContractFormProps) {
     const navigation = useNavigate();
     const {t} = useTranslation();
     const {state} = useNavigation();
@@ -95,7 +97,6 @@ export default function ContractForm({contract, holders, companies, categories, 
         },
     });
     const [holdersWithInput, setHoldersWithInput] = useState<ContractHolderDto[]>(holders);
-    const [companiesWithInput, setCompaniesWithInput] = useState<CompanyDto[]>(companies);
     const [billingPeriod, setBillingPeriod] = useState(contract.billing_period ?? BillingPeriodMonthly);
     // quarterly and longer: the start date is the anchor of the due dates, not just "since when"
     const irregular = ![BillingPeriodMonthly, BillingPeriodWeekly, BillingPeriodOneTime, BillingPeriodNone].includes(billingPeriod);
@@ -128,7 +129,7 @@ export default function ContractForm({contract, holders, companies, categories, 
         setTransferAccounts(next);
         if (!transferTypeTouched) setTransferType(deriveTransferType(next));
     };
-    const hasProvider = Boolean(contract.company || contract.website || contract.contact_person || contract.contact_address
+    const hasProvider = Boolean(contract.company || contract.contact_id || contract.website || contract.contact_person || contract.contact_address
         || contract.contact_phone || contract.contact_email);
     const hasDocuments = Boolean(contract.documents?.length || contract.links?.length);
 
@@ -603,60 +604,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                 </div>
 
                 <FormSection title={t('entryForm.sectionProvider')} defaultOpen={hasProvider || (isExpense && isContract)}>
-                    <Field>
-                        <Label>{t('entryForm.company')}</Label>
-                        <Combobox
-                            name="company"
-                            options={companiesWithInput}
-                            onInputChange={(e) => {
-                                setCompaniesWithInput([...companies, {name: e.target.value}])
-                            }}
-                            displayValue={(c) => c?.name}
-                            defaultValue={{name: contract.company || ''}}>
-                            {(c) => (
-                                <ComboboxOption value={c}>
-                                    <ComboboxLabel>{c.name}</ComboboxLabel>
-                                </ComboboxOption>
-                            )}
-                        </Combobox>
-                    </Field>
-                    <Field>
-                        <Label>{t('entryForm.website')}</Label>
-                        <Input
-                            name="website"
-                            inputMode="url"
-                            placeholder="https://www.…"
-                            defaultValue={contract.website ?? ""}
-                        />
-                    </Field>
-                    <Field>
-                        <Label>{t('entryForm.contactPerson')}</Label>
-                        <Input
-                            name="contact_person"
-                            defaultValue={contract.contact_person ?? ""}
-                        />
-                    </Field>
-                    <Field>
-                        <Label>{t('entryForm.address')}</Label>
-                        <Textarea
-                            name="contact_address"
-                            defaultValue={contract.contact_address ?? ""}
-                        />
-                    </Field>
-                    <Field>
-                        <Label>{t('entryForm.phone')}</Label>
-                        <Input
-                            name="contact_phone"
-                            defaultValue={contract.contact_phone ?? ""}
-                        />
-                    </Field>
-                    <Field>
-                        <Label>{t('entryForm.email')}</Label>
-                        <Input
-                            name="contact_email"
-                            defaultValue={contract.contact_email ?? ""}
-                        />
-                    </Field>
+                    <ContactFields contract={contract} companies={companies} contacts={contacts}/>
                 </FormSection>
 
                 <FormSection title={t('entryForm.sectionDocuments')} defaultOpen={hasDocuments}>

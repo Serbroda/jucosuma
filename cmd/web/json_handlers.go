@@ -23,6 +23,9 @@ func (app *application) exportContractsJSON(ctx echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
+	if err := app.withContactData(ctx.Request().Context(), contractDtos); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
 
 	ctx.Response().Header().Set("Content-Type", "application/json")
 	ctx.Response().Header().Set("Content-Disposition", "attachment; filename=contracts.json")

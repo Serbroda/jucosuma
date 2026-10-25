@@ -36,6 +36,7 @@ func MapContractToContractDto(item sqlc.Contract) ContractDto {
 		AccountID:       item.AccountID,
 		TargetAccountID: item.TargetAccountID,
 		GoalID:          item.GoalID,
+		ContactID:       item.ContactID,
 		Shares:          []ShareDto{},
 		CreatedAt:       item.CreatedAt,
 		UpdatedAt:       item.UpdatedAt,
@@ -297,6 +298,22 @@ func MapContractHolderToContractHolderDto(item *string) ContractHolderDto {
 func MapCompanyToCompanyDto(item *string) CompanyDto {
 	return CompanyDto{
 		Name: *item,
+	}
+}
+
+func MapContactToContactDto(c sqlc.Contact) ContactDto {
+	return ContactDto{
+		ID:            c.ID,
+		Name:          c.Name,
+		IconSource:    c.IconSource,
+		ContactPerson: c.ContactPerson,
+		Address:       c.Address,
+		Phone:         c.Phone,
+		Email:         c.Email,
+		Website:       c.Website,
+		Notes:         c.Notes,
+		CreatedAt:     c.CreatedAt,
+		UpdatedAt:     c.UpdatedAt,
 	}
 }
 

@@ -9,6 +9,7 @@ export default function SettingsLayout() {
         {to: "/settings", label: t('settings.tabGeneral'), end: true},
         {to: "/settings/categories", label: t('nav.categories')},
         {to: "/settings/persons", label: t('settings.tabPersons')},
+        {to: "/settings/contacts", label: t('settings.tabContacts')},
     ];
     return (
         <div className="flex flex-col gap-6">

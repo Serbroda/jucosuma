@@ -46,6 +46,21 @@ type Category struct {
 	Icon      *string    `db:"icon"`
 }
 
+type Contact struct {
+	ID            int64      `db:"id"`
+	Name          string     `db:"name"`
+	IconSource    *string    `db:"icon_source"`
+	ContactPerson *string    `db:"contact_person"`
+	Address       *string    `db:"address"`
+	Phone         *string    `db:"phone"`
+	Email         *string    `db:"email"`
+	Website       *string    `db:"website"`
+	Notes         *string    `db:"notes"`
+	CreatedAt     *time.Time `db:"created_at"`
+	UpdatedAt     *time.Time `db:"updated_at"`
+	DeletedAt     *time.Time `db:"deleted_at"`
+}
+
 type Contract struct {
 	ID              int64      `db:"id"`
 	Name            string     `db:"name"`
@@ -83,6 +98,7 @@ type Contract struct {
 	Website         *string    `db:"website"`
 	IsVariable      int64      `db:"is_variable"`
 	TransferType    *string    `db:"transfer_type"`
+	ContactID       *int64     `db:"contact_id"`
 }
 
 type ContractAmount struct {

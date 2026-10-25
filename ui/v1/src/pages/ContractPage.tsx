@@ -1,10 +1,10 @@
 import {costOwner} from "../utils/budget.utils.ts";
-import {useLoaderData} from "react-router";
+import {NavLink, useLoaderData} from "react-router";
 import {Heading, Subheading} from "../components/catalyst/heading.tsx";
 import {Divider} from "../components/catalyst/divider.tsx";
-import type {AccountDto, ContractDto, PersonDto} from "../gen/types.gen.ts";
+import type {AccountDto, ContactDto, ContractDto, PersonDto} from "../gen/types.gen.ts";
 import {BillingPeriodNone, BillingPeriodOneTime, EntryKindExpense, EntryKindIncome, EntryKindTransfer} from "../gen/types.gen.ts";
-import {accountName, categoryLabel, costTypeOf, entryKindLabel, noticeLabel} from "../utils/household.utils.ts";
+import {accountName, categoryLabel, costTypeOf, entryContact, entryKindLabel, noticeLabel} from "../utils/household.utils.ts";
 import {useTranslation} from "react-i18next";
 import {
     BanknotesIcon,
@@ -47,7 +47,7 @@ const HeaderDetails = ({icon, info}: { icon: ReactNode, info: string }) => (
 const iconClass = "size-4 fill-zinc-400 dark:fill-zinc-500";
 
 export default function ContractPage() {
-    const data = useLoaderData() as { contract: ContractDto, persons: PersonDto[], accounts: AccountDto[] } | undefined;
+    const data = useLoaderData() as { contract: ContractDto, persons: PersonDto[], accounts: AccountDto[], contacts: ContactDto[] } | undefined;
     const c = data?.contract;
     const {t, i18n} = useTranslation();
     const persons = data?.persons ?? [];
@@ -55,8 +55,10 @@ export default function ContractPage() {
     const totalWeight = c?.shares.reduce((sum, s) => sum + s.weight, 0) ?? 0;
 
     const hasRecurringBilling = c?.billing_period && c.billing_period !== BillingPeriodNone && c.billing_period !== BillingPeriodOneTime;
-    const hasContact = c?.website || c?.contact_person || c?.contact_address || c?.contact_phone || c?.contact_email;
-    const website = safeHref(c?.website);
+    const contactData = c ? entryContact(c, data?.contacts ?? []) : undefined;
+    const hasContact = contactData && (contactData.contact || contactData.website || contactData.person || contactData.address
+        || contactData.phone || contactData.email);
+    const website = safeHref(contactData?.website);
     const links = (c?.links ?? []).filter((l) => safeHref(l.url));
 
     useEffect(() => {
@@ -122,7 +124,14 @@ export default function ContractPage() {
                 <DescriptionList>
                     {c?.company && <>
                         <DescriptionTerm>{t('entryForm.company')}</DescriptionTerm>
-                        <DescriptionDetails>{c.company}</DescriptionDetails>
+                        <DescriptionDetails>
+                            {contactData?.contact ? (
+                                <NavLink to={`/settings/contacts?edit=${contactData.contact.id}`}
+                                         className="text-blue-600 dark:text-blue-400 hover:underline">
+                                    {c.company}
+                                </NavLink>
+                            ) : c.company}
+                        </DescriptionDetails>
                     </>}
                     <DescriptionTerm>{t('entry.category')}</DescriptionTerm>
                     <DescriptionDetails>{c ? categoryLabel(c.category, c.category_key) : ""}</DescriptionDetails>
@@ -255,23 +264,27 @@ export default function ContractPage() {
                                 </a>
                             </DescriptionDetails>
                         </>}
-                        {c?.contact_person && <>
+                        {contactData?.person && <>
                             <DescriptionTerm>{t('entryForm.contactPerson')}</DescriptionTerm>
-                            <DescriptionDetails>{c.contact_person}</DescriptionDetails>
+                            <DescriptionDetails>{contactData.person}</DescriptionDetails>
                         </>}
-                        {c?.contact_address && <>
+                        {contactData?.address && <>
                             <DescriptionTerm>{t('entryForm.address')}</DescriptionTerm>
                             <DescriptionDetails>
-                                <LineBreakParagraph text={c.contact_address}/>
+                                <LineBreakParagraph text={contactData.address}/>
                             </DescriptionDetails>
                         </>}
-                        {c?.contact_phone && <>
+                        {contactData?.phone && <>
                             <DescriptionTerm>{t('entryForm.phone')}</DescriptionTerm>
-                            <DescriptionDetails>{c.contact_phone}</DescriptionDetails>
+                            <DescriptionDetails>
+                                <a href={`tel:${contactData.phone.replace(/[^\d+]/g, "")}`} className="hover:underline">{contactData.phone}</a>
+                            </DescriptionDetails>
                         </>}
-                        {c?.contact_email && <>
+                        {contactData?.email && <>
                             <DescriptionTerm>{t('entryForm.email')}</DescriptionTerm>
-                            <DescriptionDetails>{c.contact_email}</DescriptionDetails>
+                            <DescriptionDetails>
+                                <a href={`mailto:${contactData.email}`} className="text-blue-600 dark:text-blue-400 hover:underline">{contactData.email}</a>
+                            </DescriptionDetails>
                         </>}
                     </DescriptionList>
                 </>}

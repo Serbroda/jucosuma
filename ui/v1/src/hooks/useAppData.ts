@@ -2,6 +2,7 @@ import {useLoaderData} from "react-router";
 import type {
     AccountDto,
     CategoryDto,
+    ContactDto,
     ContractDto,
     MonthClosingDto,
     PersonDto,
@@ -15,6 +16,7 @@ export type AppData = {
     categories: CategoryDto[];
     goals: SavingsGoalDto[];
     closings: MonthClosingDto[];
+    contacts: ContactDto[];
 };
 
 /** Typed access to the data loaded by `contractsLoader`. */

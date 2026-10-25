@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
 import {EntryKindIncome} from "../gen/types.gen.ts";
-import {defaultCostType, sharesForAccount, withAutoColors} from "./household.utils.ts";
+import {defaultCostType, entryContact, sharesForAccount, withAutoColors} from "./household.utils.ts";
 import {accounts, category, dannyAccount, expense, groceries, insurance, joint, persons, transport} from "../test/fixtures.ts";
 
 describe("defaultCostType", () => {
@@ -37,5 +37,20 @@ describe("withAutoColors", () => {
     it("counts slots per entry type", () => {
         const income = {...category(5, "salary"), type: EntryKindIncome, color: 1};
         expect(withAutoColors([income, category(6, "custom")])[1].color).toBe(1);
+    });
+});
+
+describe("entryContact", () => {
+    const lvm = {id: 1, name: "LVM", phone: "0251 1", website: "https://lvm.de", contact_person: "Herr Müller"};
+
+    it("prefers the entry's own data and falls back to the contact", () => {
+        const result = entryContact({contact_id: 1, contact_phone: "0251 999", website: " "}, [lvm]);
+        expect(result).toMatchObject({contact: lvm, phone: "0251 999", website: "https://lvm.de", person: "Herr Müller"});
+    });
+
+    it("works without a contact", () => {
+        expect(entryContact({website: "https://x.de"}, [lvm])).toEqual({
+            contact: undefined, website: "https://x.de", person: undefined, address: undefined, phone: undefined, email: undefined,
+        });
     });
 });

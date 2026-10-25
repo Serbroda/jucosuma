@@ -80,6 +80,7 @@ export interface ContractDto {
   target_account_id?: number /* int64 */;
   goal_id?: number /* int64 */;
   transfer_type?: TransferType;
+  contact_id?: number /* int64 */;
   shares: ShareDto[];
   household_share: number /* float64 */;
   monthly_amount?: number /* float64 */;
@@ -124,6 +125,7 @@ export interface CreateContractDto {
   target_account_id?: number /* int64 */;
   goal_id?: number /* int64 */;
   transfer_type?: string;
+  contact_id?: number /* int64 */;
   shares: ShareDto[];
   /**
    * Links replaces all links of the entry; nil keeps the existing ones.
@@ -171,6 +173,7 @@ export interface UpdateContractDto {
   target_account_id?: number /* int64 */;
   goal_id?: number /* int64 */;
   transfer_type?: string;
+  contact_id?: number /* int64 */;
   shares: ShareDto[];
 }
 export interface DocumentDto {
@@ -186,6 +189,32 @@ export interface UpdateDocumentDto {
 }
 export interface ContractHolderDto {
   name: string;
+}
+/**
+ * ContactDto is a contact (provider, insurer, landlord, …) that entries link to for their contact data.
+ */
+export interface ContactDto {
+  id: number /* int64 */;
+  name: string;
+  icon_source?: string;
+  contact_person?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  notes?: string;
+  created_at?: string /* RFC3339 */;
+  updated_at?: string /* RFC3339 */;
+}
+export interface SaveContactDto {
+  name: string;
+  icon_source?: string;
+  contact_person?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  notes?: string;
 }
 export interface CompanyDto {
   name: string;

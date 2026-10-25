@@ -130,13 +130,15 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 	if err != nil {
 		return nil, echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
+	contactID, company := entryContact(c, qtx, payload.ContactID, payload.Company)
 
 	// 2) DB-Operation: Insert oder Update
 	var contract *sqlc.Contract
 	if id == nil {
 		inserted, err := qtx.InsertContract(ctx, sqlc.InsertContractParams{
 			Name:            payload.Name,
-			Company:         payload.Company,
+			Company:         company,
+			ContactID:       contactID,
 			Category:        categoryName,
 			CategoryID:      categoryID,
 			IsContract:      boolToInt64(payload.IsContract && kind == "EXPENSE"),
@@ -202,7 +204,8 @@ func (app *application) upsertContract(c echo.Context, id *int64) (*sqlc.Contrac
 		err = qtx.UpdateContractById(ctx, sqlc.UpdateContractByIdParams{
 			ID:              *id,
 			Name:            payload.Name,
-			Company:         payload.Company,
+			Company:         company,
+			ContactID:       contactID,
 			Category:        categoryName,
 			CategoryID:      categoryID,
 			IsContract:      boolToInt64(payload.IsContract && kind == "EXPENSE"),
@@ -327,8 +330,11 @@ func (app *application) exportContractsCSV(ctx echo.Context) error {
 	writer.Write([]byte{0xEF, 0xBB, 0xBF})
 	writer.Write([]byte("Name;Company;Category;Status;Start Date;End Date;Billing Period;Costs;Currency;Monthly Costs;Next Billing Date;Contract Number;Customer Number;Contract Holder;Contact Person;Contact Email;Contact Phone;Notes\n"))
 
-	for _, c := range contracts {
-		dto := dtos.MapContractToContractDto(c)
+	entries := utils.MapSlice(contracts, dtos.MapContractToContractDto)
+	if err := app.withContactData(ctx.Request().Context(), entries); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	for _, dto := range entries {
 		writer.Write([]byte(fmt.Sprintf("%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s\n",
 			csvEscape(dto.Name),
 			csvEscapePtr(dto.Company),

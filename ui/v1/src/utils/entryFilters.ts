@@ -17,6 +17,7 @@ export function entryFilters(entries: ContractDto[], data: AppData, t: TFunction
     const usedAccounts = new Set(entries.flatMap(accountIds));
     const usedCategories = new Set(entries.map((c) => c.category_id));
     const household = data.persons.filter((p) => p.in_household);
+    const linkedContacts = data.contacts.filter((k) => entries.some((c) => c.contact_id === k.id));
     return [
         {
             key: "owner", label: t('table.owner'),
@@ -36,6 +37,15 @@ export function entryFilters(entries: ContractDto[], data: AppData, t: TFunction
             options: data.categories.filter((cat) => usedCategories.has(cat.id))
                 .map((cat) => ({value: String(cat.id), label: categoryLabel(cat.name, cat.key)})),
             test: (c, v) => c.category_id === Number(v),
+        },
+        {
+            key: "contact", label: t('table.contact'),
+            // only once contacts are in use; "without contact" helps to find entries still to link
+            options: linkedContacts.length === 0 ? [] : [
+                ...linkedContacts.map((k) => ({value: String(k.id), label: k.name})),
+                ...(entries.some((c) => c.contact_id == null) ? [{value: "none", label: t('table.noContact')}] : []),
+            ],
+            test: (c, v) => v === "none" ? c.contact_id == null : c.contact_id === Number(v),
         },
     ];
 }

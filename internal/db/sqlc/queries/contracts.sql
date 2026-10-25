@@ -32,7 +32,8 @@ INSERT INTO contracts (created_at,
                        notice_unit,
                        is_contract,
                        is_variable,
-                       transfer_type)
+                       transfer_type,
+                       contact_id)
 VALUES (CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP,
         sqlc.arg('name'),
@@ -66,7 +67,8 @@ VALUES (CURRENT_TIMESTAMP,
         sqlc.arg('notice_unit'),
         sqlc.arg('is_contract'),
         sqlc.arg('is_variable'),
-        sqlc.arg('transfer_type')) RETURNING *
+        sqlc.arg('transfer_type'),
+        sqlc.arg('contact_id')) RETURNING *
 ;
 
 -- name: FindContractById :one
@@ -125,6 +127,7 @@ SET name              = sqlc.arg('name'),
     is_contract       = sqlc.arg('is_contract'),
     is_variable       = sqlc.arg('is_variable'),
     transfer_type     = sqlc.arg('transfer_type'),
+    contact_id        = sqlc.arg('contact_id'),
     updated_at        = CURRENT_TIMESTAMP
 WHERE id = sqlc.arg('id')
   AND deleted_at IS NULL

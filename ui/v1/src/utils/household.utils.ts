@@ -16,6 +16,7 @@ import {
     EntryKindTransfer,
     type AccountDto,
     type CategoryDto,
+    type ContactDto,
     type ContractDto,
     GoalKindInvesting,
     type PersonDto,
@@ -242,4 +243,28 @@ export function isContractEntry(c: ContractDto): boolean {
 /** Whole days from today until a date (negative if past). */
 export function daysUntil(date: string): number {
     return dayjs(date).startOf("day").diff(dayjs().startOf("day"), "day");
+}
+
+/** Contact data of an entry: its own fields, otherwise those of its linked contact. */
+export type EntryContact = {
+    contact?: ContactDto;
+    website?: string;
+    person?: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+};
+
+export function entryContact(c: Pick<ContractDto, "contact_id" | "website" | "contact_person" | "contact_address" | "contact_phone" | "contact_email">,
+                             contacts: ContactDto[]): EntryContact {
+    const contact = c.contact_id != null ? contacts.find((k) => k.id === c.contact_id) : undefined;
+    const pick = (own?: string | null, fallback?: string | null) => own?.trim() || fallback?.trim() || undefined;
+    return {
+        contact,
+        website: pick(c.website, contact?.website),
+        person: pick(c.contact_person, contact?.contact_person),
+        address: pick(c.contact_address, contact?.address),
+        phone: pick(c.contact_phone, contact?.phone),
+        email: pick(c.contact_email, contact?.email),
+    };
 }

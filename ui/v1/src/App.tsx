@@ -19,6 +19,7 @@ import ExpensesPage from "./pages/ExpensesPage.tsx";
 import TransfersPage from "./pages/TransfersPage.tsx";
 import AccountsPage from "./pages/AccountsPage.tsx";
 import CategoriesPage from "./pages/CategoriesPage.tsx";
+import ContactsPage from "./pages/ContactsPage.tsx";
 import PersonsPage from "./pages/PersonsPage.tsx";
 import ContractsPage from "./pages/ContractsPage.tsx";
 import ClosingPage from "./pages/ClosingPage.tsx";
@@ -52,6 +53,7 @@ const router = createHashRouter([
                             {index: true, element: <SettingsPage/>},
                             {path: 'categories', element: <CategoriesPage/>, loader: contractsLoader},
                             {path: 'persons', element: <PersonsPage/>, loader: contractsLoader},
+                            {path: 'contacts', element: <ContactsPage/>, loader: contractsLoader},
                         ],
                     },
                     // old addresses of the management pages

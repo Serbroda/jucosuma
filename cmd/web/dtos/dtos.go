@@ -125,6 +125,7 @@ type ContractDto struct {
 	TargetAccountID *int64              `json:"target_account_id"`
 	GoalID          *int64              `json:"goal_id"`
 	TransferType    *TransferType       `json:"transfer_type"`
+	ContactID       *int64              `json:"contact_id"`
 	Shares          []ShareDto          `json:"shares"`
 	HouseholdShare  float64             `json:"household_share"`
 	MonthlyAmount   *float64            `json:"monthly_amount"`
@@ -170,6 +171,7 @@ type CreateContractDto struct {
 	TargetAccountID *int64     `json:"target_account_id"`
 	GoalID          *int64     `json:"goal_id"`
 	TransferType    *string    `json:"transfer_type" validate:"omitempty,oneof=saving withdrawal move"`
+	ContactID       *int64     `json:"contact_id"`
 	Shares          []ShareDto `json:"shares"`
 	// Links replaces all links of the entry; nil keeps the existing ones.
 	Links *[]ContractLinkDto `json:"links"`
@@ -212,6 +214,7 @@ type UpdateContractDto struct {
 	TargetAccountID *int64     `json:"target_account_id"`
 	GoalID          *int64     `json:"goal_id"`
 	TransferType    *string    `json:"transfer_type" validate:"omitempty,oneof=saving withdrawal move"`
+	ContactID       *int64     `json:"contact_id"`
 	Shares          []ShareDto `json:"shares"`
 }
 
@@ -230,6 +233,32 @@ type UpdateDocumentDto struct {
 
 type ContractHolderDto struct {
 	Name string `json:"name"`
+}
+
+// ContactDto is a contact (provider, insurer, landlord, …) that entries link to for their contact data.
+type ContactDto struct {
+	ID            int64      `json:"id"`
+	Name          string     `json:"name"`
+	IconSource    *string    `json:"icon_source"`
+	ContactPerson *string    `json:"contact_person"`
+	Address       *string    `json:"address"`
+	Phone         *string    `json:"phone"`
+	Email         *string    `json:"email"`
+	Website       *string    `json:"website"`
+	Notes         *string    `json:"notes"`
+	CreatedAt     *time.Time `json:"created_at"`
+	UpdatedAt     *time.Time `json:"updated_at"`
+}
+
+type SaveContactDto struct {
+	Name          string  `json:"name" validate:"required,min=1,max=128"`
+	IconSource    *string `json:"icon_source"`
+	ContactPerson *string `json:"contact_person" validate:"omitempty,max=256"`
+	Address       *string `json:"address" validate:"omitempty,max=1024"`
+	Phone         *string `json:"phone" validate:"omitempty,max=64"`
+	Email         *string `json:"email" validate:"omitempty,max=256"`
+	Website       *string `json:"website" validate:"omitempty,max=1024"`
+	Notes         *string `json:"notes" validate:"omitempty,max=4096"`
 }
 
 type CompanyDto struct {
