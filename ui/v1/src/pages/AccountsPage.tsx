@@ -6,6 +6,8 @@ import PageHeader from "../components/ui/PageHeader.tsx";
 import IconTile from "../components/ui/IconTile.tsx";
 import RowActions from "../components/ui/RowActions.tsx";
 import SegmentedControl from "../components/SegmentedControl.tsx";
+import TableToolbar from "../components/ui/TableToolbar.tsx";
+import {useTableFilter} from "../hooks/useTableFilter.ts";
 import AccountDialog from "../components/dialogs/AccountDialog.tsx";
 import {Button} from "../components/catalyst/button.tsx";
 import {AccountTypeChecking, AccountTypeDepot, AccountTypeSavings, type AccountDto} from "../gen/types.gen.ts";
@@ -42,7 +44,20 @@ export default function AccountsPage() {
         .filter((x) => x.sum !== 0);
     const maxType = Math.max(...byType.map((x) => x.sum), 1);
     const listed = data.accounts.filter((a) => filter === "all" || a.type === filter);
-    const {sorted, sort, toggle} = useSort(`accounts:${filter}`, listed, {
+    const ownerKey = (a: AccountDto) => a.person_id != null ? String(a.person_id) : "shared";
+    const owners = [...new Set(data.accounts.map(ownerKey))];
+    const {filtered, toolbar, isFiltered} = useTableFilter(listed, {
+        searchText: (a) => [a.name, a.iban, accountTypeLabel(a.type), accountOwnerLabel(a, data.persons)].join(" "),
+        filters: [{
+            key: "owner",
+            label: t('household.owner'),
+            options: owners
+                .map((value) => ({value, label: accountOwnerLabel(data.accounts.find((a) => ownerKey(a) === value)!, data.persons)}))
+                .sort((a, b) => (a.value === "shared" ? -1 : b.value === "shared" ? 1 : a.label.localeCompare(b.label))),
+            test: (a, value) => ownerKey(a) === value,
+        }],
+    });
+    const {sorted, sort, toggle} = useSort(`accounts:${filter}`, filtered, {
         name: (a) => a.name,
         type: (a) => accountTypeLabel(a.type),
         owner: (a) => accountOwnerLabel(a, data.persons),
@@ -85,15 +100,14 @@ export default function AccountsPage() {
             </div>
 
             <div className={card}>
-                <div className="flex flex-wrap items-center gap-3 mb-3">
-                    <div className={cardTitle}>{t('accounts.listTitle')}</div>
+                <TableToolbar title={t('accounts.listTitle')} state={toolbar}>
                     <SegmentedControl value={filter} onChange={setFilter} options={[
                         {value: "all", label: t('accounts.all')},
                         {value: AccountTypeChecking, label: t('accounts.checking')},
                         {value: AccountTypeSavings, label: t('accounts.savings')},
                         {value: AccountTypeDepot, label: t('accounts.depots')},
                     ]}/>
-                </div>
+                </TableToolbar>
                 <div className="overflow-x-auto -mx-5">
                     <table className={table}>
                         <thead>
@@ -152,8 +166,10 @@ export default function AccountsPage() {
                                 </tr>
                             );
                         })}
-                        {listed.length === 0 && (
-                            <tr><td colSpan={7} className="px-5 py-8 text-center text-sm text-zinc-400 dark:text-zinc-500">{t('accounts.empty')}</td></tr>
+                        {sorted.length === 0 && (
+                            <tr><td colSpan={7} className="px-5 py-8 text-center text-sm text-zinc-400 dark:text-zinc-500">
+                                {isFiltered && listed.length > 0 ? t('table.noMatches') : t('accounts.empty')}
+                            </td></tr>
                         )}
                         </tbody>
                     </table>
