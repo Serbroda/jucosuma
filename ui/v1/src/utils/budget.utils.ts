@@ -151,14 +151,61 @@ export function amountInMonth(c: ContractDto, month: Dayjs, mode: MonthMode): nu
     return isActiveInMonth(c, month) ? costs * monthlyFactor(c) : 0;
 }
 
+/** Whether a share is a fixed amount per payment instead of a weight of the rest. */
+export const isFixedShare = (s: ShareDto) => s.amount != null;
+
 /**
- * Fraction of an entry attributed to each person.
+ * What each person carries of one payment: fixed amounts first, the rest by weight. Without weights
+ * the rest is left over (`rest`, it stays with the payer); fixed amounts above the payment shrink
+ * proportionally.
+ */
+export function splitPayment(shares: ShareDto[], costs: number): { parts: Map<number, number>; rest: number } {
+    const fixed = shares.reduce((sum, s) => sum + (s.amount ?? 0), 0);
+    const weights = shares.reduce((sum, s) => sum + (isFixedShare(s) ? 0 : s.weight), 0);
+    const parts = new Map<number, number>();
+    if (fixed > 0 && costs <= fixed) {
+        for (const s of shares) parts.set(s.person_id, isFixedShare(s) ? (s.amount ?? 0) * costs / fixed : 0);
+        return {parts, rest: 0};
+    }
+    const rest = costs - fixed;
+    for (const s of shares) parts.set(s.person_id, isFixedShare(s) ? (s.amount ?? 0) : weights > 0 ? rest * s.weight / weights : 0);
+    return {parts, rest: weights > 0 ? 0 : rest};
+}
+
+/** Fraction of a payment of `costs` the household carries (external persons' parts left out). */
+export function householdShareAt(c: ContractDto, costs: number | undefined, persons: PersonDto[]): number {
+    if (c.kind !== EntryKindExpense) return 1;
+    const known = c.shares.filter((s) => persons.some((p) => p.id === s.person_id));
+    if (!costs || !known.some(isFixedShare)) return c.household_share;
+    const {parts, rest} = splitPayment(known, costs);
+    const household = known.reduce((sum, s) =>
+        sum + (persons.find((p) => p.id === s.person_id)?.in_household ? parts.get(s.person_id) ?? 0 : 0), rest);
+    return household / costs;
+}
+
+/** The household's part of an entry in the given month (cost shares of external persons left out). */
+export function householdAmountInMonth(c: ContractDto, month: Dayjs, mode: MonthMode, persons: PersonDto[]): number {
+    const amount = amountInMonth(c, month, mode);
+    return amount && amount * householdShareAt(c, costsAt(c, month), persons);
+}
+
+/**
+ * Fraction of an entry attributed to each person, for a payment of `costs` (fixed shares depend on it).
  * Explicit shares win; otherwise the owner of the relevant account (target account for transfers)
  * gets everything. Returns null for shared entries that are not split.
  */
-export function attribution(c: ContractDto, persons: PersonDto[], accounts: AccountDto[]): Map<number, number> | null {
+export function attribution(c: ContractDto, persons: PersonDto[], accounts: AccountDto[], costs = c.costs ?? 0): Map<number, number> | null {
     const known = c.shares.filter((s) => persons.some((p) => p.id === s.person_id));
-    const total = known.reduce((sum, s) => sum + s.weight, 0);
+    if (c.kind !== EntryKindTransfer && known.some(isFixedShare) && costs > 0) {
+        const {parts, rest} = splitPayment(known, costs);
+        const result = new Map([...parts].map(([id, part]) => [id, part / costs]));
+        // the rest stays with the payer: the owner of a private account, otherwise the household members
+        const owner = accounts.find((a) => a.id === c.account_id)?.person_id;
+        const carriers = owner != null ? [owner] : persons.filter((p) => p.in_household).map((p) => p.id);
+        for (const id of rest > 0 ? carriers : []) result.set(id, (result.get(id) ?? 0) + rest / costs / carriers.length);
+        return result;
+    }
+    const total = known.reduce((sum, s) => sum + (isFixedShare(s) ? 0 : s.weight), 0);
     if (c.kind !== EntryKindTransfer && total > 0) {
         return new Map(known.map((s) => [s.person_id, s.weight / total]));
     }
@@ -293,7 +340,7 @@ export function summarizeMonth(
             }
         } else if (c.kind === EntryKindExpense) {
             if (inScope(pot)) {
-                own = amount * c.household_share;
+                own = amount * householdShareAt(c, costsAt(c, month), persons);
                 expenses += own;
                 externalShare += amount - own;
                 const owner = costOwner(c, persons, accounts);
@@ -424,11 +471,16 @@ export function summarizeGoals(contracts: ContractDto[], goals: SavingsGoalDto[]
 
 /**
  * Readable assignment of an expense: "Household", a person's name, or percentages when the split
- * is uneven or external persons take part (e.g. "Household 25 % · Friends 75 %").
+ * is uneven or external persons take part (e.g. "Household 25 % · Friends 75 %"). Fixed shares
+ * show their amount ("Brother 10,00 €").
  */
 export function splitText(c: ContractDto, persons: PersonDto[], accounts: AccountDto[], householdLabel: string, locale: string): string {
     const parts = attribution(c, persons, accounts);
     if (!parts) return householdLabel;
+    const fixed = new Map(c.shares.filter(isFixedShare).map((s) => [s.person_id, s.amount ?? 0]));
+    const money = new Intl.NumberFormat(locale, {style: "currency", currency: c.currency || "EUR"});
+    const part = (id: number, f: number) => fixed.has(id)
+        ? money.format(fixed.get(id)!) : `${(Math.round(f * 1000) / 10).toLocaleString(locale)} %`;
     const percent = (f: number) => `${(Math.round(f * 1000) / 10).toLocaleString(locale)} %`;
     const isMember = (id: number) => persons.some((p) => p.id === id && p.in_household);
     const members = [...parts.entries()].filter(([id, f]) => f > 0 && isMember(id));
@@ -438,15 +490,15 @@ export function splitText(c: ContractDto, persons: PersonDto[], accounts: Accoun
     const equal = members.every(([, f]) => Math.abs(f - members[0][1]) < 1e-9);
 
     let head: string[];
-    if (members.length === householdSize && householdSize > 1 && equal) {
+    if (members.length === householdSize && householdSize > 1 && equal && fixed.size === 0) {
         const share = members.reduce((s, [, f]) => s + f, 0);
         head = [externals.length ? `${householdLabel} ${percent(share)}` : householdLabel];
     } else if (members.length === 1 && externals.length === 0) {
         return name(members[0][0]);
     } else {
-        head = members.map(([id, f]) => `${name(id)} ${percent(f)}`);
+        head = members.map(([id, f]) => `${name(id)} ${part(id, f)}`);
     }
-    return [...head, ...externals.map(([id, f]) => `${name(id)} ${percent(f)}`)].join(" · ");
+    return [...head, ...externals.map(([id, f]) => `${name(id)} ${part(id, f)}`)].join(" · ");
 }
 
 export type ReserveItem = {
@@ -466,7 +518,7 @@ export type ReserveSummary = { monthly: number; saved: number; items: ReserveIte
  * monthly parts, the last one in the month it is due. `saved` is what should be put aside at the
  * start of the given month, so the payments are covered when they are due.
  */
-export function summarizeReserves(contracts: ContractDto[], accounts: AccountDto[], month: Dayjs,
+export function summarizeReserves(contracts: ContractDto[], persons: PersonDto[], accounts: AccountDto[], month: Dayjs,
                                   mainCurrency: string, scope: Scope = "all"): ReserveSummary {
     const start = month.startOf("month");
     const items: ReserveItem[] = [];
@@ -485,7 +537,8 @@ export function summarizeReserves(contracts: ContractDto[], accounts: AccountDto
             if (occurrencesInMonth(c, start.add(i, "month")) > 0) due = start.add(i, "month");
         }
         if (!due) continue; // ended
-        const amount = (costsAt(c, due) ?? 0) * c.household_share;
+        const costs = costsAt(c, due) ?? 0;
+        const amount = costs * householdShareAt(c, costs, persons);
         if (amount <= 0) continue;
         const monthsLeft = due.diff(start, "month") + 1;
         items.push({entry: c, amount, due, monthly: amount / period, saved: Math.max(0, amount * (period - monthsLeft) / period)});

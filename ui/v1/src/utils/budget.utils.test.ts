@@ -1,7 +1,7 @@
 import {describe, expect, it} from "vitest";
 import dayjs from "../lib/dayjs";
-import {BillingPeriodAnnually, BillingPeriodCustom, BillingPeriodOneTime, BillingPeriodQuarterly, IntervalUnitMonths, IntervalUnitWeeks, TransferTypeMove, TransferTypeSaving, TransferTypeWithdrawal} from "../gen/types.gen.ts";
-import {amountInMonth, costOwner, defaultTransferType, intervalMonths, matchesOwner, summarizeGoals, summarizeMonth, summarizeReserves} from "./budget.utils.ts";
+import {BillingPeriodAnnually, BillingPeriodCustom, BillingPeriodOneTime, BillingPeriodQuarterly, IntervalUnitMonths, IntervalUnitWeeks, type ShareDto, TransferTypeMove, TransferTypeSaving, TransferTypeWithdrawal} from "../gen/types.gen.ts";
+import {amountInMonth, costOwner, defaultTransferType, householdAmountInMonth, intervalMonths, splitPayment, splitText, matchesOwner, summarizeGoals, summarizeMonth, summarizeReserves} from "./budget.utils.ts";
 import {
     accounts, danny, dannyAccount, expense, friends, goal, groceries, income, joint, julia, juliaAccount, persons,
     savings, transfer,
@@ -197,8 +197,8 @@ describe("summarizeGoals", () => {
 describe("summarizeReserves", () => {
     const yearly = expense(120, {billing_period: BillingPeriodAnnually, start_date: "2026-03-15", account_id: joint.id});
     const quarterly = expense(30, {billing_period: BillingPeriodQuarterly, start_date: "2026-01-01", account_id: joint.id});
-    const reserves = (entries: Parameters<typeof summarizeReserves>[0], scope: Parameters<typeof summarizeReserves>[4] = "all") =>
-        summarizeReserves(entries, accounts, oct, "EUR", scope);
+    const reserves = (entries: Parameters<typeof summarizeReserves>[0], scope: Parameters<typeof summarizeReserves>[5] = "all") =>
+        summarizeReserves(entries, persons, accounts, oct, "EUR", scope);
 
     it("saves each payment up in monthly parts until it is due", () => {
         const r = reserves([yearly, quarterly, expense(50, {account_id: joint.id})]);
@@ -228,5 +228,36 @@ describe("summarizeReserves", () => {
         const ended = expense(120, {billing_period: BillingPeriodAnnually, start_date: "2025-05-01", end_date: "2026-06-30", account_id: joint.id});
         expect(reserves([dannys, shared, ended], "household").items.map((i) => [i.entry.id, i.amount])).toEqual([[shared.id, 60]]);
         expect(reserves([dannys, shared, ended], danny.id).monthly).toBe(20);
+    });
+});
+
+describe("fixed cost shares", () => {
+    // a family plan: Julia pays, Friends chip in a fixed 10 € per payment
+    const familyPlan = (shares: ShareDto[], fields: Parameters<typeof expense>[1] = {}) =>
+        expense(17.99, {account_id: juliaAccount.id, shares, ...fields});
+    const fixedFriends = {person_id: friends.id, weight: 0, amount: 10};
+
+    it("takes fixed amounts first and splits the rest by weight", () => {
+        const {parts, rest} = splitPayment([{person_id: julia.id, weight: 100}, fixedFriends], 17.99);
+        expect(parts.get(friends.id)).toBe(10);
+        expect(parts.get(julia.id)).toBeCloseTo(7.99);
+        expect(rest).toBe(0);
+        expect(splitPayment([fixedFriends], 17.99).rest).toBeCloseTo(7.99);
+        expect(splitPayment([fixedFriends, {person_id: danny.id, weight: 0, amount: 30}], 20).parts.get(friends.id)).toBe(5);
+    });
+
+    it("leaves the fixed amounts of external persons out of the household's costs, also after a price change", () => {
+        const plan = familyPlan([{person_id: julia.id, weight: 100}, fixedFriends], {
+            household_share: 7.99 / 17.99, base_costs: 17.99, amounts: [{id: 1, valid_from: "2026-11-01", costs: 19.99}],
+        });
+        expect(householdAmountInMonth(plan, oct, "average", persons)).toBeCloseTo(7.99);
+        expect(householdAmountInMonth(plan, dayjs("2026-11-01"), "average", persons)).toBeCloseTo(9.99);
+    });
+
+    it("gives the rest to the payer without weights and shows fixed amounts in money", () => {
+        const plan = familyPlan([fixedFriends]);
+        expect(costOwner(plan, persons, accounts)).toBe(julia.id);
+        // Intl separates the currency with a non-breaking space
+        expect(splitText(plan, persons, accounts, "Household", "de-DE").replace(/\s/g, " ")).toBe("Julia 44,4 % · Friends 10,00 €");
     });
 });

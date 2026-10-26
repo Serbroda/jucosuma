@@ -35,7 +35,7 @@ import IconButton from "./ui/IconButton.tsx";
 import {categoryLabel, sortedByName, type CostType, costTypeOf, defaultCostType, sharesForAccount, entryKinds, entryPeriods} from "../utils/household.utils.ts";
 import {billingPeriodLabel} from "../utils/data.utils.ts";
 import CustomIntervalFields from "./CustomIntervalFields.tsx";
-import {formatDecimal} from "../utils/number.utils.ts";
+import {formatDecimal, parseAmount} from "../utils/number.utils.ts";
 import {Combobox, ComboboxLabel, ComboboxOption} from "./catalyst/combobox.tsx";
 import {useTranslation} from "react-i18next";
 
@@ -108,6 +108,8 @@ export default function ContractForm({contract, holders, companies, categories, 
     });
     const [holdersWithInput, setHoldersWithInput] = useState<ContractHolderDto[]>(holders);
     const [billingPeriod, setBillingPeriod] = useState(contract.billing_period ?? BillingPeriodMonthly);
+    // amount and currency of a payment, for the preview of fixed cost shares
+    const [payment, setPayment] = useState({amount: contract.costs ?? undefined, currency: contract.currency ?? "EUR"});
     const [customInterval, setCustomInterval] = useState({
         count: String(contract.interval_count ?? 2), unit: contract.interval_unit ?? IntervalUnitWeeks,
     });
@@ -394,6 +396,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                             pattern="^-?[0-9.]*[0-9]([,.][0-9]{1,2})?$"
                             placeholder="0,00"
                             className="[&_input]:text-right"
+                            onChange={(e) => setPayment({...payment, amount: parseAmount(e.target.value)})}
                         />
                         {(contract.amounts?.length ?? 0) > 0 && <Description>{t('amounts.formHint')}</Description>}
                     </Field>
@@ -402,6 +405,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                         <Select
                             name="currency"
                             defaultValue={contract.currency ?? "EUR"}
+                            onChange={(e) => setPayment({...payment, currency: e.target.value})}
                         >
                             <option value="EUR">EUR</option>
                             <option value="USD">USD</option>
@@ -589,7 +593,7 @@ export default function ContractForm({contract, holders, companies, categories, 
                     <Field>
                         <Label>{t('entry.whoCarries')}</Label>
                         <div className="mt-2">
-                            <SharesEditor persons={persons} value={shares} onChange={(v) => {
+                            <SharesEditor persons={persons} value={shares} amount={payment.amount} currency={payment.currency} onChange={(v) => {
                                 setShares(v);
                                 setSharesTouched(true);
                             }}/>

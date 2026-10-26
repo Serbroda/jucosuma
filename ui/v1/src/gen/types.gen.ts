@@ -294,9 +294,14 @@ export interface UpdateCategoryDto {
   color?: number /* int64 */;
   icon?: string;
 }
+/**
+ * ShareDto is the part of an entry a person carries: a weight of what is left after fixed amounts,
+ * or a fixed amount per payment (weight 0).
+ */
 export interface ShareDto {
   person_id: number /* int64 */;
   weight: number /* float64 */;
+  amount?: number /* float64 */;
 }
 export interface PersonDto {
   id: number /* int64 */;

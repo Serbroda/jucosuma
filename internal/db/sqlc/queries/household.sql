@@ -58,8 +58,8 @@ SELECT * FROM contract_shares WHERE contract_id = ? ORDER BY person_id;
 DELETE FROM contract_shares WHERE contract_id = ?;
 
 -- name: InsertContractShare :exec
-INSERT INTO contract_shares (contract_id, person_id, weight)
-VALUES (sqlc.arg('contract_id'), sqlc.arg('person_id'), sqlc.arg('weight'));
+INSERT INTO contract_shares (contract_id, person_id, weight, amount)
+VALUES (sqlc.arg('contract_id'), sqlc.arg('person_id'), sqlc.arg('weight'), sqlc.arg('amount'));
 
 -- name: FindAllSavingsGoals :many
 SELECT * FROM savings_goals WHERE deleted_at IS NULL ORDER BY sort_order ASC, name ASC;

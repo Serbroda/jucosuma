@@ -418,7 +418,7 @@ export default function QuickEntryDialog({isOpen, onClose, persons, accounts, ca
                         <Field>
                             <Label>{t('entry.whoCarries')}</Label>
                             <div className="mt-2">
-                                <SharesEditor persons={persons} value={shares} onChange={(v) => {
+                                <SharesEditor persons={persons} value={shares} amount={parseAmount(amount)} onChange={(v) => {
                                     setShares(v);
                                     setSharesTouched(true);
                                 }}/>

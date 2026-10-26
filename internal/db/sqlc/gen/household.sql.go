@@ -91,7 +91,7 @@ func (q *Queries) FindAllAccounts(ctx context.Context) ([]Account, error) {
 }
 
 const findAllContractShares = `-- name: FindAllContractShares :many
-SELECT contract_id, person_id, weight FROM contract_shares ORDER BY contract_id, person_id
+SELECT contract_id, person_id, weight, amount FROM contract_shares ORDER BY contract_id, person_id
 `
 
 func (q *Queries) FindAllContractShares(ctx context.Context) ([]ContractShare, error) {
@@ -103,7 +103,12 @@ func (q *Queries) FindAllContractShares(ctx context.Context) ([]ContractShare, e
 	var items []ContractShare
 	for rows.Next() {
 		var i ContractShare
-		if err := rows.Scan(&i.ContractID, &i.PersonID, &i.Weight); err != nil {
+		if err := rows.Scan(
+			&i.ContractID,
+			&i.PersonID,
+			&i.Weight,
+			&i.Amount,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -197,7 +202,7 @@ func (q *Queries) FindAllSavingsGoals(ctx context.Context) ([]SavingsGoal, error
 }
 
 const findContractSharesByContractId = `-- name: FindContractSharesByContractId :many
-SELECT contract_id, person_id, weight FROM contract_shares WHERE contract_id = ? ORDER BY person_id
+SELECT contract_id, person_id, weight, amount FROM contract_shares WHERE contract_id = ? ORDER BY person_id
 `
 
 func (q *Queries) FindContractSharesByContractId(ctx context.Context, contractID int64) ([]ContractShare, error) {
@@ -209,7 +214,12 @@ func (q *Queries) FindContractSharesByContractId(ctx context.Context, contractID
 	var items []ContractShare
 	for rows.Next() {
 		var i ContractShare
-		if err := rows.Scan(&i.ContractID, &i.PersonID, &i.Weight); err != nil {
+		if err := rows.Scan(
+			&i.ContractID,
+			&i.PersonID,
+			&i.Weight,
+			&i.Amount,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -284,18 +294,24 @@ func (q *Queries) InsertAccount(ctx context.Context, arg InsertAccountParams) (A
 }
 
 const insertContractShare = `-- name: InsertContractShare :exec
-INSERT INTO contract_shares (contract_id, person_id, weight)
-VALUES (?1, ?2, ?3)
+INSERT INTO contract_shares (contract_id, person_id, weight, amount)
+VALUES (?1, ?2, ?3, ?4)
 `
 
 type InsertContractShareParams struct {
-	ContractID int64   `db:"contract_id"`
-	PersonID   int64   `db:"person_id"`
-	Weight     float64 `db:"weight"`
+	ContractID int64    `db:"contract_id"`
+	PersonID   int64    `db:"person_id"`
+	Weight     float64  `db:"weight"`
+	Amount     *float64 `db:"amount"`
 }
 
 func (q *Queries) InsertContractShare(ctx context.Context, arg InsertContractShareParams) error {
-	_, err := q.db.ExecContext(ctx, insertContractShare, arg.ContractID, arg.PersonID, arg.Weight)
+	_, err := q.db.ExecContext(ctx, insertContractShare,
+		arg.ContractID,
+		arg.PersonID,
+		arg.Weight,
+		arg.Amount,
+	)
 	return err
 }
 

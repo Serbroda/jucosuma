@@ -12,7 +12,7 @@ import {EntryKindExpense, EntryKindIncome, type CategoryDto} from "../gen/types.
 import {useAppData} from "../hooks/useAppData.ts";
 import {useMonth} from "../stores/useMonth.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
-import {amountInMonth} from "../utils/budget.utils.ts";
+import {householdAmountInMonth} from "../utils/budget.utils.ts";
 import {categoryLabel} from "../utils/household.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
 import {classNames} from "../utils/dom.utils.ts";
@@ -35,7 +35,7 @@ export default function CategoriesPage() {
         c.category_id === cat.id && c.kind === cat.type);
     const listed = data.categories.filter((c) => c.type === type);
     const sumOf = (cat: typeof listed[number]) => entriesOf(cat)
-        .reduce((s, c) => s + amountInMonth(c, month, mode) * (c.kind === EntryKindExpense ? c.household_share : 1), 0);
+        .reduce((s, c) => s + householdAmountInMonth(c, month, mode, data.persons), 0);
     const {sorted, sort, toggle} = useSort(`categories:${type}`, listed, {
         name: (c) => categoryLabel(c.name, c.key),
         entries: (c) => entriesOf(c).length,

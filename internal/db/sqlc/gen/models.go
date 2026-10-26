@@ -119,9 +119,10 @@ type ContractLink struct {
 }
 
 type ContractShare struct {
-	ContractID int64   `db:"contract_id"`
-	PersonID   int64   `db:"person_id"`
-	Weight     float64 `db:"weight"`
+	ContractID int64    `db:"contract_id"`
+	PersonID   int64    `db:"person_id"`
+	Weight     float64  `db:"weight"`
+	Amount     *float64 `db:"amount"`
 }
 
 type Document struct {

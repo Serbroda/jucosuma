@@ -456,20 +456,28 @@ func (app *application) personsById(ctx context.Context, q *sqlc.Queries) (map[i
 	return result, nil
 }
 
-// replaceContractShares stores the given shares for a contract. Shares of unknown
-// persons and non-positive weights are skipped.
+// replaceContractShares stores the given shares for a contract. Shares of unknown persons and
+// shares without positive weight or fixed amount are skipped; a fixed amount replaces the weight.
 func replaceContractShares(ctx context.Context, q *sqlc.Queries, contractID int64, shares []dtos.ShareDto, persons map[int64]sqlc.Person) error {
 	if err := q.DeleteContractSharesByContractId(ctx, contractID); err != nil {
 		return err
 	}
 	for _, s := range shares {
-		if _, ok := persons[s.PersonID]; !ok || s.Weight <= 0 {
+		fixed := s.Amount != nil && *s.Amount >= 0
+		if _, ok := persons[s.PersonID]; !ok || (!fixed && s.Weight <= 0) {
 			continue
+		}
+		weight, amount := s.Weight, s.Amount
+		if fixed {
+			weight = 0
+		} else {
+			amount = nil
 		}
 		if err := q.InsertContractShare(ctx, sqlc.InsertContractShareParams{
 			ContractID: contractID,
 			PersonID:   s.PersonID,
-			Weight:     s.Weight,
+			Weight:     weight,
+			Amount:     amount,
 		}); err != nil {
 			return err
 		}

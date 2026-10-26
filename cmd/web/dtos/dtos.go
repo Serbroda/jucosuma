@@ -150,6 +150,9 @@ type ContractDto struct {
 	Website         *string             `json:"website"`
 	Links           []ContractLinkDto   `json:"links"`
 	Documents       []DocumentDto       `json:"documents"`
+
+	// split keeps the shares' sums to recompute household_share for another amount
+	split shareSplit
 }
 
 type CreateContractDto struct {
@@ -350,9 +353,12 @@ type UpdateCategoryDto struct {
 	Icon      *string `json:"icon" validate:"omitempty,max=32"`
 }
 
+// ShareDto is the part of an entry a person carries: a weight of what is left after fixed amounts,
+// or a fixed amount per payment (weight 0).
 type ShareDto struct {
-	PersonID int64   `json:"person_id"`
-	Weight   float64 `json:"weight"`
+	PersonID int64    `json:"person_id"`
+	Weight   float64  `json:"weight"`
+	Amount   *float64 `json:"amount,omitempty"`
 }
 
 type PersonDto struct {

@@ -10,7 +10,7 @@ import {EntryKindExpense} from "../gen/types.gen.ts";
 import {useAppData} from "../hooks/useAppData.ts";
 import {useMonth} from "../stores/useMonth.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
-import {amountInMonth} from "../utils/budget.utils.ts";
+import {amountInMonth, householdAmountInMonth} from "../utils/budget.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
 import {classNames} from "../utils/dom.utils.ts";
 import {card} from "../utils/ui.ts";
@@ -29,7 +29,7 @@ export default function ExpensesPage() {
     const expenses = data.contracts.filter((c) => c.kind === EntryKindExpense);
     const householdTotal = (m: typeof month) => expenses
         .filter((c) => !c.currency || c.currency === mainCurrency)
-        .reduce((sum, c) => sum + amountInMonth(c, m, mode) * c.household_share, 0);
+        .reduce((sum, c) => sum + householdAmountInMonth(c, m, mode, data.persons), 0);
     const total = householdTotal(month);
     const previous = householdTotal(month.subtract(1, "month"));
     const change = previous > 0 ? (total - previous) / previous : 0;

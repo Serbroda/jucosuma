@@ -1,4 +1,4 @@
-import {costOwner} from "../utils/budget.utils.ts";
+import {costOwner, isFixedShare, splitPayment} from "../utils/budget.utils.ts";
 import {NavLink, useLoaderData} from "react-router";
 import {Heading, Subheading} from "../components/catalyst/heading.tsx";
 import {Divider} from "../components/catalyst/divider.tsx";
@@ -52,7 +52,9 @@ export default function ContractPage() {
     const {t, i18n} = useTranslation();
     const persons = data?.persons ?? [];
     const accounts = data?.accounts ?? [];
-    const totalWeight = c?.shares.reduce((sum, s) => sum + s.weight, 0) ?? 0;
+    const totalWeight = c?.shares.reduce((sum, s) => sum + (isFixedShare(s) ? 0 : s.weight), 0) ?? 0;
+    const hasFixed = c?.shares.some(isFixedShare) ?? false;
+    const split = splitPayment(c?.shares ?? [], c?.costs ?? 0);
 
     const hasRecurringBilling = c?.billing_period && c.billing_period !== BillingPeriodNone && c.billing_period !== BillingPeriodOneTime;
     const contactData = c ? entryContact(c, data?.contacts ?? []) : undefined;
@@ -202,20 +204,29 @@ export default function ContractPage() {
                             })()}
                         </DescriptionDetails>
                     </>}
-                    {c?.kind === EntryKindExpense && totalWeight > 0 && <>
+                    {c?.kind === EntryKindExpense && c.shares.length > 0 && <>
                         <DescriptionTerm>{t('entryDetail.carriedBy')}</DescriptionTerm>
                         <DescriptionDetails>
                             {c.shares.map((s) => {
                                 const person = persons.find((p) => p.id === s.person_id);
-                                const percent = Math.round(s.weight / totalWeight * 1000) / 10;
+                                const percent = (Math.round(s.weight / (totalWeight || 1) * 1000) / 10).toLocaleString(i18n.language);
                                 return (
                                     <div key={s.person_id}>
                                         {person?.name ?? t('common.unknown')}
                                         {person && !person.in_household && <span className="text-zinc-400 dark:text-zinc-500"> {t('shares.external')}</span>}
-                                        <span className="text-zinc-400 dark:text-zinc-500 ml-1">{percent.toLocaleString(i18n.language)} %</span>
+                                        {/* with fixed amounts every person's part of a payment is shown in money */}
+                                        {hasFixed && <span className="ml-1 tabular-nums">{formatCurrency(split.parts.get(s.person_id) ?? 0, c.currency)}</span>}
+                                        <span className="text-zinc-400 dark:text-zinc-500 ml-1">
+                                            {isFixedShare(s) ? t('shares.fixed') : hasFixed ? t('shares.percentOfRest', {percent}) : `${percent} %`}
+                                        </span>
                                     </div>
                                 );
                             })}
+                            {split.rest > 0 && (
+                                <div className="text-zinc-500 dark:text-zinc-400">
+                                    {t('shares.restWithPayer', {amount: formatCurrency(split.rest, c.currency)})}
+                                </div>
+                            )}
                         </DescriptionDetails>
                     </>}
                     <DescriptionTerm>{t('entryDetail.billingPeriod')}</DescriptionTerm>

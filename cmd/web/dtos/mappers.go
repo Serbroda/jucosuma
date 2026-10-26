@@ -95,6 +95,10 @@ func ApplyAmounts(dto *ContractDto, amounts []sqlc.ContractAmount) {
 		}
 	}
 	dto.Costs = current
+	// fixed amounts of a split make the household's part depend on the amount
+	if dto.Kind == EntryKindExpense && dto.split.fixed() > 0 && current != nil {
+		dto.HouseholdShare = dto.split.householdShare(*current)
+	}
 	dto.MonthlyAmount = computeMonthlyAmount(current, intervalOf(*dto))
 	dto.MonthlyCosts = nil
 	if dto.MonthlyAmount != nil {
@@ -108,24 +112,26 @@ func ApplyAmounts(dto *ContractDto, amounts []sqlc.ContractAmount) {
 // Without explicit shares the legacy split_between is used.
 func applyHouseholdShare(dto *ContractDto, shares []sqlc.ContractShare, persons map[int64]sqlc.Person) {
 	dto.Shares = []ShareDto{}
-	var total, household float64
+	split := shareSplit{}
 	for _, s := range shares {
 		p, ok := persons[s.PersonID]
 		if !ok {
 			continue
 		}
-		dto.Shares = append(dto.Shares, ShareDto{PersonID: s.PersonID, Weight: s.Weight})
-		total += s.Weight
-		if p.InHousehold == 1 {
-			household += s.Weight
-		}
+		dto.Shares = append(dto.Shares, ShareDto{PersonID: s.PersonID, Weight: s.Weight, Amount: s.Amount})
+		split.add(s.Weight, s.Amount, p.InHousehold == 1)
 	}
+	dto.split = split
 
+	costs := 0.0
+	if dto.Costs != nil {
+		costs = *dto.Costs
+	}
 	switch {
 	case dto.Kind != EntryKindExpense:
 		dto.HouseholdShare = 1
-	case total > 0:
-		dto.HouseholdShare = household / total
+	case split.totalWeight > 0 || split.fixed() > 0:
+		dto.HouseholdShare = split.householdShare(costs)
 	case dto.SplitBetween > 1:
 		dto.HouseholdShare = 1 / float64(dto.SplitBetween)
 	default:
@@ -138,6 +144,50 @@ func applyHouseholdShare(dto *ContractDto, shares []sqlc.ContractShare, persons 
 	}
 	monthly := *dto.MonthlyAmount * dto.HouseholdShare
 	dto.MonthlyCosts = &monthly
+}
+
+// shareSplit sums up the shares of an entry: fixed amounts per payment and weights of the rest,
+// each in total and for household members.
+type shareSplit struct {
+	householdFixed, externalFixed float64
+	householdWeight, totalWeight  float64
+}
+
+func (s *shareSplit) add(weight float64, amount *float64, inHousehold bool) {
+	switch {
+	case amount != nil && inHousehold:
+		s.householdFixed += *amount
+	case amount != nil:
+		s.externalFixed += *amount
+	default:
+		s.totalWeight += weight
+		if inHousehold {
+			s.householdWeight += weight
+		}
+	}
+}
+
+func (s shareSplit) fixed() float64 { return s.householdFixed + s.externalFixed }
+
+// householdShare is the fraction of a payment of the given amount the household carries: fixed
+// amounts come first, the rest is split by weight. Without weights the rest stays with the payer,
+// i.e. the household; fixed amounts above the payment are reduced proportionally.
+func (s shareSplit) householdShare(costs float64) float64 {
+	fixed := s.fixed()
+	if fixed == 0 {
+		if s.totalWeight == 0 {
+			return 1
+		}
+		return s.householdWeight / s.totalWeight
+	}
+	if costs <= fixed {
+		return s.householdFixed / fixed
+	}
+	rest := costs - fixed
+	if s.totalWeight > 0 {
+		rest = rest * s.householdWeight / s.totalWeight
+	}
+	return (s.householdFixed + rest) / costs
 }
 
 func computeStatus(endDate *time.Time) ContractStatus {

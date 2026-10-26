@@ -148,9 +148,9 @@ export default function OverviewPage() {
         [contracts, persons, accounts, monthKey, mode, mainCurrency, scope],
     );
     const reserves = useMemo(
-        () => summarizeReserves(contracts, accounts, month, mainCurrency, scope),
+        () => summarizeReserves(contracts, persons, accounts, month, mainCurrency, scope),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [contracts, accounts, monthKey, mainCurrency, scope],
+        [contracts, persons, accounts, monthKey, mainCurrency, scope],
     );
     const previous = useMemo(
         () => summarizeMonth(contracts, persons, accounts, month.subtract(1, "month"), mode, mainCurrency, scope),
