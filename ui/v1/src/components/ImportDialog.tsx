@@ -6,20 +6,54 @@ import {apiBasePath} from "../config.ts";
 import {apiFetch} from "../lib/fetch.ts";
 import {useNavigate} from "react-router";
 import {useTranslation} from "react-i18next";
+import {categoryLabel} from "../utils/household.utils.ts";
 
 type ImportRow = {
     name: string;
     company: string;
     category: string;
+    category_key?: string;
     start_date: string;
     error?: string;
 };
 
+/** Result of an import (or its preview); the JSON import also tells what it creates and reuses. */
 type ImportResult = {
     rows?: ImportRow[];
     imported?: number;
     errors?: number;
+    format_version?: number;
+    app_version?: string;
+    created?: Record<string, number>;
+    reused?: Record<string, number>;
+    closings?: number;
+    skipped_closings?: number;
 };
+
+const KINDS = ["persons", "accounts", "categories", "goals", "contacts"];
+
+/** What a JSON import creates and reuses, and where the file comes from. */
+function ImportSummary({result, done}: { result: ImportResult; done?: boolean }) {
+    const {t} = useTranslation();
+    if (result.format_version == null) return null;
+    const list = (counts?: Record<string, number>) => KINDS.filter((k) => counts?.[k])
+        .map((k) => t(`import.kinds.${k}` as 'import.kinds.persons', {count: counts![k]})).join(", ");
+    const created = list(result.created);
+    const reused = list(result.reused);
+    const closings = result.closings ?? 0, skipped = result.skipped_closings ?? 0;
+    return (
+        <div className="text-sm text-zinc-600 dark:text-zinc-300 mb-3 flex flex-col gap-1">
+            {created && <div>{t(done ? 'import.created' : 'import.willCreate', {list: created})}</div>}
+            {reused && <div>{t('import.reused', {list: reused})}</div>}
+            {(closings > 0 || skipped > 0) && <div>{t(skipped > 0 ? 'import.closingsSkipped' : 'import.closings', {created: closings, skipped})}</div>}
+            <div className="text-xs text-zinc-400 dark:text-zinc-500">
+                {result.format_version < 2
+                    ? t('import.legacyFormat')
+                    : t('import.source', {version: result.app_version || "?", format: result.format_version})}
+            </div>
+        </div>
+    );
+}
 
 export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClose: () => void }) {
     const navigate = useNavigate();
@@ -129,6 +163,7 @@ export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClo
 
                 {result ? (
                     <div className="text-sm">
+                        <ImportSummary result={result} done/>
                         <div className="text-green-600 dark:text-green-400 font-medium">
                             {t('import.imported', {count: result.imported ?? 0})}
                         </div>
@@ -138,6 +173,7 @@ export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClo
                     </div>
                 ) : preview && rows.length > 0 ? (
                     <div>
+                        <ImportSummary result={preview}/>
                         <div className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
                             {t('import.rowsFound', {count: rows.length})}
                         </div>
@@ -156,7 +192,7 @@ export default function ImportDialog({isOpen, onClose}: { isOpen: boolean; onClo
                                         <tr key={i} className="border-t border-zinc-100 dark:border-zinc-800">
                                             <td className="p-2 truncate max-w-[120px]">{row.name}</td>
                                             <td className="p-2 truncate max-w-[100px] hidden sm:table-cell">{row.company}</td>
-                                            <td className="p-2 truncate max-w-[100px] hidden sm:table-cell">{row.category}</td>
+                                            <td className="p-2 truncate max-w-[100px] hidden sm:table-cell">{categoryLabel(row.category, row.category_key)}</td>
                                             <td className="p-2">
                                                 {row.error
                                                     ? <span className="text-red-500">{row.error}</span>
