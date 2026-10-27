@@ -114,7 +114,36 @@ go run ./cmd/web
 
 Then open <http://localhost:8080>.
 
-`make build` builds the frontend and binaries for macOS, Linux and Windows into `bin/`.
+`make build` builds the frontend and binaries for macOS, Linux (amd64, arm64) and Windows into `bin/`.
+
+### As a systemd service (without containers)
+
+`scripts/install.sh` installs the binary as a systemd service: it starts on boot, restarts on failure and runs
+as an unprivileged, sandboxed user. Running it again updates the binary and keeps your configuration and data.
+
+```bash
+make build                                     # bin/jucosuma-v<version>-linux-{amd64,arm64} and more
+sudo ./scripts/install.sh                      # the linux binary of the current VERSION → /usr/local/bin/jucosuma
+sudo ./scripts/install.sh --dir /opt/jucosuma  # or → /opt/jucosuma/jucosuma
+```
+
+| What          | Where                                                                 |
+|---------------|-----------------------------------------------------------------------|
+| Configuration | `/etc/jucosuma/jucosuma.env` (`ADDR`, `DB_PATH`, `UPLOADS_DIR`, `BACKUP_KEEP`) |
+| Data          | `/var/lib/jucosuma` – database, uploads and backups                   |
+| First login   | `sudo cat /var/lib/jucosuma/admin_password.txt`                       |
+| Logs          | `journalctl -u jucosuma -f`                                           |
+
+After changing the configuration run `sudo systemctl restart jucosuma`. Further options:
+
+```bash
+sudo ./scripts/install.sh --binary ./jucosuma-v0.13.1-linux-amd64 --port 9000   # a copied binary, another port
+sudo ./scripts/install.sh --uninstall           # remove the service, keep data and configuration
+sudo ./scripts/install.sh --uninstall --purge   # remove everything
+```
+
+Updates keep the location chosen with `--dir`. `make install` runs the script for the binary of the current
+`VERSION`.
 
 ### First login
 

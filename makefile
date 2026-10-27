@@ -13,7 +13,7 @@ WEB_MAIN_DIR := ./cmd/web
 # ------------------------------------------------------------
 # Default targets
 # ------------------------------------------------------------
-.PHONY: build generate-go build-ui build-server clean test bump-major bump-minor bump-patch release release-major release-minor release-patch
+.PHONY: build generate-go build-ui build-server install clean test bump-major bump-minor bump-patch release release-major release-minor release-patch
 
 build: clean generate-go build-ui build-server
 
@@ -22,6 +22,7 @@ build-server:
 	$(call build_bin,${WEB_MAIN_DIR},${BINARY_NAME},darwin,amd64,macos-amd64)
 	$(call build_bin,${WEB_MAIN_DIR},${BINARY_NAME},darwin,arm64,macos-arm64)
 	$(call build_bin,${WEB_MAIN_DIR},${BINARY_NAME},linux,amd64,linux-amd64)
+	$(call build_bin,${WEB_MAIN_DIR},${BINARY_NAME},linux,arm64,linux-arm64)
 	$(call build_bin,${WEB_MAIN_DIR},${BINARY_NAME},windows,amd64,windows-amd64.exe)
 	@echo "==> Build complete!"
 
@@ -30,6 +31,10 @@ define build_bin
 	GOOS=$(3) GOARCH=$(4) CGO_ENABLED=0 \
 		go build -ldflags "-X main.Version=$(VERSION)" -o ${OUT_DIR}/$(2)-v${VERSION}-$(5) $(1)
 endef
+
+# Installs or updates the newest linux binary for this machine as a systemd service (see scripts/install.sh)
+install:
+	sudo ./scripts/install.sh
 
 build-ui:
 	cd ui/v1 && \
