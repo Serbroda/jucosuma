@@ -44,6 +44,8 @@ type BankImport struct {
 	Imported   int64      `db:"imported"`
 	Duplicates int64      `db:"duplicates"`
 	CreatedAt  *time.Time `db:"created_at"`
+	ClosedAt   *time.Time `db:"closed_at"`
+	PurgedAt   *time.Time `db:"purged_at"`
 }
 
 type BankTransaction struct {

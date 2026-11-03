@@ -28,6 +28,12 @@ type BankImportDto struct {
 	Imported   int64      `json:"imported"`
 	Duplicates int64      `json:"duplicates"`
 	CreatedAt  *time.Time `json:"created_at"`
+	Total      int64      `json:"total"`
+	Classified int64      `json:"classified"`
+	ClosedAt   *time.Time `json:"closed_at"`
+	// PurgeOn is when the raw details of a closed import are removed; PurgedAt when that happened
+	PurgeOn  *DateOnly  `json:"purge_on"`
+	PurgedAt *time.Time `json:"purged_at"`
 }
 
 type BankTransactionDto struct {
@@ -49,4 +55,21 @@ type BankTransactionDto struct {
 	CategoryID       *int64   `json:"category_id"`
 	ContractID       *int64   `json:"contract_id"`
 	ClassifiedBy     *string  `json:"classified_by"`
+}
+
+// UpdateBankTransactionsDto classifies several own bookings at once; fields left out stay unchanged.
+// A planned entry (e.g. the variable cost "groceries") links the bookings to it and sets its
+// category; a category alone removes such a link.
+type UpdateBankTransactionsDto struct {
+	IDs           []int64 `json:"ids" validate:"required,min=1,max=1000"`
+	Scope         *string `json:"scope" validate:"omitempty,oneof=HOUSEHOLD PRIVATE"`
+	CategoryID    *int64  `json:"category_id"`
+	ContractID    *int64  `json:"contract_id"`
+	ClearCategory bool    `json:"clear_category"`
+}
+
+// BankSettingsDto: months after closing an import until counterparty, purpose etc. are removed
+// (0 = right away).
+type BankSettingsDto struct {
+	RawRetentionMonths int `json:"raw_retention_months" validate:"min=0,max=120"`
 }

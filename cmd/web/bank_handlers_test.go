@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,6 +18,7 @@ import (
 	"github.com/Serbroda/contracts/internal/db"
 	"github.com/Serbroda/contracts/internal/db/migrations"
 	sqlc "github.com/Serbroda/contracts/internal/db/sqlc/gen"
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 )
 
@@ -140,4 +144,170 @@ func mustDate(s string) time.Time {
 		panic(err)
 	}
 	return t
+}
+
+func TestUpdateBankTransactionsOnlyOwn(t *testing.T) {
+	app := newTestApp(t)
+	ctx := context.Background()
+	danny := insertTestUser(t, app, "danny")
+	julia := insertTestUser(t, app, "julia")
+	app.queries.InsertAccount(ctx, sqlc.InsertAccountParams{Name: "Gemeinschaftskonto", Type: "CHECKING", Iban: ptr("DE89370400440532013000")})
+	uploadStatement(t, app, danny, false)
+	categories, _ := app.queries.FindAllCategories(ctx)
+
+	update := func(user sqlc.User, body string) int {
+		req := httptest.NewRequest(http.MethodPut, "/api/bank_transactions", strings.NewReader(body))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		e := echo.New()
+		e.Validator = &CustomValidator{validator: validator.New()}
+		c := e.NewContext(req, rec)
+		c.Set("user", user)
+		if err := app.updateBankTransactions(c); err != nil {
+			return err.(*echo.HTTPError).Code
+		}
+		return rec.Code
+	}
+	body := fmt.Sprintf(`{"ids":[1,2],"scope":"PRIVATE","category_id":%d}`, categories[0].ID)
+	if code := update(julia, body); code != http.StatusNoContent {
+		t.Fatalf("update by julia: %d", code)
+	}
+	all, _ := app.queries.FindBankTransactionsByOwner(ctx, sqlc.FindBankTransactionsByOwnerParams{OwnerID: danny.ID, DateFrom: mustDate("2026-01-01"), DateTo: mustDate("2027-01-01")})
+	for _, tx := range all {
+		if tx.Scope != "HOUSEHOLD" || tx.CategoryID != nil {
+			t.Fatalf("julia changed danny's booking: %+v", tx)
+		}
+	}
+
+	if code := update(danny, body); code != http.StatusNoContent {
+		t.Fatalf("update by danny: %d", code)
+	}
+	all, _ = app.queries.FindBankTransactionsByOwner(ctx, sqlc.FindBankTransactionsByOwnerParams{OwnerID: danny.ID, DateFrom: mustDate("2026-01-01"), DateTo: mustDate("2027-01-01")})
+	for _, tx := range all {
+		if tx.Scope != "PRIVATE" || tx.CategoryID == nil || *tx.CategoryID != categories[0].ID || *tx.ClassifiedBy != "MANUAL" {
+			t.Errorf("not updated: %+v", tx)
+		}
+	}
+	if code := update(danny, `{"ids":[1],"scope":"SOMEONE"}`); code != http.StatusBadRequest {
+		t.Errorf("invalid scope: %d", code)
+	}
+}
+
+func TestCloseBankImportAndPurge(t *testing.T) {
+	app := newTestApp(t)
+	ctx := context.Background()
+	danny := insertTestUser(t, app, "danny")
+	app.queries.InsertAccount(ctx, sqlc.InsertAccountParams{Name: "Gemeinschaftskonto", Type: "CHECKING", Iban: ptr("DE89370400440532013000")})
+	_, imported := uploadStatement(t, app, danny, false)
+	id := strconv.FormatInt(*imported.ImportID, 10)
+
+	call := func(handler echo.HandlerFunc) int {
+		req := httptest.NewRequest(http.MethodPut, "/", nil)
+		c := echo.New().NewContext(req, httptest.NewRecorder())
+		c.SetParamNames("id")
+		c.SetParamValues(id)
+		c.Set("user", danny)
+		if err := handler(c); err != nil {
+			return err.(*echo.HTTPError).Code
+		}
+		return http.StatusNoContent
+	}
+	if code := call(app.closeBankImport); code != http.StatusNoContent {
+		t.Fatalf("close: %d", code)
+	}
+	if code := call(app.closeBankImport); code != http.StatusConflict {
+		t.Errorf("closing twice: %d", code)
+	}
+
+	// within the retention nothing is removed
+	if err := app.purgeBankDetails(ctx); err != nil {
+		t.Fatal(err)
+	}
+	all := func() []sqlc.BankTransaction {
+		list, _ := app.queries.FindBankTransactionsByOwner(ctx, sqlc.FindBankTransactionsByOwnerParams{OwnerID: danny.ID, DateFrom: mustDate("2026-01-01"), DateTo: mustDate("2027-01-01")})
+		return list
+	}
+	if all()[0].Counterparty == "" {
+		t.Fatal("details removed before the retention ended")
+	}
+
+	// four months later the details are gone, amounts and duplicate detection stay
+	if _, err := app.db.ExecContext(ctx, "UPDATE bank_imports SET closed_at = datetime('now', '-4 months')"); err != nil {
+		t.Fatal(err)
+	}
+	if err := app.purgeBankDetails(ctx); err != nil {
+		t.Fatal(err)
+	}
+	for _, tx := range all() {
+		if tx.Counterparty != "" || tx.Purpose != "" || tx.Reference != nil || tx.Amount == 0 {
+			t.Errorf("not purged: %+v", tx)
+		}
+	}
+	if _, again := uploadStatement(t, app, danny, true); again.Duplicates != 2 {
+		t.Errorf("purged bookings must still be recognised: %+v", again)
+	}
+	if code := call(app.reopenBankImport); code != http.StatusConflict {
+		t.Errorf("reopening a purged import: %d", code)
+	}
+}
+
+func TestLinkBankTransactionsToEntry(t *testing.T) {
+	app := newTestApp(t)
+	ctx := context.Background()
+	danny := insertTestUser(t, app, "danny")
+	julia := insertTestUser(t, app, "julia")
+	app.queries.InsertAccount(ctx, sqlc.InsertAccountParams{Name: "Gemeinschaftskonto", Type: "CHECKING", Iban: ptr("DE89370400440532013000")})
+	uploadStatement(t, app, danny, false)
+	categories, _ := app.queries.FindAllCategories(ctx)
+	groceries := categories[0].ID
+
+	insertEntry := func(name string, owner *int64) int64 {
+		res, err := app.db.ExecContext(ctx, `INSERT INTO contracts (name, kind, category_id, is_variable, owner_id, start_date, billing_period, costs)
+			VALUES (?, 'EXPENSE', ?, 1, ?, '2026-01-01', 'MONTHLY', 600)`, name, groceries, owner)
+		if err != nil {
+			t.Fatal(err)
+		}
+		id, _ := res.LastInsertId()
+		return id
+	}
+	shared := insertEntry("Lebensmittel", nil)
+	juliasPrivate := insertEntry("Julias Budget", &julia.ID)
+
+	update := func(body string) int {
+		req := httptest.NewRequest(http.MethodPut, "/api/bank_transactions", strings.NewReader(body))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		e := echo.New()
+		e.Validator = &CustomValidator{validator: validator.New()}
+		c := e.NewContext(req, httptest.NewRecorder())
+		c.Set("user", danny)
+		if err := app.updateBankTransactions(c); err != nil {
+			return err.(*echo.HTTPError).Code
+		}
+		return http.StatusNoContent
+	}
+	if code := update(fmt.Sprintf(`{"ids":[1],"contract_id":%d}`, juliasPrivate)); code != http.StatusBadRequest {
+		t.Errorf("linking another user's private entry: %d", code)
+	}
+	if code := update(fmt.Sprintf(`{"ids":[1],"contract_id":%d}`, shared)); code != http.StatusNoContent {
+		t.Fatalf("link: %d", code)
+	}
+	first := func() sqlc.BankTransaction {
+		list, _ := app.queries.FindBankTransactionsByImport(ctx, sqlc.FindBankTransactionsByImportParams{OwnerID: danny.ID, ImportID: 1})
+		for _, tx := range list {
+			if tx.ID == 1 {
+				return tx
+			}
+		}
+		t.Fatal("booking 1 not found")
+		return sqlc.BankTransaction{}
+	}
+	linked := first()
+	if linked.ContractID == nil || *linked.ContractID != shared || *linked.CategoryID != groceries {
+		t.Fatalf("not linked: %+v", linked)
+	}
+	// a plain category removes the link again
+	update(fmt.Sprintf(`{"ids":[1],"category_id":%d}`, categories[1].ID))
+	if first().ContractID != nil {
+		t.Errorf("link kept after choosing a category")
+	}
 }

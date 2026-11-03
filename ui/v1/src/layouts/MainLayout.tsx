@@ -5,6 +5,7 @@ import {
     ArrowRightStartOnRectangleIcon,
     ArrowsRightLeftIcon,
     ClipboardDocumentCheckIcon,
+    QueueListIcon,
     BuildingLibraryIcon,
     Cog6ToothIcon,
     HomeIcon,
@@ -47,6 +48,7 @@ function MainLayout() {
         {label: t('nav.transfers'), url: '/transfers', icon: ArrowsRightLeftIcon},
         {label: t('nav.contracts'), url: '/contracts', icon: ShieldCheckIcon},
         {label: t('nav.closing'), url: '/closing', icon: ClipboardDocumentCheckIcon},
+        {label: t('nav.bookings'), url: '/bookings', icon: QueueListIcon},
         {label: t('nav.savings'), url: '/savings', icon: SparklesIcon},
         {label: t('nav.accounts'), url: '/accounts', icon: BuildingLibraryIcon},
     ]

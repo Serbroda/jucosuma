@@ -50,7 +50,11 @@ func (app *application) routes() *echo.Echo {
 	auth.POST("/bank_imports", app.importBankStatement)
 	auth.GET("/bank_imports", app.getBankImports)
 	auth.DELETE("/bank_imports/:id", app.deleteBankImport)
+	auth.PUT("/bank_imports/:id/close", app.closeBankImport)
+	auth.PUT("/bank_imports/:id/reopen", app.reopenBankImport)
+	auth.GET("/bank_settings", app.getBankSettings)
 	auth.GET("/bank_transactions", app.getBankTransactions)
+	auth.PUT("/bank_transactions", app.updateBankTransactions)
 
 	// Savings goals
 	auth.GET("/savings_goals", app.getSavingsGoals)
@@ -104,6 +108,7 @@ func (app *application) routes() *echo.Echo {
 	admin.GET("/backups", app.getBackupSettings)
 	admin.PUT("/backups", app.saveBackupSettings)
 	admin.POST("/backups/run", app.runBackup)
+	admin.PUT("/bank_settings", app.saveBankSettings)
 
 	return e
 }

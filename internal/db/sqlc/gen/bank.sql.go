@@ -10,6 +10,24 @@ import (
 	"time"
 )
 
+const closeBankImport = `-- name: CloseBankImport :execrows
+UPDATE bank_imports SET closed_at = CURRENT_TIMESTAMP
+WHERE id = ?1 AND owner_id = ?2 AND closed_at IS NULL
+`
+
+type CloseBankImportParams struct {
+	ID      int64 `db:"id"`
+	OwnerID int64 `db:"owner_id"`
+}
+
+func (q *Queries) CloseBankImport(ctx context.Context, arg CloseBankImportParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, closeBankImport, arg.ID, arg.OwnerID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const deleteBankImport = `-- name: DeleteBankImport :exec
 DELETE FROM bank_imports WHERE id = ?1 AND owner_id = ?2
 `
@@ -41,7 +59,7 @@ func (q *Queries) ExistsBankTransaction(ctx context.Context, arg ExistsBankTrans
 }
 
 const findBankImportByIdAndOwner = `-- name: FindBankImportByIdAndOwner :one
-SELECT id, owner_id, account_id, bank, filename, period_from, period_to, imported, duplicates, created_at FROM bank_imports WHERE id = ?1 AND owner_id = ?2 LIMIT 1
+SELECT id, owner_id, account_id, bank, filename, period_from, period_to, imported, duplicates, created_at, closed_at, purged_at FROM bank_imports WHERE id = ?1 AND owner_id = ?2 LIMIT 1
 `
 
 type FindBankImportByIdAndOwnerParams struct {
@@ -63,26 +81,49 @@ func (q *Queries) FindBankImportByIdAndOwner(ctx context.Context, arg FindBankIm
 		&i.Imported,
 		&i.Duplicates,
 		&i.CreatedAt,
+		&i.ClosedAt,
+		&i.PurgedAt,
 	)
 	return i, err
 }
 
 const findBankImportsByOwner = `-- name: FindBankImportsByOwner :many
-SELECT id, owner_id, account_id, bank, filename, period_from, period_to, imported, duplicates, created_at FROM bank_imports WHERE owner_id = ? ORDER BY created_at DESC, id DESC
+SELECT bi.id, bi.account_id, bi.bank, bi.filename, bi.period_from, bi.period_to, bi.imported, bi.duplicates,
+       bi.created_at, bi.closed_at, bi.purged_at,
+       (SELECT COUNT(*) FROM bank_transactions t WHERE t.import_id = bi.id)                                AS total,
+       (SELECT COUNT(*) FROM bank_transactions t WHERE t.import_id = bi.id AND t.category_id IS NOT NULL) AS classified
+FROM bank_imports bi
+WHERE bi.owner_id = ?
+ORDER BY bi.created_at DESC, bi.id DESC
 `
 
-func (q *Queries) FindBankImportsByOwner(ctx context.Context, ownerID int64) ([]BankImport, error) {
+type FindBankImportsByOwnerRow struct {
+	ID         int64      `db:"id"`
+	AccountID  int64      `db:"account_id"`
+	Bank       string     `db:"bank"`
+	Filename   string     `db:"filename"`
+	PeriodFrom *time.Time `db:"period_from"`
+	PeriodTo   *time.Time `db:"period_to"`
+	Imported   int64      `db:"imported"`
+	Duplicates int64      `db:"duplicates"`
+	CreatedAt  *time.Time `db:"created_at"`
+	ClosedAt   *time.Time `db:"closed_at"`
+	PurgedAt   *time.Time `db:"purged_at"`
+	Total      int64      `db:"total"`
+	Classified int64      `db:"classified"`
+}
+
+func (q *Queries) FindBankImportsByOwner(ctx context.Context, ownerID int64) ([]FindBankImportsByOwnerRow, error) {
 	rows, err := q.db.QueryContext(ctx, findBankImportsByOwner, ownerID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []BankImport
+	var items []FindBankImportsByOwnerRow
 	for rows.Next() {
-		var i BankImport
+		var i FindBankImportsByOwnerRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.OwnerID,
 			&i.AccountID,
 			&i.Bank,
 			&i.Filename,
@@ -91,6 +132,68 @@ func (q *Queries) FindBankImportsByOwner(ctx context.Context, ownerID int64) ([]
 			&i.Imported,
 			&i.Duplicates,
 			&i.CreatedAt,
+			&i.ClosedAt,
+			&i.PurgedAt,
+			&i.Total,
+			&i.Classified,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const findBankTransactionsByImport = `-- name: FindBankTransactionsByImport :many
+SELECT id, import_id, owner_id, account_id, fingerprint, booking_date, value_date, counterparty, counterparty_iban, booking_text, purpose, reference, creditor_id, amount, balance_after, currency, scope, kind, category_id, contract_id, classified_by, created_at, updated_at FROM bank_transactions
+WHERE owner_id = ?1 AND import_id = ?2
+ORDER BY booking_date ASC, id ASC
+`
+
+type FindBankTransactionsByImportParams struct {
+	OwnerID  int64 `db:"owner_id"`
+	ImportID int64 `db:"import_id"`
+}
+
+func (q *Queries) FindBankTransactionsByImport(ctx context.Context, arg FindBankTransactionsByImportParams) ([]BankTransaction, error) {
+	rows, err := q.db.QueryContext(ctx, findBankTransactionsByImport, arg.OwnerID, arg.ImportID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []BankTransaction
+	for rows.Next() {
+		var i BankTransaction
+		if err := rows.Scan(
+			&i.ID,
+			&i.ImportID,
+			&i.OwnerID,
+			&i.AccountID,
+			&i.Fingerprint,
+			&i.BookingDate,
+			&i.ValueDate,
+			&i.Counterparty,
+			&i.CounterpartyIban,
+			&i.BookingText,
+			&i.Purpose,
+			&i.Reference,
+			&i.CreditorID,
+			&i.Amount,
+			&i.BalanceAfter,
+			&i.Currency,
+			&i.Scope,
+			&i.Kind,
+			&i.CategoryID,
+			&i.ContractID,
+			&i.ClassifiedBy,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -168,7 +271,7 @@ const insertBankImport = `-- name: InsertBankImport :one
 INSERT INTO bank_imports (owner_id, account_id, bank, filename, period_from, period_to, created_at)
 VALUES (?1, ?2, ?3, ?4,
         ?5, ?6, CURRENT_TIMESTAMP)
-RETURNING id, owner_id, account_id, bank, filename, period_from, period_to, imported, duplicates, created_at
+RETURNING id, owner_id, account_id, bank, filename, period_from, period_to, imported, duplicates, created_at, closed_at, purged_at
 `
 
 type InsertBankImportParams struct {
@@ -201,6 +304,8 @@ func (q *Queries) InsertBankImport(ctx context.Context, arg InsertBankImportPara
 		&i.Imported,
 		&i.Duplicates,
 		&i.CreatedAt,
+		&i.ClosedAt,
+		&i.PurgedAt,
 	)
 	return i, err
 }
@@ -256,6 +361,52 @@ func (q *Queries) InsertBankTransaction(ctx context.Context, arg InsertBankTrans
 	return err
 }
 
+const markBankImportsPurged = `-- name: MarkBankImportsPurged :execrows
+UPDATE bank_imports SET purged_at = CURRENT_TIMESTAMP
+WHERE closed_at IS NOT NULL AND purged_at IS NULL AND closed_at < ?1
+`
+
+func (q *Queries) MarkBankImportsPurged(ctx context.Context, closedBefore *time.Time) (int64, error) {
+	result, err := q.db.ExecContext(ctx, markBankImportsPurged, closedBefore)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const purgeBankTransactions = `-- name: PurgeBankTransactions :execrows
+UPDATE bank_transactions
+SET counterparty = '', counterparty_iban = NULL, booking_text = '', purpose = '', reference = NULL, creditor_id = NULL,
+    updated_at = CURRENT_TIMESTAMP
+WHERE import_id IN (SELECT id FROM bank_imports WHERE closed_at IS NOT NULL AND purged_at IS NULL AND closed_at < ?1)
+`
+
+func (q *Queries) PurgeBankTransactions(ctx context.Context, closedBefore *time.Time) (int64, error) {
+	result, err := q.db.ExecContext(ctx, purgeBankTransactions, closedBefore)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const reopenBankImport = `-- name: ReopenBankImport :execrows
+UPDATE bank_imports SET closed_at = NULL
+WHERE id = ?1 AND owner_id = ?2 AND purged_at IS NULL
+`
+
+type ReopenBankImportParams struct {
+	ID      int64 `db:"id"`
+	OwnerID int64 `db:"owner_id"`
+}
+
+func (q *Queries) ReopenBankImport(ctx context.Context, arg ReopenBankImportParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, reopenBankImport, arg.ID, arg.OwnerID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const updateBankImportCounts = `-- name: UpdateBankImportCounts :exec
 UPDATE bank_imports SET imported = ?1, duplicates = ?2 WHERE id = ?3
 `
@@ -269,4 +420,54 @@ type UpdateBankImportCountsParams struct {
 func (q *Queries) UpdateBankImportCounts(ctx context.Context, arg UpdateBankImportCountsParams) error {
 	_, err := q.db.ExecContext(ctx, updateBankImportCounts, arg.Imported, arg.Duplicates, arg.ID)
 	return err
+}
+
+const updateBankTransactionCategory = `-- name: UpdateBankTransactionCategory :execrows
+UPDATE bank_transactions
+SET category_id   = ?1,
+    contract_id   = ?2,
+    classified_by = ?3,
+    updated_at    = CURRENT_TIMESTAMP
+WHERE id = ?4 AND owner_id = ?5
+`
+
+type UpdateBankTransactionCategoryParams struct {
+	CategoryID   *int64  `db:"category_id"`
+	ContractID   *int64  `db:"contract_id"`
+	ClassifiedBy *string `db:"classified_by"`
+	ID           int64   `db:"id"`
+	OwnerID      int64   `db:"owner_id"`
+}
+
+func (q *Queries) UpdateBankTransactionCategory(ctx context.Context, arg UpdateBankTransactionCategoryParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateBankTransactionCategory,
+		arg.CategoryID,
+		arg.ContractID,
+		arg.ClassifiedBy,
+		arg.ID,
+		arg.OwnerID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateBankTransactionScope = `-- name: UpdateBankTransactionScope :execrows
+UPDATE bank_transactions SET scope = ?1, updated_at = CURRENT_TIMESTAMP
+WHERE id = ?2 AND owner_id = ?3
+`
+
+type UpdateBankTransactionScopeParams struct {
+	Scope   string `db:"scope"`
+	ID      int64  `db:"id"`
+	OwnerID int64  `db:"owner_id"`
+}
+
+func (q *Queries) UpdateBankTransactionScope(ctx context.Context, arg UpdateBankTransactionScopeParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateBankTransactionScope, arg.Scope, arg.ID, arg.OwnerID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

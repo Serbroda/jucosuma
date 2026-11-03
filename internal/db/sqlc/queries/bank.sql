@@ -8,7 +8,31 @@ RETURNING *;
 UPDATE bank_imports SET imported = sqlc.arg('imported'), duplicates = sqlc.arg('duplicates') WHERE id = sqlc.arg('id');
 
 -- name: FindBankImportsByOwner :many
-SELECT * FROM bank_imports WHERE owner_id = ? ORDER BY created_at DESC, id DESC;
+SELECT bi.id, bi.account_id, bi.bank, bi.filename, bi.period_from, bi.period_to, bi.imported, bi.duplicates,
+       bi.created_at, bi.closed_at, bi.purged_at,
+       (SELECT COUNT(*) FROM bank_transactions t WHERE t.import_id = bi.id)                                AS total,
+       (SELECT COUNT(*) FROM bank_transactions t WHERE t.import_id = bi.id AND t.category_id IS NOT NULL) AS classified
+FROM bank_imports bi
+WHERE bi.owner_id = ?
+ORDER BY bi.created_at DESC, bi.id DESC;
+
+-- name: CloseBankImport :execrows
+UPDATE bank_imports SET closed_at = CURRENT_TIMESTAMP
+WHERE id = sqlc.arg('id') AND owner_id = sqlc.arg('owner_id') AND closed_at IS NULL;
+
+-- name: ReopenBankImport :execrows
+UPDATE bank_imports SET closed_at = NULL
+WHERE id = sqlc.arg('id') AND owner_id = sqlc.arg('owner_id') AND purged_at IS NULL;
+
+-- name: PurgeBankTransactions :execrows
+UPDATE bank_transactions
+SET counterparty = '', counterparty_iban = NULL, booking_text = '', purpose = '', reference = NULL, creditor_id = NULL,
+    updated_at = CURRENT_TIMESTAMP
+WHERE import_id IN (SELECT id FROM bank_imports WHERE closed_at IS NOT NULL AND purged_at IS NULL AND closed_at < sqlc.arg('closed_before'));
+
+-- name: MarkBankImportsPurged :execrows
+UPDATE bank_imports SET purged_at = CURRENT_TIMESTAMP
+WHERE closed_at IS NOT NULL AND purged_at IS NULL AND closed_at < sqlc.arg('closed_before');
 
 -- name: FindBankImportByIdAndOwner :one
 SELECT * FROM bank_imports WHERE id = sqlc.arg('id') AND owner_id = sqlc.arg('owner_id') LIMIT 1;
@@ -28,7 +52,24 @@ VALUES (sqlc.arg('import_id'), sqlc.arg('owner_id'), sqlc.arg('account_id'), sql
         sqlc.arg('purpose'), sqlc.arg('reference'), sqlc.arg('creditor_id'), sqlc.arg('amount'), sqlc.arg('balance_after'),
         sqlc.arg('currency'), sqlc.arg('scope'), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
+-- name: FindBankTransactionsByImport :many
+SELECT * FROM bank_transactions
+WHERE owner_id = sqlc.arg('owner_id') AND import_id = sqlc.arg('import_id')
+ORDER BY booking_date ASC, id ASC;
+
 -- name: FindBankTransactionsByOwner :many
 SELECT * FROM bank_transactions
 WHERE owner_id = sqlc.arg('owner_id') AND booking_date >= sqlc.arg('date_from') AND booking_date < sqlc.arg('date_to')
 ORDER BY booking_date DESC, id DESC;
+
+-- name: UpdateBankTransactionScope :execrows
+UPDATE bank_transactions SET scope = sqlc.arg('scope'), updated_at = CURRENT_TIMESTAMP
+WHERE id = sqlc.arg('id') AND owner_id = sqlc.arg('owner_id');
+
+-- name: UpdateBankTransactionCategory :execrows
+UPDATE bank_transactions
+SET category_id   = sqlc.arg('category_id'),
+    contract_id   = sqlc.arg('contract_id'),
+    classified_by = sqlc.arg('classified_by'),
+    updated_at    = CURRENT_TIMESTAMP
+WHERE id = sqlc.arg('id') AND owner_id = sqlc.arg('owner_id');

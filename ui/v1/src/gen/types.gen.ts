@@ -26,6 +26,14 @@ export interface BankImportDto {
   imported: number /* int64 */;
   duplicates: number /* int64 */;
   created_at?: string /* RFC3339 */;
+  total: number /* int64 */;
+  classified: number /* int64 */;
+  closed_at?: string /* RFC3339 */;
+  /**
+   * PurgeOn is when the raw details of a closed import are removed; PurgedAt when that happened
+   */
+  purge_on?: DateOnly;
+  purged_at?: string /* RFC3339 */;
 }
 export interface BankTransactionDto {
   id: number /* int64 */;
@@ -46,6 +54,25 @@ export interface BankTransactionDto {
   category_id?: number /* int64 */;
   contract_id?: number /* int64 */;
   classified_by?: string;
+}
+/**
+ * UpdateBankTransactionsDto classifies several own bookings at once; fields left out stay unchanged.
+ * A planned entry (e.g. the variable cost "groceries") links the bookings to it and sets its
+ * category; a category alone removes such a link.
+ */
+export interface UpdateBankTransactionsDto {
+  ids: number /* int64 */[];
+  scope?: string;
+  category_id?: number /* int64 */;
+  contract_id?: number /* int64 */;
+  clear_category: boolean;
+}
+/**
+ * BankSettingsDto: months after closing an import until counterparty, purpose etc. are removed
+ * (0 = right away).
+ */
+export interface BankSettingsDto {
+  raw_retention_months: number /* int */;
 }
 
 //////////
