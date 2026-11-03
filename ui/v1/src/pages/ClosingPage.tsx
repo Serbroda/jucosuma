@@ -1,5 +1,5 @@
-import {useMemo, useState} from "react";
-import {useRevalidator, useSearchParams} from "react-router";
+import {useEffect, useMemo, useState} from "react";
+import {Link, useRevalidator, useSearchParams} from "react-router";
 import {useTranslation} from "react-i18next";
 import {CheckCircleIcon, ClipboardDocumentCheckIcon} from "@heroicons/react/20/solid";
 import PageHeader from "../components/ui/PageHeader.tsx";
@@ -8,6 +8,12 @@ import ClosingDialog from "../components/dialogs/ClosingDialog.tsx";
 import VariableCostsYear from "../components/VariableCostsYear.tsx";
 import SegmentedControl from "../components/SegmentedControl.tsx";
 import ConfirmDialog from "../components/dialogs/ConfirmDialog.tsx";
+import ClosingBookings from "../components/ClosingBookings.tsx";
+import {useBankActuals} from "../hooks/useBankActuals.ts";
+import {useAuth} from "../stores/useAuth.ts";
+import {apiBasePath} from "../config.ts";
+import {apiFetch} from "../lib/fetch.ts";
+import type {BankTransactionDto} from "../gen/types.gen.ts";
 import {Button} from "../components/catalyst/button.tsx";
 import {useAppData} from "../hooks/useAppData.ts";
 import {usePreferences} from "../stores/usePreferences.ts";
@@ -58,6 +64,28 @@ export default function ClosingPage() {
     const compare = (m: typeof month) => compareMonth(m, data.closings, data.contracts, data.persons, data.accounts, data.categories, mainCurrency);
     const current = useMemo(() => compare(month), // eslint-disable-next-line react-hooks/exhaustive-deps
         [data, monthKey, mainCurrency]);
+
+    // imported bookings behind the actual values: household totals and the own bookings
+    const {user} = useAuth();
+    const bank = useBankActuals(monthKey, view === "month");
+    const [ownBookings, setOwnBookings] = useState<BankTransactionDto[]>([]);
+    useEffect(() => {
+        if (!bank) return;
+        apiFetch(`${apiBasePath}/bank_transactions?month=${monthKey}`).then(async (res) =>
+            setOwnBookings(res.ok ? (await res.json() as BankTransactionDto[]).filter((tx) => tx.scope === "HOUSEHOLD") : []));
+    }, [bank, monthKey]);
+
+    /** Replaces the stored actual value of a category with the total of the bookings. */
+    const updateActual = async (categoryId: number, amount: number) => {
+        const closing = current.closing;
+        if (!closing) return;
+        const actuals = [
+            ...closing.actuals.filter((a) => a.category_id !== categoryId),
+            {category_id: categoryId, amount: Math.round(amount * 100) / 100},
+        ];
+        await sendJson("PUT", `/month_closings/${monthKey}`, {notes: closing.notes ?? null, balances: closing.balances, actuals});
+        revalidator.revalidate();
+    };
     const potLabel = (pot: "household" | number) => pot === "household"
         ? t('overview.potHousehold') : data.persons.find((p) => p.id === pot)?.name ?? t('common.unknown');
 
@@ -167,6 +195,7 @@ export default function ClosingPage() {
                                     <div className="flex flex-col gap-4">
                                         {current.categories.map(({category, planned, actual, deviation}) => {
                                             const max = Math.max(planned, actual, 1);
+                                            const booked = bank?.categories.find((b) => b.category_id === category.id);
                                             return (
                                                 <div key={category.id}>
                                                     <div className="flex items-center gap-3 text-sm">
@@ -185,10 +214,21 @@ export default function ClosingPage() {
                                                         <div className="absolute -top-1 -bottom-1 w-0.5 rounded bg-zinc-950 dark:bg-white"
                                                              style={{left: `calc(${planned / max * 100}% - 1px)`}} title={t('closing.planned')}/>
                                                     </div>
+                                                    {booked && (
+                                                        <ClosingBookings booked={booked} actual={actual} userId={user?.id} contracts={data.contracts} format={format}
+                                                                         own={ownBookings.filter((tx) => tx.category_id === category.id)}
+                                                                         onUpdate={() => updateActual(category.id, booked.amount)}/>
+                                                    )}
                                                 </div>
                                             );
                                         })}
                                     </div>
+                                )}
+                                {bank && bank.unassigned.bookings > 0 && (
+                                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-4">
+                                        {t('closing.unassignedHint', {amount: format(bank.unassigned.amount), count: bank.unassigned.bookings})}{" "}
+                                        <Link to="/bookings?view=month" className="font-medium hover:underline">{t('closing.toBookings')}</Link>
+                                    </p>
                                 )}
                             </div>
 

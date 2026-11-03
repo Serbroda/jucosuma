@@ -38,8 +38,8 @@ type BankImportDto struct {
 
 type BankTransactionDto struct {
 	ID               int64    `json:"id"`
-	ImportID         int64    `json:"import_id"`
-	AccountID        int64    `json:"account_id"`
+	ImportID         *int64   `json:"import_id"` // nil: entered by hand
+	AccountID        *int64   `json:"account_id"`
 	BookingDate      DateOnly `json:"booking_date"`
 	ValueDate        DateOnly `json:"value_date"`
 	Counterparty     string   `json:"counterparty"`
@@ -72,4 +72,71 @@ type UpdateBankTransactionsDto struct {
 // (0 = right away).
 type BankSettingsDto struct {
 	RawRetentionMonths int `json:"raw_retention_months" validate:"min=0,max=120"`
+}
+
+// BankActualsDto are the totals of a month's bookings that count for the household, of all members.
+// Amounts are spending: positive for money going out, refunds reduce them. No single booking is
+// included; everybody sees only their own bookings elsewhere.
+type BankActualsDto struct {
+	Month      string                   `json:"month"`
+	Categories []BankCategoryActualDto  `json:"categories"`
+	Unassigned BankAmountDto            `json:"unassigned"` // money going out without category
+	Coverage   []BankAccountCoverageDto `json:"coverage"`
+	// balances at the end of the month, for accounts whose imports cover the whole month
+	Balances []BankBalanceDto `json:"balances"`
+}
+
+type BankBalanceDto struct {
+	AccountID int64    `json:"account_id"`
+	Balance   float64  `json:"balance"`
+	Date      DateOnly `json:"date"` // day of the last booking
+}
+
+type BankAmountDto struct {
+	Amount   float64 `json:"amount"`
+	Bookings int64   `json:"bookings"`
+}
+
+type BankCategoryActualDto struct {
+	CategoryID int64               `json:"category_id"`
+	Amount     float64             `json:"amount"`
+	Bookings   int64               `json:"bookings"`
+	ByUser     []BankUserActualDto `json:"by_user"`
+	// entries linked to bookings of this category, e.g. groceries and drugstore sharing one category
+	Entries []BankEntryActualDto `json:"entries"`
+}
+
+type BankUserActualDto struct {
+	UserID   int64   `json:"user_id"`
+	Name     string  `json:"name"`
+	Amount   float64 `json:"amount"`
+	Bookings int64   `json:"bookings"`
+}
+
+type BankEntryActualDto struct {
+	ContractID int64   `json:"contract_id"`
+	Amount     float64 `json:"amount"`
+	Bookings   int64   `json:"bookings"`
+}
+
+// BankAccountCoverageDto tells whether imports cover the whole month of an account; without it the
+// totals miss bookings.
+type BankAccountCoverageDto struct {
+	AccountID int64 `json:"account_id"`
+	Complete  bool  `json:"complete"`
+	// last day covered within the month, nil when no import touches it
+	CoveredUntil *DateOnly `json:"covered_until"`
+}
+
+// SaveManualBankTransactionDto is a booking entered by hand, e.g. cash spending. Amount is negative
+// for money going out; without account it is cash.
+type SaveManualBankTransactionDto struct {
+	BookingDate  *DateOnly `json:"booking_date" validate:"required"`
+	Amount       float64   `json:"amount" validate:"ne=0"`
+	Counterparty string    `json:"counterparty" validate:"required,max=200"`
+	Purpose      string    `json:"purpose" validate:"max=500"`
+	AccountID    *int64    `json:"account_id"`
+	Scope        string    `json:"scope" validate:"oneof=HOUSEHOLD PRIVATE"`
+	CategoryID   *int64    `json:"category_id"`
+	ContractID   *int64    `json:"contract_id"`
 }

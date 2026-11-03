@@ -50,9 +50,9 @@ type BankImport struct {
 
 type BankTransaction struct {
 	ID               int64      `db:"id"`
-	ImportID         int64      `db:"import_id"`
+	ImportID         *int64     `db:"import_id"`
 	OwnerID          int64      `db:"owner_id"`
-	AccountID        int64      `db:"account_id"`
+	AccountID        *int64     `db:"account_id"`
 	Fingerprint      string     `db:"fingerprint"`
 	BookingDate      time.Time  `db:"booking_date"`
 	ValueDate        time.Time  `db:"value_date"`

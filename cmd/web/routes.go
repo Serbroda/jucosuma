@@ -55,6 +55,10 @@ func (app *application) routes() *echo.Echo {
 	auth.GET("/bank_settings", app.getBankSettings)
 	auth.GET("/bank_transactions", app.getBankTransactions)
 	auth.PUT("/bank_transactions", app.updateBankTransactions)
+	auth.POST("/bank_transactions", app.createManualBankTransaction)
+	auth.PUT("/bank_transactions/:id", app.updateManualBankTransaction)
+	auth.DELETE("/bank_transactions/:id", app.deleteManualBankTransaction)
+	auth.GET("/bank_actuals", app.getBankActuals)
 
 	// Savings goals
 	auth.GET("/savings_goals", app.getSavingsGoals)

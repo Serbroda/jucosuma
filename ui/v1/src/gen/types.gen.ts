@@ -37,8 +37,8 @@ export interface BankImportDto {
 }
 export interface BankTransactionDto {
   id: number /* int64 */;
-  import_id: number /* int64 */;
-  account_id: number /* int64 */;
+  import_id?: number /* int64 */; // nil: entered by hand
+  account_id?: number /* int64 */;
   booking_date: DateOnly;
   value_date: DateOnly;
   counterparty: string;
@@ -73,6 +73,77 @@ export interface UpdateBankTransactionsDto {
  */
 export interface BankSettingsDto {
   raw_retention_months: number /* int */;
+}
+/**
+ * BankActualsDto are the totals of a month's bookings that count for the household, of all members.
+ * Amounts are spending: positive for money going out, refunds reduce them. No single booking is
+ * included; everybody sees only their own bookings elsewhere.
+ */
+export interface BankActualsDto {
+  month: string;
+  categories: BankCategoryActualDto[];
+  unassigned: BankAmountDto; // money going out without category
+  coverage: BankAccountCoverageDto[];
+  /**
+   * balances at the end of the month, for accounts whose imports cover the whole month
+   */
+  balances: BankBalanceDto[];
+}
+export interface BankBalanceDto {
+  account_id: number /* int64 */;
+  balance: number /* float64 */;
+  date: DateOnly; // day of the last booking
+}
+export interface BankAmountDto {
+  amount: number /* float64 */;
+  bookings: number /* int64 */;
+}
+export interface BankCategoryActualDto {
+  category_id: number /* int64 */;
+  amount: number /* float64 */;
+  bookings: number /* int64 */;
+  by_user: BankUserActualDto[];
+  /**
+   * entries linked to bookings of this category, e.g. groceries and drugstore sharing one category
+   */
+  entries: BankEntryActualDto[];
+}
+export interface BankUserActualDto {
+  user_id: number /* int64 */;
+  name: string;
+  amount: number /* float64 */;
+  bookings: number /* int64 */;
+}
+export interface BankEntryActualDto {
+  contract_id: number /* int64 */;
+  amount: number /* float64 */;
+  bookings: number /* int64 */;
+}
+/**
+ * BankAccountCoverageDto tells whether imports cover the whole month of an account; without it the
+ * totals miss bookings.
+ */
+export interface BankAccountCoverageDto {
+  account_id: number /* int64 */;
+  complete: boolean;
+  /**
+   * last day covered within the month, nil when no import touches it
+   */
+  covered_until?: DateOnly;
+}
+/**
+ * SaveManualBankTransactionDto is a booking entered by hand, e.g. cash spending. Amount is negative
+ * for money going out; without account it is cash.
+ */
+export interface SaveManualBankTransactionDto {
+  booking_date?: DateOnly;
+  amount: number /* float64 */;
+  counterparty: string;
+  purpose: string;
+  account_id?: number /* int64 */;
+  scope: string;
+  category_id?: number /* int64 */;
+  contract_id?: number /* int64 */;
 }
 
 //////////

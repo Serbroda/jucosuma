@@ -42,12 +42,29 @@ func (q *Queries) DeleteBankImport(ctx context.Context, arg DeleteBankImportPara
 	return err
 }
 
+const deleteManualBankTransaction = `-- name: DeleteManualBankTransaction :execrows
+DELETE FROM bank_transactions WHERE id = ?1 AND owner_id = ?2 AND import_id IS NULL
+`
+
+type DeleteManualBankTransactionParams struct {
+	ID      int64 `db:"id"`
+	OwnerID int64 `db:"owner_id"`
+}
+
+func (q *Queries) DeleteManualBankTransaction(ctx context.Context, arg DeleteManualBankTransactionParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteManualBankTransaction, arg.ID, arg.OwnerID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const existsBankTransaction = `-- name: ExistsBankTransaction :one
 SELECT COUNT(*) FROM bank_transactions WHERE account_id = ?1 AND fingerprint = ?2
 `
 
 type ExistsBankTransactionParams struct {
-	AccountID   int64  `db:"account_id"`
+	AccountID   *int64 `db:"account_id"`
 	Fingerprint string `db:"fingerprint"`
 }
 
@@ -85,6 +102,39 @@ func (q *Queries) FindBankImportByIdAndOwner(ctx context.Context, arg FindBankIm
 		&i.PurgedAt,
 	)
 	return i, err
+}
+
+const findBankImportPeriods = `-- name: FindBankImportPeriods :many
+SELECT account_id, period_from, period_to FROM bank_imports WHERE period_from IS NOT NULL AND period_to IS NOT NULL
+`
+
+type FindBankImportPeriodsRow struct {
+	AccountID  int64      `db:"account_id"`
+	PeriodFrom *time.Time `db:"period_from"`
+	PeriodTo   *time.Time `db:"period_to"`
+}
+
+func (q *Queries) FindBankImportPeriods(ctx context.Context) ([]FindBankImportPeriodsRow, error) {
+	rows, err := q.db.QueryContext(ctx, findBankImportPeriods)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FindBankImportPeriodsRow
+	for rows.Next() {
+		var i FindBankImportPeriodsRow
+		if err := rows.Scan(&i.AccountID, &i.PeriodFrom, &i.PeriodTo); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const findBankImportsByOwner = `-- name: FindBankImportsByOwner :many
@@ -157,8 +207,8 @@ ORDER BY booking_date ASC, id ASC
 `
 
 type FindBankTransactionsByImportParams struct {
-	OwnerID  int64 `db:"owner_id"`
-	ImportID int64 `db:"import_id"`
+	OwnerID  int64  `db:"owner_id"`
+	ImportID *int64 `db:"import_id"`
 }
 
 func (q *Queries) FindBankTransactionsByImport(ctx context.Context, arg FindBankTransactionsByImportParams) ([]BankTransaction, error) {
@@ -267,6 +317,51 @@ func (q *Queries) FindBankTransactionsByOwner(ctx context.Context, arg FindBankT
 	return items, nil
 }
 
+const findLastBankBalances = `-- name: FindLastBankBalances :many
+SELECT t.account_id, t.booking_date, t.amount, t.balance_after
+FROM bank_transactions t
+WHERE t.balance_after IS NOT NULL AND t.account_id IS NOT NULL
+  AND t.booking_date = (SELECT MAX(t2.booking_date)
+                        FROM bank_transactions t2
+                        WHERE t2.account_id = t.account_id AND t2.balance_after IS NOT NULL AND t2.booking_date < ?1)
+`
+
+type FindLastBankBalancesRow struct {
+	AccountID    *int64    `db:"account_id"`
+	BookingDate  time.Time `db:"booking_date"`
+	Amount       float64   `db:"amount"`
+	BalanceAfter *float64  `db:"balance_after"`
+}
+
+// Bookings with balance on the last booking day before date_to, per account.
+func (q *Queries) FindLastBankBalances(ctx context.Context, dateTo time.Time) ([]FindLastBankBalancesRow, error) {
+	rows, err := q.db.QueryContext(ctx, findLastBankBalances, dateTo)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FindLastBankBalancesRow
+	for rows.Next() {
+		var i FindLastBankBalancesRow
+		if err := rows.Scan(
+			&i.AccountID,
+			&i.BookingDate,
+			&i.Amount,
+			&i.BalanceAfter,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertBankImport = `-- name: InsertBankImport :one
 INSERT INTO bank_imports (owner_id, account_id, bank, filename, period_from, period_to, created_at)
 VALUES (?1, ?2, ?3, ?4,
@@ -321,9 +416,9 @@ VALUES (?1, ?2, ?3, ?4, ?5,
 `
 
 type InsertBankTransactionParams struct {
-	ImportID         int64     `db:"import_id"`
+	ImportID         *int64    `db:"import_id"`
 	OwnerID          int64     `db:"owner_id"`
-	AccountID        int64     `db:"account_id"`
+	AccountID        *int64    `db:"account_id"`
 	Fingerprint      string    `db:"fingerprint"`
 	BookingDate      time.Time `db:"booking_date"`
 	ValueDate        time.Time `db:"value_date"`
@@ -359,6 +454,74 @@ func (q *Queries) InsertBankTransaction(ctx context.Context, arg InsertBankTrans
 		arg.Scope,
 	)
 	return err
+}
+
+const insertManualBankTransaction = `-- name: InsertManualBankTransaction :one
+INSERT INTO bank_transactions (owner_id, account_id, fingerprint, booking_date, value_date, counterparty, purpose, amount,
+                               currency, scope, category_id, contract_id, classified_by, created_at, updated_at)
+VALUES (?1, ?2, ?3, ?4, ?4,
+        ?5, ?6, ?7, ?8, ?9,
+        ?10, ?11, ?12, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+RETURNING id, import_id, owner_id, account_id, fingerprint, booking_date, value_date, counterparty, counterparty_iban, booking_text, purpose, reference, creditor_id, amount, balance_after, currency, scope, kind, category_id, contract_id, classified_by, created_at, updated_at
+`
+
+type InsertManualBankTransactionParams struct {
+	OwnerID      int64     `db:"owner_id"`
+	AccountID    *int64    `db:"account_id"`
+	Fingerprint  string    `db:"fingerprint"`
+	BookingDate  time.Time `db:"booking_date"`
+	Counterparty string    `db:"counterparty"`
+	Purpose      string    `db:"purpose"`
+	Amount       float64   `db:"amount"`
+	Currency     string    `db:"currency"`
+	Scope        string    `db:"scope"`
+	CategoryID   *int64    `db:"category_id"`
+	ContractID   *int64    `db:"contract_id"`
+	ClassifiedBy *string   `db:"classified_by"`
+}
+
+func (q *Queries) InsertManualBankTransaction(ctx context.Context, arg InsertManualBankTransactionParams) (BankTransaction, error) {
+	row := q.db.QueryRowContext(ctx, insertManualBankTransaction,
+		arg.OwnerID,
+		arg.AccountID,
+		arg.Fingerprint,
+		arg.BookingDate,
+		arg.Counterparty,
+		arg.Purpose,
+		arg.Amount,
+		arg.Currency,
+		arg.Scope,
+		arg.CategoryID,
+		arg.ContractID,
+		arg.ClassifiedBy,
+	)
+	var i BankTransaction
+	err := row.Scan(
+		&i.ID,
+		&i.ImportID,
+		&i.OwnerID,
+		&i.AccountID,
+		&i.Fingerprint,
+		&i.BookingDate,
+		&i.ValueDate,
+		&i.Counterparty,
+		&i.CounterpartyIban,
+		&i.BookingText,
+		&i.Purpose,
+		&i.Reference,
+		&i.CreditorID,
+		&i.Amount,
+		&i.BalanceAfter,
+		&i.Currency,
+		&i.Scope,
+		&i.Kind,
+		&i.CategoryID,
+		&i.ContractID,
+		&i.ClassifiedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const markBankImportsPurged = `-- name: MarkBankImportsPurged :execrows
@@ -405,6 +568,56 @@ func (q *Queries) ReopenBankImport(ctx context.Context, arg ReopenBankImportPara
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const sumHouseholdBankTransactions = `-- name: SumHouseholdBankTransactions :many
+SELECT category_id, contract_id, owner_id, CAST(SUM(amount) AS REAL) AS total, COUNT(*) AS bookings
+FROM bank_transactions
+WHERE scope = 'HOUSEHOLD' AND booking_date >= ?1 AND booking_date < ?2
+GROUP BY category_id, contract_id, owner_id
+`
+
+type SumHouseholdBankTransactionsParams struct {
+	DateFrom time.Time `db:"date_from"`
+	DateTo   time.Time `db:"date_to"`
+}
+
+type SumHouseholdBankTransactionsRow struct {
+	CategoryID *int64  `db:"category_id"`
+	ContractID *int64  `db:"contract_id"`
+	OwnerID    int64   `db:"owner_id"`
+	Total      float64 `db:"total"`
+	Bookings   int64   `db:"bookings"`
+}
+
+// Totals of the bookings counting for the household, of all users: only sums leave the server.
+func (q *Queries) SumHouseholdBankTransactions(ctx context.Context, arg SumHouseholdBankTransactionsParams) ([]SumHouseholdBankTransactionsRow, error) {
+	rows, err := q.db.QueryContext(ctx, sumHouseholdBankTransactions, arg.DateFrom, arg.DateTo)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SumHouseholdBankTransactionsRow
+	for rows.Next() {
+		var i SumHouseholdBankTransactionsRow
+		if err := rows.Scan(
+			&i.CategoryID,
+			&i.ContractID,
+			&i.OwnerID,
+			&i.Total,
+			&i.Bookings,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateBankImportCounts = `-- name: UpdateBankImportCounts :exec
@@ -466,6 +679,56 @@ type UpdateBankTransactionScopeParams struct {
 
 func (q *Queries) UpdateBankTransactionScope(ctx context.Context, arg UpdateBankTransactionScopeParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateBankTransactionScope, arg.Scope, arg.ID, arg.OwnerID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateManualBankTransaction = `-- name: UpdateManualBankTransaction :execrows
+UPDATE bank_transactions
+SET account_id    = ?1,
+    booking_date  = ?2,
+    value_date    = ?2,
+    counterparty  = ?3,
+    purpose       = ?4,
+    amount        = ?5,
+    scope         = ?6,
+    category_id   = ?7,
+    contract_id   = ?8,
+    classified_by = ?9,
+    updated_at    = CURRENT_TIMESTAMP
+WHERE id = ?10 AND owner_id = ?11 AND import_id IS NULL
+`
+
+type UpdateManualBankTransactionParams struct {
+	AccountID    *int64    `db:"account_id"`
+	BookingDate  time.Time `db:"booking_date"`
+	Counterparty string    `db:"counterparty"`
+	Purpose      string    `db:"purpose"`
+	Amount       float64   `db:"amount"`
+	Scope        string    `db:"scope"`
+	CategoryID   *int64    `db:"category_id"`
+	ContractID   *int64    `db:"contract_id"`
+	ClassifiedBy *string   `db:"classified_by"`
+	ID           int64     `db:"id"`
+	OwnerID      int64     `db:"owner_id"`
+}
+
+func (q *Queries) UpdateManualBankTransaction(ctx context.Context, arg UpdateManualBankTransactionParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateManualBankTransaction,
+		arg.AccountID,
+		arg.BookingDate,
+		arg.Counterparty,
+		arg.Purpose,
+		arg.Amount,
+		arg.Scope,
+		arg.CategoryID,
+		arg.ContractID,
+		arg.ClassifiedBy,
+		arg.ID,
+		arg.OwnerID,
+	)
 	if err != nil {
 		return 0, err
 	}

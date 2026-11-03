@@ -81,7 +81,7 @@ func (app *application) importBankStatement(c echo.Context) error {
 	}
 
 	for i, fp := range bankimport.Fingerprints(stmt.Transactions) {
-		exists, err := qtx.ExistsBankTransaction(ctx, sqlc.ExistsBankTransactionParams{AccountID: account.ID, Fingerprint: fp})
+		exists, err := qtx.ExistsBankTransaction(ctx, sqlc.ExistsBankTransactionParams{AccountID: &account.ID, Fingerprint: fp})
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
@@ -91,7 +91,7 @@ func (app *application) importBankStatement(c echo.Context) error {
 		}
 		t := stmt.Transactions[i]
 		if err := qtx.InsertBankTransaction(ctx, sqlc.InsertBankTransactionParams{
-			ImportID: imp.ID, OwnerID: user.ID, AccountID: account.ID, Fingerprint: fp,
+			ImportID: &imp.ID, OwnerID: user.ID, AccountID: &account.ID, Fingerprint: fp,
 			BookingDate: t.BookingDate, ValueDate: t.ValueDate, Counterparty: t.Counterparty,
 			CounterpartyIban: utils.TrimToNil(&t.CounterpartyIBAN), BookingText: t.BookingText, Purpose: t.Purpose,
 			Reference: utils.TrimToNil(&t.Reference), CreditorID: utils.TrimToNil(&t.CreditorID),
@@ -149,16 +149,48 @@ func (app *application) importAccount(ctx context.Context, accountID, iban strin
 		return account, nil
 	}
 
+	if err := app.ensureOwnOrSharedAccount(ctx, *account, userID); err != nil {
+		return nil, err
+	}
+	return account, nil
+}
+
+// ensureOwnOrSharedAccount refuses private accounts of another person with a login.
+func (app *application) ensureOwnOrSharedAccount(ctx context.Context, account sqlc.Account, userID int64) error {
+	if account.PersonID == nil {
+		return nil
+	}
 	persons, err := app.queries.FindAllPersons(ctx)
 	if err != nil {
-		return nil, echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 	for _, p := range persons {
 		if p.ID == *account.PersonID && p.UserID != nil && *p.UserID != userID {
-			return nil, echo.NewHTTPError(http.StatusForbidden, "this account belongs to "+p.Name)
+			return echo.NewHTTPError(http.StatusForbidden, "this account belongs to "+p.Name)
 		}
 	}
-	return account, nil
+	return nil
+}
+
+// bankTarget checks what a booking is assigned to and returns its category: an entry's own category
+// (the entry must be visible to the user), or the given category.
+func (app *application) bankTarget(ctx context.Context, user sqlc.User, categoryID, contractID *int64) (*int64, error) {
+	if contractID != nil {
+		contract, err := app.queries.FindContractById(ctx, *contractID)
+		if err != nil || !canAccess(user, contract) {
+			return nil, echo.NewHTTPError(http.StatusBadRequest, "unknown entry")
+		}
+		if contract.CategoryID == nil {
+			return nil, echo.NewHTTPError(http.StatusBadRequest, "the entry has no category")
+		}
+		return contract.CategoryID, nil
+	}
+	if categoryID != nil {
+		if _, err := app.queries.FindCategoryById(ctx, *categoryID); err != nil {
+			return nil, echo.NewHTTPError(http.StatusBadRequest, "unknown category")
+		}
+	}
+	return categoryID, nil
 }
 
 func (app *application) getBankImports(c echo.Context) error {
@@ -250,7 +282,7 @@ func (app *application) getBankTransactions(c echo.Context) error {
 		if perr != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, "invalid import_id")
 		}
-		transactions, err = app.queries.FindBankTransactionsByImport(ctx, sqlc.FindBankTransactionsByImportParams{OwnerID: user.ID, ImportID: id})
+		transactions, err = app.queries.FindBankTransactionsByImport(ctx, sqlc.FindBankTransactionsByImportParams{OwnerID: user.ID, ImportID: &id})
 	} else {
 		month := c.QueryParam("month")
 		if !monthPattern.MatchString(month) {
@@ -264,16 +296,18 @@ func (app *application) getBankTransactions(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-	return c.JSON(http.StatusOK, utils.MapSlice(transactions, func(t sqlc.BankTransaction) dtos.BankTransactionDto {
-		return dtos.BankTransactionDto{
-			ID: t.ID, ImportID: t.ImportID, AccountID: t.AccountID,
-			BookingDate: dtos.DateOnly(t.BookingDate), ValueDate: dtos.DateOnly(t.ValueDate),
-			Counterparty: t.Counterparty, CounterpartyIban: t.CounterpartyIban, BookingText: t.BookingText,
-			Purpose: t.Purpose, Reference: t.Reference, Amount: t.Amount, BalanceAfter: t.BalanceAfter,
-			Currency: t.Currency, Scope: t.Scope, Kind: t.Kind, CategoryID: t.CategoryID,
-			ContractID: t.ContractID, ClassifiedBy: t.ClassifiedBy,
-		}
-	}))
+	return c.JSON(http.StatusOK, utils.MapSlice(transactions, mapBankTransaction))
+}
+
+func mapBankTransaction(t sqlc.BankTransaction) dtos.BankTransactionDto {
+	return dtos.BankTransactionDto{
+		ID: t.ID, ImportID: t.ImportID, AccountID: t.AccountID,
+		BookingDate: dtos.DateOnly(t.BookingDate), ValueDate: dtos.DateOnly(t.ValueDate),
+		Counterparty: t.Counterparty, CounterpartyIban: t.CounterpartyIban, BookingText: t.BookingText,
+		Purpose: t.Purpose, Reference: t.Reference, Amount: t.Amount, BalanceAfter: t.BalanceAfter,
+		Currency: t.Currency, Scope: t.Scope, Kind: t.Kind, CategoryID: t.CategoryID,
+		ContractID: t.ContractID, ClassifiedBy: t.ClassifiedBy,
+	}
 }
 
 func dateOnlyPtr(t *time.Time) *dtos.DateOnly {
@@ -293,20 +327,11 @@ func (app *application) updateBankTransactions(c echo.Context) error {
 	}
 	user := c.Get("user").(sqlc.User)
 	ctx := c.Request().Context()
-	if payload.ContractID != nil {
-		contract, err := app.queries.FindContractById(ctx, *payload.ContractID)
-		if err != nil || !canAccess(user, contract) {
-			return echo.NewHTTPError(http.StatusBadRequest, "unknown entry")
-		}
-		if contract.CategoryID == nil {
-			return echo.NewHTTPError(http.StatusBadRequest, "the entry has no category")
-		}
-		payload.CategoryID = contract.CategoryID
-	} else if payload.CategoryID != nil {
-		if _, err := app.queries.FindCategoryById(ctx, *payload.CategoryID); err != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, "unknown category")
-		}
+	categoryID, err := app.bankTarget(ctx, user, payload.CategoryID, payload.ContractID)
+	if err != nil {
+		return err
 	}
+	payload.CategoryID = categoryID
 	setCategory := payload.CategoryID != nil || payload.ClearCategory
 	if payload.Scope == nil && !setCategory {
 		return echo.NewHTTPError(http.StatusBadRequest, "nothing to update")

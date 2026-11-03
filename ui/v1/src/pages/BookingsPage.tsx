@@ -1,13 +1,15 @@
 import {useCallback, useEffect, useMemo, useState} from "react";
 import {useTranslation} from "react-i18next";
-import {useRevalidator} from "react-router";
+import {useRevalidator, useSearchParams} from "react-router";
 import {
     ArrowUpTrayIcon,
     ArrowUturnLeftIcon,
     CheckIcon,
     ChevronDownIcon,
     LockClosedIcon,
+    PencilIcon,
     PlayIcon,
+    PlusIcon,
     TrashIcon,
     UserGroupIcon,
 } from "@heroicons/react/16/solid";
@@ -17,6 +19,8 @@ import IconTile from "../components/ui/IconTile.tsx";
 import BankImportDialog from "../components/BankImportDialog.tsx";
 import BankReviewDialog from "../components/BankReviewDialog.tsx";
 import BankTargetSelect from "../components/BankTargetSelect.tsx";
+import ManualBookingDialog from "../components/ManualBookingDialog.tsx";
+import {Badge} from "../components/catalyst/badge.tsx";
 import ConfirmDialog from "../components/dialogs/ConfirmDialog.tsx";
 import SegmentedControl from "../components/SegmentedControl.tsx";
 import {Dialog, DialogActions, DialogBody, DialogTitle} from "../components/catalyst/dialog.tsx";
@@ -46,7 +50,7 @@ type View = "review" | "month";
 export default function BookingsPage() {
     const data = useAppData();
     const {t} = useTranslation();
-    const {monthKey: month} = useMonth();
+    const {monthKey: month, setMonth} = useMonth();
     const {mainCurrency} = usePreferences();
     const revalidator = useRevalidator();
     const [transactions, setTransactions] = useState<BankTransactionDto[]>([]);
@@ -55,10 +59,14 @@ export default function BookingsPage() {
     const [onlyOpen, setOnlyOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [deleting, setDeleting] = useState<BankImportDto | null>(null);
+    // manual bookings: null = closed, undefined = new one
+    const [editingManual, setEditingManual] = useState<BankTransactionDto | null | undefined>(null);
+    const [deletingManual, setDeletingManual] = useState<BankTransactionDto | null>(null);
     const [closing, setClosing] = useState<BankImportDto | null>(null);
     const [reviewing, setReviewing] = useState<number | null>(null);
     const [showClosed, setShowClosed] = useState(false);
-    const [view, setView] = useState<View>("review");
+    const [searchParams] = useSearchParams();
+    const [view, setView] = useState<View>(searchParams.get("view") === "month" ? "month" : "review");
     const [retention, setRetention] = useState(3);
     const [error, setError] = useState("");
 
@@ -191,8 +199,35 @@ export default function BookingsPage() {
                     <Button onClick={() => closing && closeImport(closing.id)} className="hover:cursor-pointer">{t("bank.closeImport")}</Button>
                 </DialogActions>
             </Dialog>
+            <ManualBookingDialog open={editingManual !== null} booking={editingManual} accounts={data.accounts}
+                                 contracts={data.contracts} categories={data.categories}
+                                 onClose={(savedOn) => {
+                                     setEditingManual(null);
+                                     if (!savedOn) return;
+                                     // show the month of the booking
+                                     setView("month");
+                                     if (savedOn.slice(0, 7) !== month) setMonth(dayjs(savedOn));
+                                     else load();
+                                 }}/>
+            <ConfirmDialog
+                isOpen={deletingManual != null}
+                title={t("bank.manualDeleteTitle")}
+                message={t("bank.manualDeleteMessage", {name: deletingManual?.counterparty ?? ""})}
+                submitLabel={t("common.delete")}
+                onClose={() => setDeletingManual(null)}
+                onSubmit={async () => {
+                    if (!deletingManual) return;
+                    const err = await sendJson("DELETE", `/bank_transactions/${deletingManual.id}`);
+                    setDeletingManual(null);
+                    if (err) setError(err);
+                    load();
+                }}
+            />
             <PageHeader title={t("bank.title")} subtitle={t("bank.subtitle")}
-                        actions={<Button onClick={() => setUploading(true)} className="hover:cursor-pointer"><ArrowUpTrayIcon/>{t("bank.upload")}</Button>}/>
+                        actions={<>
+                            <Button outline onClick={() => setEditingManual(undefined)} className="hover:cursor-pointer"><PlusIcon/>{t("bank.manualAdd")}</Button>
+                            <Button onClick={() => setUploading(true)} className="hover:cursor-pointer"><ArrowUpTrayIcon/>{t("bank.upload")}</Button>
+                        </>}/>
 
             {error && (
                 <div className="rounded-lg border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-3 text-sm text-red-700 dark:text-red-400">{error}</div>
@@ -337,6 +372,7 @@ export default function BookingsPage() {
                                     <th className={th + " w-40 sm:w-56"}>{t("bank.category")}</th>
                                     <th className={th + " hidden md:table-cell"}>{t("bank.scope")}</th>
                                     <th className={th + " text-right"}>{t("bank.amount")}</th>
+                                    <th className={th + " w-16"}><span className="sr-only">{t("common.actions")}</span></th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -348,9 +384,13 @@ export default function BookingsPage() {
                                             </td>
                                             <td className={td + " whitespace-nowrap tabular-nums"}>{dayjs(tx.booking_date).format("DD.MM.")}</td>
                                             <td className={td + " max-w-32 sm:max-w-xs"}>
-                                                <div className="truncate text-zinc-950 dark:text-white">{tx.counterparty || tx.booking_text}</div>
+                                                <div className="truncate text-zinc-950 dark:text-white">
+                                                    {tx.counterparty || tx.booking_text}
+                                                    {tx.import_id == null && <Badge color="zinc" className="ml-2">{t("bank.manual")}</Badge>}
+                                                </div>
                                                 <div className="truncate text-xs text-zinc-400 dark:text-zinc-500" title={tx.purpose}>
-                                                    {data.accounts.length > 1 && <>{accountName(tx.account_id, data.accounts)} · </>}{tx.purpose}
+                                                    {[data.accounts.length > 1 || tx.account_id == null ? accountName(tx.account_id, data.accounts) ?? t("bank.cash") : "", tx.purpose]
+                                                        .filter(Boolean).join(" · ")}
                                                 </div>
                                             </td>
                                             <td className={td}>
@@ -368,6 +408,14 @@ export default function BookingsPage() {
                                             </td>
                                             <td className={td + " text-right whitespace-nowrap tabular-nums " + (tx.amount < 0 ? "" : "text-green-600 dark:text-green-400")}>
                                                 {money(tx.amount)}
+                                            </td>
+                                            <td className={td + " text-right whitespace-nowrap"}>
+                                                {tx.import_id == null && (
+                                                    <>
+                                                        <Button plain onClick={() => setEditingManual(tx)} aria-label={t("common.edit")} className="hover:cursor-pointer"><PencilIcon/></Button>
+                                                        <Button plain onClick={() => setDeletingManual(tx)} aria-label={t("common.delete")} className="hover:cursor-pointer"><TrashIcon/></Button>
+                                                    </>
+                                                )}
                                             </td>
                                         </tr>
                                     );

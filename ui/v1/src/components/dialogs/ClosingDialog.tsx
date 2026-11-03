@@ -15,6 +15,8 @@ import {formatDecimal, numberLocale, parseAmount} from "../../utils/number.utils
 import {usePreferences} from "../../stores/usePreferences.ts";
 import {sendJson} from "../../lib/api.ts";
 import {table, td, th} from "../../utils/ui.ts";
+import {useBankActuals} from "../../hooks/useBankActuals.ts";
+import dayjs from "../../lib/dayjs";
 
 /** Records the real account balances (and optional actual category totals) at the end of a month. */
 export default function ClosingDialog({open, onClose, month, data}: {
@@ -52,6 +54,23 @@ export default function ClosingDialog({open, onClose, month, data}: {
     const categories = useMemo(() => variableCategories(month, data.closings, data.contracts, data.categories),
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [data, monthKey]);
+    // totals of the imported bookings, offered as actual values
+    const bank = useBankActuals(monthKey, open);
+    const fromBank = (categoryId: number) => bank?.categories.find((b) => b.category_id === categoryId);
+    const bankSuggestions = categories.filter((c) => fromBank(c.id));
+    const incomplete = (bank?.coverage ?? []).filter((c) => !c.complete);
+    const bankBalance = (accountId: number) => bank?.balances.find((b) => b.account_id === accountId);
+    const takeBalances = () => {
+        setShowBalances(true);
+        setEnds((current) => ({
+            ...current,
+            ...Object.fromEntries((bank?.balances ?? []).map((b) => [b.account_id, formatDecimal(b.balance) || "0,00"])),
+        }));
+    };
+    const takeFromBank = (ids: number[]) => setActuals((current) => ({
+        ...current,
+        ...Object.fromEntries(ids.map((id) => [id, formatDecimal(fromBank(id)?.amount ?? 0) || "0,00"])),
+    }));
 
     useEffect(() => {
         if (!open) return;
@@ -116,10 +135,30 @@ export default function ClosingDialog({open, onClose, month, data}: {
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
                     {categories.length > 0 ? t('closing.actualsHint') : t('closing.noVariable')}
                 </p>
+                {bank && bankSuggestions.length > 0 && (
+                    <div className="mt-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 p-3 text-xs text-blue-900 dark:text-blue-200 flex flex-col gap-1.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="grow">{t('closing.fromBookingsHint')}</span>
+                            <button type="button" onClick={() => takeFromBank(bankSuggestions.map((c) => c.id))}
+                                    className="font-medium hover:underline hover:cursor-pointer">{t('closing.takeAllFromBookings')}</button>
+                        </div>
+                        {incomplete.map((c) => (
+                            <div key={c.account_id} className="text-amber-700 dark:text-amber-400">
+                                {c.covered_until
+                                    ? t('closing.coveredUntil', {account: data.accounts.find((a) => a.id === c.account_id)?.name ?? "?", date: dayjs(c.covered_until).format("DD.MM.")})
+                                    : t('closing.notCovered', {account: data.accounts.find((a) => a.id === c.account_id)?.name ?? "?"})}
+                            </div>
+                        ))}
+                        {bank.unassigned.bookings > 0 && (
+                            <div>{t('closing.unassignedHint', {amount: format(bank.unassigned.amount), count: bank.unassigned.bookings})}</div>
+                        )}
+                    </div>
+                )}
                 {categories.length > 0 && (
                     <div className="flex flex-col gap-2 mt-3">
                         {categories.map((c) => {
                             const planned = plan.byCategory.find((b) => b.id === c.id)?.variable ?? 0;
+                            const booked = fromBank(c.id);
                             return (
                                 <div key={c.id} className="grid grid-cols-[1fr_7rem] sm:grid-cols-[1fr_7rem_8rem] items-center gap-3">
                                     <span className="flex items-center gap-2 min-w-0">
@@ -139,6 +178,15 @@ export default function ClosingDialog({open, onClose, month, data}: {
                                            aria-label={`${t('closing.actual')} ${categoryLabel(c.name, c.key)}`}
                                            value={actuals[c.id] ?? ""}
                                            onChange={(e) => setActuals({...actuals, [c.id]: e.target.value})}/>
+                                    {booked && (
+                                        <div className="col-span-full -mt-1 text-right text-[11px] text-zinc-500 dark:text-zinc-400">
+                                            {t('closing.fromBookings', {amount: format(booked.amount), count: booked.bookings})}
+                                            {parseAmount(actuals[c.id]) !== Math.round(booked.amount * 100) / 100 && (
+                                                <> · <button type="button" onClick={() => takeFromBank([c.id])}
+                                                             className="text-blue-600 dark:text-blue-400 hover:underline hover:cursor-pointer">{t('closing.take')}</button></>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
@@ -189,6 +237,15 @@ export default function ClosingDialog({open, onClose, month, data}: {
                                                     {t('closing.expected', {amount: format(exp)})}
                                                 </div>
                                             )}
+                                            {bankBalance(a.id) && parseAmount(ends[a.id]) !== bankBalance(a.id)!.balance && (
+                                                <div className="text-[11px] text-blue-700 dark:text-blue-300 text-right mt-0.5">
+                                                    {t('closing.balanceFromStatement', {amount: format(bankBalance(a.id)!.balance)})}{" "}
+                                                    <button type="button" className="font-medium hover:underline hover:cursor-pointer"
+                                                            onClick={() => setEnds({...ends, [a.id]: formatDecimal(bankBalance(a.id)!.balance) || "0,00"})}>
+                                                        {t('closing.take')}
+                                                    </button>
+                                                </div>
+                                            )}
                                         </td>
                                     </tr>
                                 );
@@ -200,10 +257,18 @@ export default function ClosingDialog({open, onClose, month, data}: {
                 </div>
             ) : (
                 <div>
-                    <button type="button" onClick={() => setShowBalances(true)}
-                            className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline hover:cursor-pointer">
-                        {t('closing.addBalances')}
-                    </button>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        <button type="button" onClick={() => setShowBalances(true)}
+                                className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline hover:cursor-pointer">
+                            {t('closing.addBalances')}
+                        </button>
+                        {(bank?.balances.length ?? 0) > 0 && (
+                            <button type="button" onClick={takeBalances}
+                                    className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline hover:cursor-pointer">
+                                {t('closing.takeBalances', {count: bank!.balances.length})}
+                            </button>
+                        )}
+                    </div>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{t('closing.addBalancesHint')}</p>
                 </div>
             )}
