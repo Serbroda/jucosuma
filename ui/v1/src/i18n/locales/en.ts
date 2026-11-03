@@ -798,6 +798,11 @@ const en = {
         none: "No backups yet.",
     },
     bank: {
+        filteredInfo: "Filtered: {{shown}} of {{total}} bookings",
+        sumOf_one: "Total of {{count}} booking",
+        sumOf_other: "Total of {{count}} bookings",
+        chartHouseholdFiltered: "Household totals cannot be filtered – reset search and filters",
+        chartFilteredHint: "Your bookings matching the search and filters. Refunds reduce their category.",
         direction: "Direction",
         source: "Source",
         sourceImport: "Imported",

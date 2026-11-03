@@ -11,15 +11,19 @@ import {card, cardTitle} from "../utils/ui.ts";
 type Source = "mine" | "household";
 
 /** Spending of the month per category: the own bookings, or the household totals of all members. */
-export default function BookingsCategoryChart({transactions, actuals, categories, format}: {
+export default function BookingsCategoryChart({transactions, actuals, filtered, categories, format}: {
+    /** the own bookings, as filtered on the page */
     transactions: BankTransactionDto[];
     actuals: BankActualsDto | null;
+    /** search or filters are active: the household totals of the server cannot follow them */
+    filtered: boolean;
     categories: CategoryDto[];
     format: (value: number) => string;
 }) {
     const {t} = useTranslation();
     const [source, setSource] = useState<Source>("mine");
-    const shown = source === "household" && actuals ? householdSpending(actuals, categories) : spendingByCategory(transactions, categories);
+    const household = source === "household" && actuals != null && !filtered;
+    const shown = household && actuals ? householdSpending(actuals, categories) : spendingByCategory(transactions, categories);
     const total = shown.reduce((sum, s) => sum + s.amount, 0);
     const categoryById = new Map(categories.map((c) => [c.id, c]));
 
@@ -39,16 +43,16 @@ export default function BookingsCategoryChart({transactions, actuals, categories
             <div className="flex flex-wrap items-center gap-3 mb-4">
                 <div className={cardTitle + " grow"}>{t("bank.chartTitle")}</div>
                 {actuals && (
-                    <SegmentedControl value={source} onChange={setSource} options={[
+                    <SegmentedControl value={household ? "household" : "mine"} onChange={setSource} options={[
                         {value: "mine", label: t("bank.chartMine")},
-                        {value: "household", label: t("bank.chartHousehold")},
+                        {value: "household", label: t("bank.chartHousehold"), disabled: filtered, title: filtered ? t("bank.chartHouseholdFiltered") : undefined},
                     ]}/>
                 )}
             </div>
             <DonutChart segments={segments} centerValue={format(total)} centerLabel={t("bank.expenses")}
                         format={format} emptyText={t("bank.chartEmpty")}/>
             <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-3">
-                {source === "household" ? t("bank.chartHouseholdHint") : t("bank.chartMineHint")}
+                {household ? t("bank.chartHouseholdHint") : filtered ? t("bank.chartFilteredHint") : t("bank.chartMineHint")}
             </p>
         </div>
     );

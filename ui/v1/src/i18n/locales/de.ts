@@ -802,6 +802,11 @@ const de: Translation<typeof en> = {
         none: "Noch keine Sicherung vorhanden.",
     },
     bank: {
+        filteredInfo: "Gefiltert: {{shown}} von {{total}} Buchungen",
+        sumOf_one: "Summe von {{count}} Buchung",
+        sumOf_other: "Summe von {{count}} Buchungen",
+        chartHouseholdFiltered: "Die Haushaltssummen lassen sich nicht filtern – Suche und Filter zurücksetzen",
+        chartFilteredHint: "Deine Buchungen, die zu Suche und Filtern passen. Erstattungen mindern ihre Kategorie.",
         direction: "Richtung",
         source: "Herkunft",
         sourceImport: "Importiert",

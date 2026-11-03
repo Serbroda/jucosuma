@@ -142,9 +142,6 @@ export default function BookingsPage() {
         load();
     };
 
-    const expenses = transactions.filter((tx) => tx.amount < 0).reduce((s, tx) => s - tx.amount, 0);
-    const income = transactions.filter((tx) => tx.amount > 0).reduce((s, tx) => s + tx.amount, 0);
-    const open = transactions.filter((tx) => tx.category_id == null).length;
     const categoryById = new Map(data.categories.map((c) => [c.id, c]));
     const usedCategories = [...new Set(transactions.map((tx) => tx.category_id).filter((id): id is number => id != null))]
         .map((id) => categoryById.get(id)).filter((c) => c != null);
@@ -180,6 +177,12 @@ export default function BookingsPage() {
             },
         ],
     });
+    // figures, chart and table follow search and filters
+    const expenses = listed.filter((tx) => tx.amount < 0).reduce((s, tx) => s - tx.amount, 0);
+    const income = listed.filter((tx) => tx.amount > 0).reduce((s, tx) => s + tx.amount, 0);
+    const open = listed.filter((tx) => tx.category_id == null).length;
+    const sum = (list: BankTransactionDto[]) => list.reduce((s, tx) => s + tx.amount, 0);
+
     // bulk actions apply to the selected bookings that are shown
     const selectedIds = listed.filter((tx) => selected.has(tx.id)).map((tx) => tx.id);
     const allSelected = listed.length > 0 && listed.every((tx) => selected.has(tx.id));
@@ -365,6 +368,10 @@ export default function BookingsPage() {
             ) : (
                 <>
 
+                <TableToolbar state={toolbar}
+                              title={isFiltered ? <span className="font-normal text-zinc-500 dark:text-zinc-400">
+                                  {t("bank.filteredInfo", {shown: listed.length, total: transactions.length})}</span> : undefined}/>
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {kpis.map((k) => (
                         <div key={k.label} className={card + " flex items-center gap-4"}>
@@ -377,15 +384,17 @@ export default function BookingsPage() {
                     ))}
                 </div>
 
-                <BookingsCategoryChart transactions={transactions} actuals={actuals} categories={data.categories}
+                <BookingsCategoryChart transactions={listed} actuals={actuals} filtered={isFiltered} categories={data.categories}
                                        format={(v) => new Intl.NumberFormat(numberLocale(), {style: "currency", currency: mainCurrency, maximumFractionDigits: v >= 100 ? 0 : 2}).format(v)}/>
 
                 <div className={card}>
-                    <TableToolbar title={t("bank.listTitle")} state={toolbar}/>
+                    <div className={cardTitle + " mb-3"}>{t("bank.listTitle")}</div>
 
                     {selectedIds.length > 0 && (
                         <div className="flex flex-wrap items-center gap-2 mb-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 p-2 text-sm">
-                            <span className="text-zinc-600 dark:text-zinc-300 px-1">{t("bank.selected", {count: selectedIds.length})}</span>
+                            <span className="text-zinc-600 dark:text-zinc-300 px-1">
+                                {t("bank.selected", {count: selectedIds.length})} · <span className="tabular-nums">{money(sum(listed.filter((tx) => selected.has(tx.id))))}</span>
+                            </span>
                             <div className="w-56">
                                 {firstSelected && <BankTargetSelect tx={firstSelected} contracts={data.contracts} categories={data.categories}
                                                                     placeholder={t("bank.setCategory")} onChange={(v) => assign(selectedIds, v)}/>}
@@ -466,6 +475,15 @@ export default function BookingsPage() {
                                     );
                                 })}
                                 </tbody>
+                                <tfoot>
+                                <tr className="border-t-2 border-zinc-200 dark:border-zinc-700 font-medium text-zinc-950 dark:text-white">
+                                    <td className={td} colSpan={3}>{t("bank.sumOf", {count: listed.length})}</td>
+                                    <td className={td}/>
+                                    <td className={td + " hidden md:table-cell"}/>
+                                    <td className={td + " text-right whitespace-nowrap tabular-nums"}>{money(sum(listed))}</td>
+                                    <td className={td}/>
+                                </tr>
+                                </tfoot>
                             </table>
                         </div>
                     )}
