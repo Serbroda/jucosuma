@@ -3,8 +3,9 @@ import type {BankActualsDto} from "../gen/types.gen.ts";
 import {apiBasePath} from "../config.ts";
 import {apiFetch} from "../lib/fetch.ts";
 
-/** Household totals of a month's imported bookings (YYYY-MM); null while loading or without imports. */
-export function useBankActuals(month: string, enabled = true): BankActualsDto | null {
+/** Household totals of a month's imported bookings (YYYY-MM); null while loading or without imports.
+ * A changed `refresh` value loads them again, e.g. after bookings were assigned. */
+export function useBankActuals(month: string, enabled = true, refresh?: unknown): BankActualsDto | null {
     const [actuals, setActuals] = useState<BankActualsDto | null>(null);
     useEffect(() => {
         if (!enabled) return;
@@ -17,6 +18,6 @@ export function useBankActuals(month: string, enabled = true): BankActualsDto | 
         return () => {
             current = false;
         };
-    }, [month, enabled]);
+    }, [month, enabled, refresh]);
     return actuals;
 }

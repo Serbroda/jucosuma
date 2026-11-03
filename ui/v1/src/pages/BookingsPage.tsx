@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useState} from "react";
 import {useTranslation} from "react-i18next";
 import {useRevalidator, useSearchParams} from "react-router";
 import {
+    ArrowsRightLeftIcon,
     ArrowUpTrayIcon,
     ArrowUturnLeftIcon,
     CheckIcon,
@@ -20,6 +21,9 @@ import BankImportDialog from "../components/BankImportDialog.tsx";
 import BankReviewDialog from "../components/BankReviewDialog.tsx";
 import BankTargetSelect from "../components/BankTargetSelect.tsx";
 import ManualBookingDialog from "../components/ManualBookingDialog.tsx";
+import MoveImportDialog from "../components/MoveImportDialog.tsx";
+import BookingsCategoryChart from "../components/BookingsCategoryChart.tsx";
+import {useBankActuals} from "../hooks/useBankActuals.ts";
 import {Badge} from "../components/catalyst/badge.tsx";
 import ConfirmDialog from "../components/dialogs/ConfirmDialog.tsx";
 import SegmentedControl from "../components/SegmentedControl.tsx";
@@ -59,6 +63,7 @@ export default function BookingsPage() {
     const [onlyOpen, setOnlyOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [deleting, setDeleting] = useState<BankImportDto | null>(null);
+    const [moving, setMoving] = useState<BankImportDto | null>(null);
     // manual bookings: null = closed, undefined = new one
     const [editingManual, setEditingManual] = useState<BankTransactionDto | null | undefined>(null);
     const [deletingManual, setDeletingManual] = useState<BankTransactionDto | null>(null);
@@ -66,6 +71,7 @@ export default function BookingsPage() {
     const [reviewing, setReviewing] = useState<number | null>(null);
     const [showClosed, setShowClosed] = useState(false);
     const [searchParams] = useSearchParams();
+    const actuals = useBankActuals(month, true, transactions);
     const [view, setView] = useState<View>(searchParams.get("view") === "month" ? "month" : "review");
     const [retention, setRetention] = useState(3);
     const [error, setError] = useState("");
@@ -199,6 +205,10 @@ export default function BookingsPage() {
                     <Button onClick={() => closing && closeImport(closing.id)} className="hover:cursor-pointer">{t("bank.closeImport")}</Button>
                 </DialogActions>
             </Dialog>
+            <MoveImportDialog imp={moving} accounts={data.accounts} onClose={(moved) => {
+                setMoving(null);
+                if (moved) load();
+            }}/>
             <ManualBookingDialog open={editingManual !== null} booking={editingManual} accounts={data.accounts}
                                  contracts={data.contracts} categories={data.categories}
                                  onClose={(savedOn) => {
@@ -257,7 +267,10 @@ export default function BookingsPage() {
                                             {period(imp)} · {t("bank.importCounts", {imported: imp.imported, duplicates: imp.duplicates})}
                                         </div>
                                     </div>
-                                    <Button plain onClick={() => setDeleting(imp)} aria-label={t("common.delete")} className="hover:cursor-pointer"><TrashIcon/></Button>
+                                    <div className="flex">
+                                        <Button plain onClick={() => setMoving(imp)} title={t("bank.moveImport")} aria-label={t("bank.moveImport")} className="hover:cursor-pointer"><ArrowsRightLeftIcon/></Button>
+                                        <Button plain onClick={() => setDeleting(imp)} aria-label={t("common.delete")} className="hover:cursor-pointer"><TrashIcon/></Button>
+                                    </div>
                                 </div>
                                 <div>
                                     <div className="flex justify-between text-xs text-zinc-500 dark:text-zinc-400 mb-1">
@@ -304,6 +317,7 @@ export default function BookingsPage() {
                                                         <ArrowUturnLeftIcon/>
                                                     </Button>
                                                 )}
+                                                <Button plain onClick={() => setMoving(imp)} title={t("bank.moveImport")} aria-label={t("bank.moveImport")} className="hover:cursor-pointer"><ArrowsRightLeftIcon/></Button>
                                                 <Button plain onClick={() => setDeleting(imp)} aria-label={t("common.delete")} className="hover:cursor-pointer"><TrashIcon/></Button>
                                             </td>
                                         </tr>
@@ -328,6 +342,9 @@ export default function BookingsPage() {
                         </div>
                     ))}
                 </div>
+
+                <BookingsCategoryChart transactions={transactions} actuals={actuals} categories={data.categories}
+                                       format={(v) => new Intl.NumberFormat(numberLocale(), {style: "currency", currency: mainCurrency, maximumFractionDigits: v >= 100 ? 0 : 2}).format(v)}/>
 
                 <div className={card}>
                     <div className="flex flex-wrap items-center gap-3 mb-3">
@@ -359,7 +376,7 @@ export default function BookingsPage() {
                             {transactions.length === 0 ? t("bank.empty") : t("bank.allClassified")}
                         </p>
                     ) : (
-                        <div className="overflow-x-auto">
+                        <div className="overflow-x-auto relative">
                             <table className={table}>
                                 <thead>
                                 <tr>

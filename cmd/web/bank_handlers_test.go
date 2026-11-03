@@ -484,3 +484,79 @@ func TestManualBankTransactions(t *testing.T) {
 		t.Errorf("delete: %d", code)
 	}
 }
+
+func TestMoveBankImport(t *testing.T) {
+	app := newTestApp(t)
+	ctx := context.Background()
+	danny := insertTestUser(t, app, "danny")
+	julia := insertTestUser(t, app, "julia")
+	person, _ := app.queries.InsertPerson(ctx, sqlc.InsertPersonParams{Name: "Julia", InHousehold: 1, UserID: &julia.ID})
+	wrong, _ := app.queries.InsertAccount(ctx, sqlc.InsertAccountParams{Name: "Tagesgeld", Type: "SAVINGS"})
+	right, _ := app.queries.InsertAccount(ctx, sqlc.InsertAccountParams{Name: "Gemeinschaftskonto", Type: "CHECKING"})
+	juliasAccount, _ := app.queries.InsertAccount(ctx, sqlc.InsertAccountParams{Name: "Julias Giro", Type: "CHECKING", PersonID: &person.ID})
+
+	upload := func(user sqlc.User, accountID int64) dtos.BankImportResultDto {
+		var body bytes.Buffer
+		w := multipart.NewWriter(&body)
+		part, _ := w.CreateFormFile("file", "Umsatzanzeige.csv")
+		part.Write([]byte(ingStatement))
+		w.WriteField("account_id", strconv.FormatInt(accountID, 10))
+		w.Close()
+		req := httptest.NewRequest(http.MethodPost, "/api/bank_imports", &body)
+		req.Header.Set(echo.HeaderContentType, w.FormDataContentType())
+		rec := httptest.NewRecorder()
+		c := echo.New().NewContext(req, rec)
+		c.Set("user", user)
+		if err := app.importBankStatement(c); err != nil {
+			t.Fatal(err)
+		}
+		var result dtos.BankImportResultDto
+		json.Unmarshal(rec.Body.Bytes(), &result)
+		return result
+	}
+	move := func(user sqlc.User, importID, accountID int64) int {
+		req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(fmt.Sprintf(`{"account_id":%d}`, accountID)))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		e := echo.New()
+		e.Validator = &CustomValidator{validator: validator.New()}
+		c := e.NewContext(req, httptest.NewRecorder())
+		c.SetParamNames("id")
+		c.SetParamValues(strconv.FormatInt(importID, 10))
+		c.Set("user", user)
+		if err := app.moveBankImport(c); err != nil {
+			return err.(*echo.HTTPError).Code
+		}
+		return http.StatusNoContent
+	}
+
+	imported := upload(danny, wrong.ID)
+	importID := *imported.ImportID
+	categories, _ := app.queries.FindAllCategories(ctx)
+	app.db.ExecContext(ctx, "UPDATE bank_transactions SET category_id = ? WHERE import_id = ?", categories[0].ID, importID)
+
+	if code := move(julia, importID, right.ID); code != http.StatusNotFound {
+		t.Errorf("julia moves danny's import: %d", code)
+	}
+	if code := move(danny, importID, juliasAccount.ID); code != http.StatusForbidden {
+		t.Errorf("moving to julia's private account: %d", code)
+	}
+	if code := move(danny, importID, right.ID); code != http.StatusNoContent {
+		t.Fatalf("move: %d", code)
+	}
+	list, _ := app.queries.FindBankTransactionsByImport(ctx, sqlc.FindBankTransactionsByImportParams{OwnerID: danny.ID, ImportID: &importID})
+	for _, tx := range list {
+		if *tx.AccountID != right.ID || tx.CategoryID == nil {
+			t.Errorf("after moving: %+v", tx)
+		}
+	}
+	imports, _ := app.queries.FindBankImportsByOwner(ctx, danny.ID)
+	if imports[0].AccountID != right.ID {
+		t.Errorf("import still on account %d", imports[0].AccountID)
+	}
+
+	// the same export imported again to the wrong account cannot be moved onto the bookings it duplicates
+	again := upload(danny, wrong.ID)
+	if code := move(danny, *again.ImportID, right.ID); code != http.StatusConflict {
+		t.Errorf("moving a duplicate import: %d", code)
+	}
+}

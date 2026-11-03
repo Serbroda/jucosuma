@@ -1,5 +1,6 @@
 import {
     BillingPeriodOneTime,
+    type BankActualsDto,
     type BankTransactionDto,
     type CategoryDto,
     type ContractDto,
@@ -76,4 +77,34 @@ export function targetChange(value: string): { contract_id?: number; category_id
     if (!value) return {clear_category: true};
     const id = Number(value.slice(2));
     return value.startsWith("e:") ? {contract_id: id} : {category_id: id};
+}
+
+/** Spending per expense category (refunds reduce it); category null = money going out without category. */
+export type CategorySpending = { categoryId: number | null; amount: number };
+
+export function spendingByCategory(transactions: BankTransactionDto[], categories: CategoryDto[]): CategorySpending[] {
+    const expense = new Set(categories.filter((c) => c.type === EntryKindExpense).map((c) => c.id));
+    const sums = new Map<number | null, number>();
+    for (const tx of transactions) {
+        const id = tx.category_id ?? null;
+        if (id == null ? tx.amount >= 0 : !expense.has(id)) continue;
+        sums.set(id, (sums.get(id) ?? 0) - tx.amount);
+    }
+    return byAmountUnassignedLast([...sums].filter(([, amount]) => amount > 0.005)
+        .map(([categoryId, amount]) => ({categoryId, amount: Math.round(amount * 100) / 100})));
+}
+
+/** Largest first; the spending without category always last. */
+function byAmountUnassignedLast(list: CategorySpending[]): CategorySpending[] {
+    return list.sort((a, b) => (a.categoryId == null ? 1 : 0) - (b.categoryId == null ? 1 : 0) || b.amount - a.amount);
+}
+
+/** The same from the household totals of the server. */
+export function householdSpending(actuals: BankActualsDto, categories: CategoryDto[]): CategorySpending[] {
+    const expense = new Set(categories.filter((c) => c.type === EntryKindExpense).map((c) => c.id));
+    const list: CategorySpending[] = actuals.categories
+        .filter((c) => expense.has(c.category_id) && c.amount > 0.005)
+        .map((c) => ({categoryId: c.category_id, amount: c.amount}));
+    if (actuals.unassigned.amount > 0.005) list.push({categoryId: null, amount: actuals.unassigned.amount});
+    return byAmountUnassignedLast(list);
 }

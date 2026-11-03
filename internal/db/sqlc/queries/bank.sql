@@ -118,3 +118,18 @@ WHERE id = sqlc.arg('id') AND owner_id = sqlc.arg('owner_id') AND import_id IS N
 
 -- name: DeleteManualBankTransaction :execrows
 DELETE FROM bank_transactions WHERE id = sqlc.arg('id') AND owner_id = sqlc.arg('owner_id') AND import_id IS NULL;
+
+-- name: CountBankImportConflicts :one
+-- Bookings of an import that the target account already has (e.g. imported there as well).
+SELECT COUNT(*)
+FROM bank_transactions t
+WHERE t.import_id = sqlc.arg('import_id')
+  AND EXISTS (SELECT 1 FROM bank_transactions o
+              WHERE o.account_id = sqlc.arg('account_id') AND o.fingerprint = t.fingerprint AND o.id != t.id);
+
+-- name: MoveBankImport :execrows
+UPDATE bank_imports SET account_id = sqlc.arg('account_id') WHERE id = sqlc.arg('id') AND owner_id = sqlc.arg('owner_id');
+
+-- name: MoveBankImportTransactions :exec
+UPDATE bank_transactions SET account_id = sqlc.arg('account_id'), updated_at = CURRENT_TIMESTAMP
+WHERE import_id = sqlc.arg('import_id') AND owner_id = sqlc.arg('owner_id');

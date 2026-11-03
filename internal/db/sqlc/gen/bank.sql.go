@@ -28,6 +28,27 @@ func (q *Queries) CloseBankImport(ctx context.Context, arg CloseBankImportParams
 	return result.RowsAffected()
 }
 
+const countBankImportConflicts = `-- name: CountBankImportConflicts :one
+SELECT COUNT(*)
+FROM bank_transactions t
+WHERE t.import_id = ?1
+  AND EXISTS (SELECT 1 FROM bank_transactions o
+              WHERE o.account_id = ?2 AND o.fingerprint = t.fingerprint AND o.id != t.id)
+`
+
+type CountBankImportConflictsParams struct {
+	ImportID  *int64 `db:"import_id"`
+	AccountID *int64 `db:"account_id"`
+}
+
+// Bookings of an import that the target account already has (e.g. imported there as well).
+func (q *Queries) CountBankImportConflicts(ctx context.Context, arg CountBankImportConflictsParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countBankImportConflicts, arg.ImportID, arg.AccountID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const deleteBankImport = `-- name: DeleteBankImport :exec
 DELETE FROM bank_imports WHERE id = ?1 AND owner_id = ?2
 `
@@ -535,6 +556,40 @@ func (q *Queries) MarkBankImportsPurged(ctx context.Context, closedBefore *time.
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const moveBankImport = `-- name: MoveBankImport :execrows
+UPDATE bank_imports SET account_id = ?1 WHERE id = ?2 AND owner_id = ?3
+`
+
+type MoveBankImportParams struct {
+	AccountID int64 `db:"account_id"`
+	ID        int64 `db:"id"`
+	OwnerID   int64 `db:"owner_id"`
+}
+
+func (q *Queries) MoveBankImport(ctx context.Context, arg MoveBankImportParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, moveBankImport, arg.AccountID, arg.ID, arg.OwnerID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const moveBankImportTransactions = `-- name: MoveBankImportTransactions :exec
+UPDATE bank_transactions SET account_id = ?1, updated_at = CURRENT_TIMESTAMP
+WHERE import_id = ?2 AND owner_id = ?3
+`
+
+type MoveBankImportTransactionsParams struct {
+	AccountID *int64 `db:"account_id"`
+	ImportID  *int64 `db:"import_id"`
+	OwnerID   int64  `db:"owner_id"`
+}
+
+func (q *Queries) MoveBankImportTransactions(ctx context.Context, arg MoveBankImportTransactionsParams) error {
+	_, err := q.db.ExecContext(ctx, moveBankImportTransactions, arg.AccountID, arg.ImportID, arg.OwnerID)
+	return err
 }
 
 const purgeBankTransactions = `-- name: PurgeBankTransactions :execrows

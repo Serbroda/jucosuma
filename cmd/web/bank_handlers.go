@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -361,6 +362,55 @@ func (app *application) updateBankTransactions(c echo.Context) error {
 				return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 			}
 		}
+	}
+	if err := tx.Commit(); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	return c.NoContent(http.StatusNoContent)
+}
+
+// moveBankImport moves an own import with its bookings to another account. Refused when the target
+// account already has some of the bookings: then the import is a duplicate and should be deleted.
+func (app *application) moveBankImport(c echo.Context) error {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
+	}
+	var payload dtos.MoveBankImportDto
+	if err := BindAndValidate(c, &payload); err != nil {
+		return err
+	}
+	user := c.Get("user").(sqlc.User)
+	ctx := c.Request().Context()
+	if _, err := app.queries.FindBankImportByIdAndOwner(ctx, sqlc.FindBankImportByIdAndOwnerParams{ID: id, OwnerID: user.ID}); err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "import not found")
+	}
+	account, err := app.findAccount(ctx, payload.AccountID)
+	if err != nil {
+		return err
+	}
+	if err := app.ensureOwnOrSharedAccount(ctx, account, user.ID); err != nil {
+		return err
+	}
+
+	tx, err := app.db.BeginTx(ctx, nil)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	defer tx.Rollback()
+	qtx := app.queries.WithTx(tx)
+	conflicts, err := qtx.CountBankImportConflicts(ctx, sqlc.CountBankImportConflictsParams{ImportID: &id, AccountID: &account.ID})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	if conflicts > 0 {
+		return echo.NewHTTPError(http.StatusConflict, fmt.Sprintf("%d bookings of this import already exist on %s – delete this import instead", conflicts, account.Name))
+	}
+	if _, err := qtx.MoveBankImport(ctx, sqlc.MoveBankImportParams{ID: id, OwnerID: user.ID, AccountID: account.ID}); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	if err := qtx.MoveBankImportTransactions(ctx, sqlc.MoveBankImportTransactionsParams{ImportID: &id, OwnerID: user.ID, AccountID: &account.ID}); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 	if err := tx.Commit(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())

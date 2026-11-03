@@ -52,6 +52,7 @@ func (app *application) routes() *echo.Echo {
 	auth.DELETE("/bank_imports/:id", app.deleteBankImport)
 	auth.PUT("/bank_imports/:id/close", app.closeBankImport)
 	auth.PUT("/bank_imports/:id/reopen", app.reopenBankImport)
+	auth.PUT("/bank_imports/:id/account", app.moveBankImport)
 	auth.GET("/bank_settings", app.getBankSettings)
 	auth.GET("/bank_transactions", app.getBankTransactions)
 	auth.PUT("/bank_transactions", app.updateBankTransactions)

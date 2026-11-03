@@ -145,6 +145,13 @@ export interface SaveManualBankTransactionDto {
   category_id?: number /* int64 */;
   contract_id?: number /* int64 */;
 }
+/**
+ * MoveBankImportDto moves an import with its bookings to another account, e.g. after picking the
+ * wrong one; assignments and scopes stay.
+ */
+export interface MoveBankImportDto {
+  account_id: number /* int64 */;
+}
 
 //////////
 // source: dtos.go

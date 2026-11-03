@@ -140,3 +140,9 @@ type SaveManualBankTransactionDto struct {
 	CategoryID   *int64    `json:"category_id"`
 	ContractID   *int64    `json:"contract_id"`
 }
+
+// MoveBankImportDto moves an import with its bookings to another account, e.g. after picking the
+// wrong one; assignments and scopes stay.
+type MoveBankImportDto struct {
+	AccountID int64 `json:"account_id" validate:"required"`
+}

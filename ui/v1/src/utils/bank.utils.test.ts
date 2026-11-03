@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
 import {BillingPeriodOneTime, EntryKindIncome, type BankTransactionDto, type CategoryDto} from "../gen/types.gen.ts";
-import {bankTargets, isTarget, selectedTargetValue, targetChange} from "./bank.utils.ts";
+import {bankTargets, householdSpending, isTarget, selectedTargetValue, spendingByCategory, targetChange} from "./bank.utils.ts";
 import {category, expense, groceries, insurance, transport} from "../test/fixtures.ts";
 
 const salary: CategoryDto = {...category(200, "salary"), type: EntryKindIncome};
@@ -49,5 +49,39 @@ describe("bankTargets", () => {
         expect(targetChange(`e:${food.id}`)).toEqual({contract_id: food.id});
         expect(targetChange("c:101")).toEqual({category_id: 101});
         expect(targetChange("")).toEqual({clear_category: true});
+    });
+});
+
+describe("spendingByCategory", () => {
+    it("sums money going out per expense category, refunds reduce it, income categories are left out", () => {
+        const list = [
+            booking(-20, {category_id: groceries.id}),
+            booking(-5.5, {category_id: groceries.id}),
+            booking(3, {category_id: groceries.id}), // refund
+            booking(-58, {category_id: transport.id}),
+            booking(2000, {category_id: salary.id}),
+            booking(-120, {}), // without category: last, even when the largest
+            booking(400, {}), // cash deposit without category: no spending
+        ];
+        expect(spendingByCategory(list, categories)).toEqual([
+            {categoryId: transport.id, amount: 58},
+            {categoryId: groceries.id, amount: 22.5},
+            {categoryId: null, amount: 120},
+        ]);
+    });
+
+    it("takes household totals of expense categories plus the unassigned spending", () => {
+        const actuals = {
+            month: "2026-10", coverage: [], balances: [],
+            unassigned: {amount: 3000, bookings: 2},
+            categories: [
+                {category_id: groceries.id, amount: 310, bookings: 16, by_user: [], entries: []},
+                {category_id: salary.id, amount: -2000, bookings: 1, by_user: [], entries: []},
+            ],
+        };
+        expect(householdSpending(actuals, categories)).toEqual([
+            {categoryId: groceries.id, amount: 310},
+            {categoryId: null, amount: 3000},
+        ]);
     });
 });
