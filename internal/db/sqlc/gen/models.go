@@ -33,6 +33,45 @@ type AppSetting struct {
 	UpdatedAt *time.Time `db:"updated_at"`
 }
 
+type BankImport struct {
+	ID         int64      `db:"id"`
+	OwnerID    int64      `db:"owner_id"`
+	AccountID  int64      `db:"account_id"`
+	Bank       string     `db:"bank"`
+	Filename   string     `db:"filename"`
+	PeriodFrom *time.Time `db:"period_from"`
+	PeriodTo   *time.Time `db:"period_to"`
+	Imported   int64      `db:"imported"`
+	Duplicates int64      `db:"duplicates"`
+	CreatedAt  *time.Time `db:"created_at"`
+}
+
+type BankTransaction struct {
+	ID               int64      `db:"id"`
+	ImportID         int64      `db:"import_id"`
+	OwnerID          int64      `db:"owner_id"`
+	AccountID        int64      `db:"account_id"`
+	Fingerprint      string     `db:"fingerprint"`
+	BookingDate      time.Time  `db:"booking_date"`
+	ValueDate        time.Time  `db:"value_date"`
+	Counterparty     string     `db:"counterparty"`
+	CounterpartyIban *string    `db:"counterparty_iban"`
+	BookingText      string     `db:"booking_text"`
+	Purpose          string     `db:"purpose"`
+	Reference        *string    `db:"reference"`
+	CreditorID       *string    `db:"creditor_id"`
+	Amount           float64    `db:"amount"`
+	BalanceAfter     *float64   `db:"balance_after"`
+	Currency         string     `db:"currency"`
+	Scope            string     `db:"scope"`
+	Kind             *string    `db:"kind"`
+	CategoryID       *int64     `db:"category_id"`
+	ContractID       *int64     `db:"contract_id"`
+	ClassifiedBy     *string    `db:"classified_by"`
+	CreatedAt        *time.Time `db:"created_at"`
+	UpdatedAt        *time.Time `db:"updated_at"`
+}
+
 type Category struct {
 	ID        int64      `db:"id"`
 	Name      string     `db:"name"`

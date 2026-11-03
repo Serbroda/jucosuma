@@ -295,3 +295,4 @@ bin/
 ui/package.json
 ui/package-lock.json
 uploads/
+examples/

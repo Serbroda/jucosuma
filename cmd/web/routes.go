@@ -46,6 +46,12 @@ func (app *application) routes() *echo.Echo {
 	auth.PUT("/month_closings/:month", app.saveMonthClosing)
 	auth.DELETE("/month_closings/:month", app.deleteMonthClosing)
 
+	// Bank statements (bookings are private to the user who imported them)
+	auth.POST("/bank_imports", app.importBankStatement)
+	auth.GET("/bank_imports", app.getBankImports)
+	auth.DELETE("/bank_imports/:id", app.deleteBankImport)
+	auth.GET("/bank_transactions", app.getBankTransactions)
+
 	// Savings goals
 	auth.GET("/savings_goals", app.getSavingsGoals)
 	auth.POST("/savings_goals", app.createSavingsGoal)
