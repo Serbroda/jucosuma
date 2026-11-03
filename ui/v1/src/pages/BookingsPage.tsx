@@ -30,8 +30,8 @@ import SegmentedControl from "../components/SegmentedControl.tsx";
 import {Dialog, DialogActions, DialogBody, DialogTitle} from "../components/catalyst/dialog.tsx";
 import {Button} from "../components/catalyst/button.tsx";
 import {Checkbox} from "../components/catalyst/checkbox.tsx";
-import {Switch, SwitchField} from "../components/catalyst/switch.tsx";
-import {Label} from "../components/catalyst/fieldset.tsx";
+import TableToolbar from "../components/ui/TableToolbar.tsx";
+import {useTableFilter} from "../hooks/useTableFilter.ts";
 import type {BankImportDto, BankTransactionDto} from "../gen/types.gen.ts";
 import {useAppData} from "../hooks/useAppData.ts";
 import {useMonth} from "../stores/useMonth.ts";
@@ -39,7 +39,7 @@ import {usePreferences} from "../stores/usePreferences.ts";
 import {apiBasePath} from "../config.ts";
 import {apiFetch} from "../lib/fetch.ts";
 import {sendJson} from "../lib/api.ts";
-import {accountName} from "../utils/household.utils.ts";
+import {accountName, categoryLabel, sortedByName} from "../utils/household.utils.ts";
 import {targetChange} from "../utils/bank.utils.ts";
 import {numberLocale} from "../utils/number.utils.ts";
 import {card, cardTitle, table, td, th, tr} from "../utils/ui.ts";
@@ -60,7 +60,6 @@ export default function BookingsPage() {
     const [transactions, setTransactions] = useState<BankTransactionDto[]>([]);
     const [imports, setImports] = useState<BankImportDto[]>([]);
     const [selected, setSelected] = useState<Set<number>>(new Set());
-    const [onlyOpen, setOnlyOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [deleting, setDeleting] = useState<BankImportDto | null>(null);
     const [moving, setMoving] = useState<BankImportDto | null>(null);
@@ -146,8 +145,43 @@ export default function BookingsPage() {
     const expenses = transactions.filter((tx) => tx.amount < 0).reduce((s, tx) => s - tx.amount, 0);
     const income = transactions.filter((tx) => tx.amount > 0).reduce((s, tx) => s + tx.amount, 0);
     const open = transactions.filter((tx) => tx.category_id == null).length;
-    const listed = onlyOpen ? transactions.filter((tx) => tx.category_id == null) : transactions;
-    const selectedIds = [...selected];
+    const categoryById = new Map(data.categories.map((c) => [c.id, c]));
+    const usedCategories = [...new Set(transactions.map((tx) => tx.category_id).filter((id): id is number => id != null))]
+        .map((id) => categoryById.get(id)).filter((c) => c != null);
+    const usedAccounts = [...new Set(transactions.map((tx) => tx.account_id ?? null))];
+    const {filtered: listed, toolbar, isFiltered} = useTableFilter(transactions, {
+        searchText: (tx) => [tx.counterparty, tx.purpose, tx.booking_text, money(tx.amount)].join(" "),
+        filters: [
+            {
+                key: "category", label: t("bank.category"),
+                options: [{value: "none", label: t("bank.unassigned")},
+                    ...sortedByName(usedCategories, (c) => categoryLabel(c.name, c.key)).map((c) => ({value: String(c.id), label: categoryLabel(c.name, c.key)}))],
+                test: (tx, v) => v === "none" ? tx.category_id == null : tx.category_id === Number(v),
+            },
+            {
+                key: "scope", label: t("bank.scope"),
+                options: [{value: "HOUSEHOLD", label: t("bank.scopeHousehold")}, {value: "PRIVATE", label: t("bank.scopePrivate")}],
+                test: (tx, v) => tx.scope === v,
+            },
+            {
+                key: "account", label: t("bank.account"),
+                options: usedAccounts.map((id) => ({value: String(id ?? "cash"), label: accountName(id, data.accounts) ?? t("bank.cash")})),
+                test: (tx, v) => String(tx.account_id ?? "cash") === v,
+            },
+            {
+                key: "direction", label: t("bank.direction"),
+                options: [{value: "out", label: t("bank.manualOut")}, {value: "in", label: t("bank.manualIn")}],
+                test: (tx, v) => (tx.amount < 0) === (v === "out"),
+            },
+            {
+                key: "source", label: t("bank.source"),
+                options: [{value: "import", label: t("bank.sourceImport")}, {value: "manual", label: t("bank.manualCapital")}],
+                test: (tx, v) => (tx.import_id == null) === (v === "manual"),
+            },
+        ],
+    });
+    // bulk actions apply to the selected bookings that are shown
+    const selectedIds = listed.filter((tx) => selected.has(tx.id)).map((tx) => tx.id);
     const allSelected = listed.length > 0 && listed.every((tx) => selected.has(tx.id));
     const toggle = (id: number, on: boolean) => setSelected((s) => {
         const next = new Set(s);
@@ -155,7 +189,7 @@ export default function BookingsPage() {
         return next;
     });
     // bulk assignment: the first selected booking decides which targets are offered
-    const firstSelected = transactions.find((tx) => selected.has(tx.id));
+    const firstSelected = listed.find((tx) => selected.has(tx.id));
 
     const kpis = [
         {label: t("bank.expenses"), value: money(expenses), icon: ArrowUpRightIcon, color: 4},
@@ -347,17 +381,11 @@ export default function BookingsPage() {
                                        format={(v) => new Intl.NumberFormat(numberLocale(), {style: "currency", currency: mainCurrency, maximumFractionDigits: v >= 100 ? 0 : 2}).format(v)}/>
 
                 <div className={card}>
-                    <div className="flex flex-wrap items-center gap-3 mb-3">
-                        <h2 className={cardTitle + " grow"}>{t("bank.listTitle")}</h2>
-                        <SwitchField>
-                            <Label>{t("bank.onlyOpen")}</Label>
-                            <Switch checked={onlyOpen} onChange={setOnlyOpen}/>
-                        </SwitchField>
-                    </div>
+                    <TableToolbar title={t("bank.listTitle")} state={toolbar}/>
 
-                    {selected.size > 0 && (
+                    {selectedIds.length > 0 && (
                         <div className="flex flex-wrap items-center gap-2 mb-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 p-2 text-sm">
-                            <span className="text-zinc-600 dark:text-zinc-300 px-1">{t("bank.selected", {count: selected.size})}</span>
+                            <span className="text-zinc-600 dark:text-zinc-300 px-1">{t("bank.selected", {count: selectedIds.length})}</span>
                             <div className="w-56">
                                 {firstSelected && <BankTargetSelect tx={firstSelected} contracts={data.contracts} categories={data.categories}
                                                                     placeholder={t("bank.setCategory")} onChange={(v) => assign(selectedIds, v)}/>}
@@ -373,7 +401,7 @@ export default function BookingsPage() {
 
                     {listed.length === 0 ? (
                         <p className="text-sm text-zinc-500 dark:text-zinc-400 py-6 text-center">
-                            {transactions.length === 0 ? t("bank.empty") : t("bank.allClassified")}
+                            {transactions.length === 0 ? t("bank.empty") : isFiltered ? t("bank.noMatch") : t("bank.allClassified")}
                         </p>
                     ) : (
                         <div className="overflow-x-auto relative">
