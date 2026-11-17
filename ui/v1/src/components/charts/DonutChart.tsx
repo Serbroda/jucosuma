@@ -11,6 +11,8 @@ export interface DonutChartProps {
     emptyText: string;
     /** amount the shares refer to (e.g. income); defaults to the sum of the segments */
     shareBase?: number;
+    /** legend below the donut at every width (narrow cards) */
+    stacked?: boolean;
 }
 
 const SIZE = 180;
@@ -33,7 +35,7 @@ function arcPath(start: number, end: number): string {
 }
 
 /** Donut with a legend table (label, amount, share). Hovering a slice or a legend row highlights both. */
-export default function DonutChart({segments, centerValue, centerLabel, format, emptyText, shareBase}: DonutChartProps) {
+export default function DonutChart({segments, centerValue, centerLabel, format, emptyText, shareBase, stacked}: DonutChartProps) {
     const [active, setActive] = useState<string | null>(null);
     const total = segments.reduce((sum, s) => sum + s.value, 0);
 
@@ -51,7 +53,7 @@ export default function DonutChart({segments, centerValue, centerLabel, format, 
     const activeSegment = segments.find((s) => s.key === active);
 
     return (
-        <div className="flex flex-col sm:flex-row items-center gap-6">
+        <div className={classNames("flex flex-col items-center gap-6", stacked ? "" : "sm:flex-row")}>
             <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} className="shrink-0" role="img"
                  aria-label={`${centerLabel}: ${centerValue}`}>
                 {arcs.map((a) => (

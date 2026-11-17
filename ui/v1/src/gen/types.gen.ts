@@ -599,3 +599,38 @@ export interface SaveBackupSettingsDto {
   enabled: boolean;
   keep: number /* int */;
 }
+export type InvestMode = string;
+export const InvestModePercent: InvestMode = "percent";
+export const InvestModeFixed: InvestMode = "fixed";
+/**
+ * InvestPlanItemDto is one position of an invest plan: a fixed amount, or a percentage of what the
+ * fixed positions leave of the plan's amount.
+ */
+export interface InvestPlanItemDto {
+  id: number /* int64 */;
+  name: string;
+  mode: InvestMode;
+  value: number /* float64 */;
+  account_id?: number /* int64 */;
+}
+/**
+ * InvestPlanDto is a monthly amount spread over positions; plans are private to their user.
+ */
+export interface InvestPlanDto {
+  id: number /* int64 */;
+  name: string;
+  amount: number /* float64 */;
+  items: InvestPlanItemDto[];
+  updated_at?: string /* RFC3339 */;
+}
+export interface SaveInvestPlanItemDto {
+  name: string;
+  mode: string;
+  value: number /* float64 */;
+  account_id?: number /* int64 */;
+}
+export interface SaveInvestPlanDto {
+  name: string;
+  amount: number /* float64 */;
+  items: SaveInvestPlanItemDto[];
+}

@@ -4,7 +4,7 @@ import ErrorPage from "./pages/ErrorPage.tsx";
 import {usePreferences} from "./stores/usePreferences.ts";
 import {useEffect} from "react";
 import ContractFormPage from "./pages/ContractFormPage.tsx";
-import {contractLoader, contractsLoader, contractFormLoader} from "./loader/contracts.ts";
+import {contractLoader, contractsLoader, contractFormLoader, investLoader} from "./loader/contracts.ts";
 import {contractAction} from "./actions/contracts.ts";
 import ContractPage from "./pages/ContractPage.tsx";
 import SettingsPage from "./pages/SettingsPage.tsx";
@@ -14,6 +14,7 @@ import ChangePasswordPage from "./pages/ChangePasswordPage.tsx";
 import AuthGuard from "./components/AuthGuard.tsx";
 import OverviewPage from "./pages/OverviewPage.tsx";
 import SavingsPage from "./pages/SavingsPage.tsx";
+import InvestPage from "./pages/InvestPage.tsx";
 import IncomePage from "./pages/IncomePage.tsx";
 import ExpensesPage from "./pages/ExpensesPage.tsx";
 import TransfersPage from "./pages/TransfersPage.tsx";
@@ -49,6 +50,7 @@ const router = createHashRouter([
                     {path: '/closing', element: <ClosingPage/>, loader: contractsLoader},
                     {path: '/bookings', element: <BookingsPage/>, loader: contractsLoader},
                     {path: '/savings', element: <SavingsPage/>, loader: contractsLoader},
+                    {path: '/invest', element: <InvestPage/>, loader: investLoader},
                     {path: '/accounts', element: <AccountsPage/>, loader: contractsLoader},
                     {
                         path: '/settings', element: <SettingsLayout/>, children: [

@@ -530,3 +530,42 @@ type SaveBackupSettingsDto struct {
 	Enabled bool `json:"enabled"`
 	Keep    int  `json:"keep" validate:"min=1,max=365"`
 }
+
+type InvestMode string
+
+const (
+	InvestModePercent InvestMode = "percent"
+	InvestModeFixed   InvestMode = "fixed"
+)
+
+// InvestPlanItemDto is one position of an invest plan: a fixed amount, or a percentage of what the
+// fixed positions leave of the plan's amount.
+type InvestPlanItemDto struct {
+	ID        int64      `json:"id"`
+	Name      string     `json:"name"`
+	Mode      InvestMode `json:"mode"`
+	Value     float64    `json:"value"`
+	AccountID *int64     `json:"account_id"`
+}
+
+// InvestPlanDto is a monthly amount spread over positions; plans are private to their user.
+type InvestPlanDto struct {
+	ID        int64               `json:"id"`
+	Name      string              `json:"name"`
+	Amount    float64             `json:"amount"`
+	Items     []InvestPlanItemDto `json:"items"`
+	UpdatedAt *time.Time          `json:"updated_at"`
+}
+
+type SaveInvestPlanItemDto struct {
+	Name      string  `json:"name" validate:"required,min=1,max=128"`
+	Mode      string  `json:"mode" validate:"required,oneof=percent fixed"`
+	Value     float64 `json:"value" validate:"gte=0"`
+	AccountID *int64  `json:"account_id"`
+}
+
+type SaveInvestPlanDto struct {
+	Name   string                  `json:"name" validate:"required,min=1,max=128"`
+	Amount float64                 `json:"amount" validate:"gte=0"`
+	Items  []SaveInvestPlanItemDto `json:"items" validate:"max=50,dive"`
+}

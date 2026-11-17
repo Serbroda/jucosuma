@@ -78,6 +78,12 @@ Goal: a household finance overview — what comes in, what the household actuall
 - [x] Earner for income, independent of the receiving account.
 - [x] Website and editable links per entry (e.g. customer portal, documents in Paperless); only http(s) links.
 
+### Stage 3c — Invest plan ✅
+
+- [x] Invest plans per login (private, also for admins): a monthly amount spread over positions by percentage
+      or fixed amount (fixed first, percentages share the rest), optional target account, several plans as variants.
+- [ ] Apply a plan: create or adjust the saving transfers from its positions; plan vs. current transfers.
+
 ### Stage 4 — Split key & settlement (idea, not needed with a joint account)
 
 For households without a joint account – shared costs are paid from private accounts and split by a key –

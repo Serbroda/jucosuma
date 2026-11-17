@@ -57,6 +57,15 @@ async function contractsLoader() {
     return {contracts, holders, ...household};
 }
 
+/** The user's invest plans plus the accounts their positions can point to. */
+async function investLoader() {
+    const [investPlans, household] = await Promise.all([
+        fetchJSON(`${apiBasePath}/invest_plans`),
+        householdLoader(),
+    ]);
+    return {investPlans: investPlans ?? [], ...household};
+}
+
 async function contractLoader({params}: { params: any }) {
     const [contract, {holders}, {companies}, household] = await Promise.all([
         fetchJSON(`${apiBasePath}/contracts/${params.id}`),
@@ -79,4 +88,4 @@ async function contractFormLoader() {
     return {holders, companies, ...household};
 }
 
-export {contractsLoader, contractLoader, contractHoldersLoader, categoriesLoader, contractFormLoader, householdLoader};
+export {contractsLoader, contractLoader, contractHoldersLoader, categoriesLoader, contractFormLoader, householdLoader, investLoader};

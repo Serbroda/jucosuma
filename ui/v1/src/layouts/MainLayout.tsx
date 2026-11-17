@@ -7,6 +7,7 @@ import {
     ClipboardDocumentCheckIcon,
     QueueListIcon,
     BuildingLibraryIcon,
+    ChartPieIcon,
     Cog6ToothIcon,
     HomeIcon,
     ReceiptPercentIcon,
@@ -50,6 +51,7 @@ function MainLayout() {
         {label: t('nav.closing'), url: '/closing', icon: ClipboardDocumentCheckIcon},
         {label: t('nav.bookings'), url: '/bookings', icon: QueueListIcon},
         {label: t('nav.savings'), url: '/savings', icon: SparklesIcon},
+        {label: t('nav.invest'), url: '/invest', icon: ChartPieIcon},
         {label: t('nav.accounts'), url: '/accounts', icon: BuildingLibraryIcon},
     ]
     // entry pages live under /contracts/…; highlight the menu item matching the entry's kind instead
@@ -62,7 +64,7 @@ function MainLayout() {
         ? url === entryNav
         : url === '/' ? pathname === '/' : pathname.startsWith(url)
     // pages without month context (the closing page has its own month list)
-    const showMonth = !['/settings', '/contracts', '/closing'].some((p) => pathname.startsWith(p))
+    const showMonth = !['/settings', '/contracts', '/closing', '/invest'].some((p) => pathname.startsWith(p))
 
     return (
         <div className="text-black dark:text-white">

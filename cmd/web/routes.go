@@ -67,6 +67,12 @@ func (app *application) routes() *echo.Echo {
 	auth.PUT("/savings_goals/:id", app.updateSavingsGoal)
 	auth.DELETE("/savings_goals/:id", app.deleteSavingsGoal)
 
+	// Invest plans (private to their user)
+	auth.GET("/invest_plans", app.getInvestPlans)
+	auth.POST("/invest_plans", app.createInvestPlan)
+	auth.PUT("/invest_plans/:id", app.updateInvestPlan)
+	auth.DELETE("/invest_plans/:id", app.deleteInvestPlan)
+
 	// Contract routes
 	auth.GET("/contracts", app.getContracts)
 	auth.GET("/contracts/export.csv", app.exportContractsCSV)

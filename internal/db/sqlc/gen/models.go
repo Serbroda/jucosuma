@@ -176,6 +176,25 @@ type Document struct {
 	DeletedAt  *time.Time `db:"deleted_at"`
 }
 
+type InvestPlan struct {
+	ID        int64      `db:"id"`
+	OwnerID   int64      `db:"owner_id"`
+	Name      string     `db:"name"`
+	Amount    float64    `db:"amount"`
+	CreatedAt *time.Time `db:"created_at"`
+	UpdatedAt *time.Time `db:"updated_at"`
+}
+
+type InvestPlanItem struct {
+	ID        int64   `db:"id"`
+	PlanID    int64   `db:"plan_id"`
+	Name      string  `db:"name"`
+	Mode      string  `db:"mode"`
+	Value     float64 `db:"value"`
+	AccountID *int64  `db:"account_id"`
+	SortOrder int64   `db:"sort_order"`
+}
+
 type MonthClosing struct {
 	ID        int64      `db:"id"`
 	Month     string     `db:"month"`
